@@ -6,12 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
-}
-
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -26,7 +20,8 @@ model User {
   password  String
   role      String   // 'admin', 'barber', 'client'
   createdAt DateTime @default(now())
-  appointments Appointment[]
+  clientAppointments Appointment[] @relation("Client")
+  barberAppointments Appointment[] @relation("Barber")
 }
 
 model Service {
@@ -42,9 +37,9 @@ model Service {
 model Appointment {
   id        String   @id @default(uuid())
   date      DateTime
-  client    User     @relation(fields: [clientId], references: [id])
+  client    User     @relation("Client", fields: [clientId], references: [id])
   clientId  String
-  barber    User     @relation(fields: [barberId], references: [id])
+  barber    User     @relation("Barber", fields: [barberId], references: [id])
   barberId  String
   service   Service  @relation(fields: [serviceId], references: [id])
   serviceId String

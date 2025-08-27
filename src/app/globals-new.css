@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
@@ -61,46 +59,11 @@
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    @apply border-border;
   }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground;
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    transition: background 0.3s, color 0.3s;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    font-weight: 700;
-    margin-bottom: 0.5em;
-    color: hsl(var(--foreground));
-  }
-
-  p {
-    font-size: 1.1rem;
-    line-height: 1.7;
-    margin-bottom: 1em;
-  }
-
-  a {
-    color: hsl(var(--primary));
-    text-decoration: underline;
-    transition: color 0.2s;
-  }
-  a:hover {
-    color: hsl(var(--primary-foreground));
-  }
-
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
   }
 }
 
