@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Scissors, Eye, EyeOff, ArrowLeft } from 'lucide-react'
@@ -20,30 +21,22 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        // Login bem-sucedido
-        if (data.user.role === 'admin' || data.user.role === 'barber') {
-          router.push('/admin')
-        } else {
-          router.push('/')
-        }
+      if (result?.error) {
+        setError('Credenciais inválidas')
       } else {
-        setError(data.error || 'Erro no login')
+        // Login bem-sucedido - redirecionar baseado no role
+        router.push('/admin')
       }
     } catch (error) {
-  setError('Erro de conexão. Tente novamente.')
+      setError('Erro de conexão. Tente novamente.')
     } finally {
-  setLoading(false)
+      setLoading(false)
     }
   }
 

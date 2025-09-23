@@ -23,7 +23,13 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ success: true, services })
+    // Adicionar description padrão para compatibilidade com frontend
+    const servicesWithDescription = services.map(service => ({
+      ...service,
+      description: `Serviço de ${service.name.toLowerCase()}`
+    }))
+
+    return NextResponse.json({ success: true, services: servicesWithDescription })
   } catch (error) {
     console.error('Erro ao buscar serviços:', error)
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })

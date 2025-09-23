@@ -32,9 +32,48 @@ export async function GET() {
     })
 
     // Faturamento do mês
-    
+    const monthlyAppointments = await prisma.appointment.findMany({
+      where: {
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+        status: 'CONFIRMED',
+      },
+      include: {
+        service: {
+          select: {
+            price: true
+          }
+        }
+      }
+    })
 
-    // Barbeiros ativos
+    const monthlyRevenue = monthlyAppointments.reduce((total, appointment) => {
+      return total + (appointment.service?.price || 0)
+    }, 0)
+
+    // Faturamento de hoje
+    const todayAppointmentsRevenue = await prisma.appointment.findMany({
+      where: {
+        date: {
+          gte: today,
+          lt: tomorrow,
+        },
+        status: 'CONFIRMED',
+      },
+      include: {
+        service: {
+          select: {
+            price: true
+          }
+        }
+      }
+    })
+
+    const todayRevenue = todayAppointmentsRevenue.reduce((total, appointment) => {
+      return total + (appointment.service?.price || 0)
+    }, 0)
     const activeBarbers = await prisma.user.count({
       where: {
         role: 'barber',
@@ -55,13 +94,13 @@ export async function GET() {
       },
     })
 
-   
-
     return NextResponse.json({
       todayAppointments,
       totalClients,
+      monthlyRevenue,
+      todayRevenue,
       activeBarbers,
-    appointmentsByStatus: appointmentsByStatus.reduce((acc: Record<string, number>, item: { status: string; _count: { id: number } }) => {
+      appointmentsByStatus: appointmentsByStatus.reduce((acc: Record<string, number>, item: { status: string; _count: { id: number } }) => {
         acc[item.status] = item._count.id
         return acc
       }, {}),

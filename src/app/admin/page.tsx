@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/components/auth-context"
+import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Scissors, ArrowLeft, Users, Calendar, DollarSign, Settings, BarChart, Clock, FileText } from "lucide-react";
+import BarbersManagement from "@/components/admin/BarbersManagement";
+import ServicesManagement from "@/components/admin/ServicesManagement";
 
 interface Stats {
   todayAppointments: number
@@ -53,7 +55,7 @@ interface Appointment {
 }
 
 export default function AdminPage() {
-  const { user, loading: authLoading, logout } = useAuth()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([])
@@ -63,37 +65,70 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
   useEffect(() => {
-    console.log('Admin useEffect:', { user, authLoading, userRole: user?.role })
+    console.log('Admin useEffect:', { session, status })
     
-    if (authLoading) return
+    if (status === 'loading') return
 
-    if (!user) {
+    if (!session?.user) {
       console.log('No user, redirecting to login')
       router.push('/login')
       return
     }
 
-    if (user.role !== 'admin' && user.role !== 'barber') {
-      console.log('User role not allowed:', user.role)
+    const userRole = (session.user as any).role
+    if (userRole !== 'admin' && userRole !== 'barber') {
+      console.log('User role not allowed:', userRole)
       router.push('/')
       return
     }
 
     console.log('User authorized, fetching data')
     fetchData()
-  }, [user, authLoading, router])
+  }, [session, status, router])
 
   const fetchData = async () => {
     try {
-      // Buscar estatísticas
-      const statsResponse = await fetch('/api/admin/stats')
-      const statsData = await statsResponse.json()
-      setStats(statsData)
+      const userRole = (session?.user as any)?.role
+      
+      if (userRole === 'barber') {
+        // Para barbeiros: carregar apenas seus dados
+        console.log('Loading barber-specific data')
+        
+        // Buscar estatísticas do barbeiro
+        const statsResponse = await fetch('/api/barber/stats')
+        const statsData = await statsResponse.json()
+        
+        // Adaptar formato para compatibilidade com interface
+        if (statsData.success) {
+          setStats({
+            todayAppointments: statsData.stats.today,
+            totalClients: statsData.stats.totalClients,
+            monthlyRevenue: statsData.stats.monthlyRevenue,  
+            activeBarbers: 1, // Sempre 1 para o próprio barbeiro
+            appointmentsByStatus: {},
+            todayRevenue: 0
+          })
+        }
 
-      // Buscar agendamentos recentes
-      const appointmentsResponse = await fetch('/api/admin/appointments?limit=5')
-      const appointmentsData = await appointmentsResponse.json()
-      setRecentAppointments(appointmentsData.appointments || [])
+        // Buscar agendamentos do barbeiro
+        const appointmentsResponse = await fetch('/api/barber/appointments')
+        const appointmentsData = await appointmentsResponse.json()
+        setRecentAppointments(appointmentsData.appointments || [])
+        
+      } else {
+        // Para admin: carregar dados gerais
+        console.log('Loading admin general data')
+        
+        // Buscar estatísticas gerais
+        const statsResponse = await fetch('/api/admin/stats')
+        const statsData = await statsResponse.json()
+        setStats(statsData)
+
+        // Buscar agendamentos recentes
+        const appointmentsResponse = await fetch('/api/admin/appointments?limit=5')
+        const appointmentsData = await appointmentsResponse.json()
+        setRecentAppointments(appointmentsData.appointments || [])
+      }
 
       // TEMPORÁRIO: Comentado para evitar erros de API
       // // Buscar barbeiros
@@ -113,11 +148,10 @@ export default function AdminPage() {
   }
 
   const handleSignOut = async () => {
-    await logout()
-    router.push('/')
+    await signOut({ callbackUrl: '/' })
   }
 
-  if (authLoading || loading) {
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-white">Carregando...</div>
@@ -125,7 +159,7 @@ export default function AdminPage() {
     )
   }
 
-  if (!user || !stats) {
+  if (!session?.user || !stats) {
     return null
   }
 
@@ -142,11 +176,13 @@ export default function AdminPage() {
             </Button>
             <div className="flex items-center space-x-2">
               <Scissors className="h-8 w-8 text-amber-500" />
-              <span className="text-2xl font-bold text-white">Admin Panel</span>
+              <span className="text-2xl font-bold text-white">
+                {(session?.user as any)?.role === 'barber' ? 'Painel do Barbeiro' : 'Admin Panel'}
+              </span>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-slate-300">Bem-vindo, {user.name}</span>
+            <span className="text-slate-300">Bem-vindo, {session.user.name}</span>
             <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-800" onClick={handleSignOut}>
               Sair
             </Button>
@@ -172,10 +208,14 @@ export default function AdminPage() {
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart },
                 { id: 'appointments', label: 'Agendamentos', icon: Calendar },
-                { id: 'barbers', label: 'Barbeiros', icon: Users },
-                { id: 'services', label: 'Serviços', icon: Scissors },
-                { id: 'reports', label: 'Relatórios', icon: FileText },
-                { id: 'settings', label: 'Configurações', icon: Settings }
+                ...(
+                  (session?.user as any)?.role === 'admin' ? [
+                    { id: 'barbers', label: 'Barbeiros', icon: Users },
+                    { id: 'services', label: 'Serviços', icon: Scissors },
+                    { id: 'reports', label: 'Relatórios', icon: FileText },
+                    { id: 'settings', label: 'Configurações', icon: Settings }
+                  ] : []
+                )
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -212,7 +252,9 @@ export default function AdminPage() {
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-400 text-sm">Total de Clientes</p>
+                <p className="text-slate-400 text-sm">
+                  {(session?.user as any)?.role === 'barber' ? 'Meus Clientes' : 'Total de Clientes'}
+                </p>
                 <p className="text-2xl font-bold text-white">{stats.totalClients}</p>
               </div>
               <Users className="h-8 w-8 text-amber-500" />
@@ -222,7 +264,9 @@ export default function AdminPage() {
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-400 text-sm">Faturamento Mensal</p>
+                <p className="text-slate-400 text-sm">
+                  {(session?.user as any)?.role === 'barber' ? 'Meu Faturamento' : 'Faturamento Mensal'}
+                </p>
                 <p className="text-2xl font-bold text-white">R$ {stats.monthlyRevenue.toLocaleString()}</p>
               </div>
               <DollarSign className="h-8 w-8 text-amber-500" />
@@ -232,8 +276,12 @@ export default function AdminPage() {
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-slate-400 text-sm">Barbeiros Ativos</p>
-                <p className="text-2xl font-bold text-white">{stats.activeBarbers}</p>
+                <p className="text-slate-400 text-sm">
+                  {(session?.user as any)?.role === 'barber' ? 'Status' : 'Barbeiros Ativos'}
+                </p>
+                <p className="text-2xl font-bold text-white">
+                  {(session?.user as any)?.role === 'barber' ? 'Ativo' : stats.activeBarbers}
+                </p>
               </div>
               <Users className="h-8 w-8 text-amber-500" />
             </div>
@@ -247,9 +295,9 @@ export default function AdminPage() {
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
               <h2 className="text-xl font-semibold text-white mb-4">Ações Rápidas</h2>
               <div className="space-y-3">
-                <Button className="w-full bg-amber-600 hover:bg-amber-700" asChild>
+                <Button className="text-white w-full bg-amber-600 hover:bg-amber-700" asChild>
                   <Link href="/admin/agendamentos">
-                    <Calendar className="mr-2 h-4 w-4" />
+                    <Calendar className="text-white mr-2 h-4 w-4" />
                     Gerenciar Agendamentos
                   </Link>
                 </Button>
@@ -286,26 +334,26 @@ export default function AdminPage() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300">Agendamentos</span>
-                  <span className="text-white font-bold">8/12</span>
+                  <span className="text-white font-bold">{stats.todayAppointments || 0}/12</span>
                 </div>
                 <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div className="bg-amber-600 h-2 rounded-full" style={{ width: '67%' }}></div>
+                  <div className="bg-amber-600 h-2 rounded-full" style={{ width: `${Math.min((stats.todayAppointments || 0) / 12 * 100, 100)}%` }}></div>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300">Faturamento</span>
-                  <span className="text-white font-bold">R$ 320</span>
+                  <span className="text-white font-bold">R$ {stats.todayRevenue || 0}</span>
                 </div>
                 <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '80%' }}></div>
+                  <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min((stats.todayRevenue || 0) / 500 * 100, 100)}%` }}></div>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300">Ocupação</span>
-                  <span className="text-white font-bold">85%</span>
+                  <span className="text-white font-bold">{Math.round((stats.todayAppointments || 0) / 12 * 100)}%</span>
                 </div>
                 <div className="w-full bg-slate-700 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.min((stats.todayAppointments || 0) / 12 * 100, 100)}%` }}></div>
                 </div>
               </div>
             </div>
@@ -334,37 +382,47 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentAppointments.map((appointment) => (
-                      <tr key={appointment.id} className="border-b border-slate-700 hover:bg-slate-700/50">
-                        <td className="py-3 px-4 text-white">{appointment.client.name}</td>
-                        <td className="py-3 px-4 text-slate-300">{appointment.service.name}</td>
-                        <td className="py-3 px-4 text-slate-300">{appointment.barber?.name || 'Qualquer barbeiro'}</td>
-                        <td className="py-3 px-4 text-slate-300">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-1" />
-                            {appointment.startTime}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            appointment.status === 'confirmed' 
-                              ? 'bg-green-600 text-white' 
-                              : appointment.status === 'pending'
-                              ? 'bg-amber-600 text-white'
-                              : 'bg-blue-600 text-white'
-                          }`}>
-                            {appointment.status === 'confirmed' ? 'Confirmado' 
-                             : appointment.status === 'pending' ? 'Pendente'
-                             : 'Concluído'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-slate-700">
-                            Editar
-                          </Button>
+                    {recentAppointments.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-400">
+                          <Calendar className="h-12 w-12 mx-auto mb-4 text-slate-600" />
+                          <p>Nenhum agendamento encontrado</p>
+                          <p className="text-sm mt-1">Os agendamentos aparecerão aqui quando forem criados</p>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      recentAppointments.map((appointment) => (
+                        <tr key={appointment.id} className="border-b border-slate-700 hover:bg-slate-700/50">
+                          <td className="py-3 px-4 text-white">{appointment.client.name}</td>
+                          <td className="py-3 px-4 text-slate-300">{appointment.service.name}</td>
+                          <td className="py-3 px-4 text-slate-300">{appointment.barber?.name || 'Qualquer barbeiro'}</td>
+                          <td className="py-3 px-4 text-slate-300">
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 mr-1" />
+                              {appointment.startTime}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              appointment.status === 'confirmed' 
+                                ? 'bg-green-600 text-white' 
+                                : appointment.status === 'pending'
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-blue-600 text-white'
+                            }`}>
+                              {appointment.status === 'confirmed' ? 'Confirmado' 
+                               : appointment.status === 'pending' ? 'Pendente'
+                               : 'Concluído'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-slate-700">
+                              Editar
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -376,71 +434,12 @@ export default function AdminPage() {
 
         {/* Barbers Tab */}
         {activeTab === 'barbers' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Barbeiros</h2>
-              <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                Adicionar Barbeiro
-              </Button>
-            </div>
-            
-            <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-700">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-slate-300">Nome</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Email</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Telefone</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Agendamentos</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Status</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-slate-300">
-                    <tr>
-                      <td colSpan={6} className="py-6 px-4 text-center text-slate-400">Nenhum barbeiro cadastrado.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <BarbersManagement />
         )}
 
         {/* Services Tab */}
         {activeTab === 'services' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Serviços</h2>
-              <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                Adicionar Serviço
-              </Button>
-            </div>
-            
-            <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-700">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-slate-300">Nome</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Categoria</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Preço</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Duração</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Agendamentos</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Status</th>
-                      <th className="text-left py-3 px-4 text-slate-300">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-slate-300">
-                    <tr>
-                      <td colSpan={7} className="py-6 px-4 text-center text-slate-400">Nenhum serviço cadastrado.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <ServicesManagement />
         )}
 
         {/* Reports Tab */}
@@ -498,14 +497,18 @@ export default function AdminPage() {
         {activeTab === 'appointments' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Agendamentos</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {(session?.user as any)?.role === 'barber' ? 'Meus Agendamentos' : 'Agendamentos'}
+              </h2>
               <div className="flex space-x-2">
                 <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-800">
                   Filtrar
                 </Button>
-                <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                  Novo Agendamento
-                </Button>
+                {(session?.user as any)?.role !== 'barber' && (
+                  <Button className="bg-amber-600 hover:bg-amber-700 text-white">
+                    Novo Agendamento
+                  </Button>
+                )}
               </div>
             </div>
             

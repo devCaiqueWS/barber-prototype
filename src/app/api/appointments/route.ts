@@ -9,14 +9,33 @@ export async function POST(request: NextRequest) {
     const { 
       clientName, 
       clientEmail, 
-      clientPhone, 
+      clientPhone,
+      clientWhatsapp,
+      paymentMethod,
       serviceId, 
       barberId, 
+      date,
+      time,
       dateTime 
     } = body
 
+    // Construir dateTime se date e time foram fornecidos separadamente
+    let appointmentDateTime: Date
+    if (dateTime) {
+      appointmentDateTime = new Date(dateTime)
+    } else if (date && time) {
+      const [hours, minutes] = time.split(':')
+      appointmentDateTime = new Date(date)
+      appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+    } else {
+      return NextResponse.json(
+        { error: 'Data e horário são obrigatórios' },
+        { status: 400 }
+      )
+    }
+
     // Validar dados obrigatórios
-    if (!clientName || !clientEmail || !clientPhone || !serviceId || !barberId || !dateTime) {
+    if (!clientName || !clientEmail || !clientPhone || !serviceId || !barberId) {
       return NextResponse.json(
         { error: 'Todos os campos são obrigatórios' },
         { status: 400 }
@@ -24,11 +43,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o horário ainda está disponível
-    const appointmentDate = new Date(dateTime)
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
         barberId,
-        date: appointmentDate,
+        date: appointmentDateTime,
         status: {
           not: 'CANCELLED'
         }
@@ -75,7 +93,7 @@ export async function POST(request: NextRequest) {
         clientId: client.id,
         barberId,
         serviceId,
-        date: appointmentDate,
+        date: appointmentDateTime,
         status: 'CONFIRMED',
       },
       include: {

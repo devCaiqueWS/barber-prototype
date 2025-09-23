@@ -1,52 +1,15 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-}
-
-interface AuthContextType {
-  user: User | null
-  loading: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  logout: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+import { SessionProvider } from 'next-auth/react'
+import { ReactNode } from 'react'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  // Verificar sessão ao carregar
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
-    try {
-      console.log('Checking auth...')
-      const response = await fetch('/api/auth/me')
-      const data = await response.json()
-      console.log('Auth response:', data)
-      
-      if (data.user) {
-        console.log('User found:', data.user)
-        setUser(data.user)
-      } else {
-        console.log('No user found')
-      }
-    } catch (error) {
-      console.error('Erro ao verificar autenticação:', error)
-    } finally {
-      console.log('Auth check complete, loading set to false')
-      setLoading(false)
-    }
-  }
+  return (
+    <SessionProvider>
+      {children}
+    </SessionProvider>
+  )
+}
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

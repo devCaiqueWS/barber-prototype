@@ -56,11 +56,11 @@ export async function GET(request: NextRequest) {
         const slotTime = new Date(selectedDate)
         slotTime.setHours(hour, minute, 0, 0)
 
-        // Verificar se é no futuro (pelo menos 1 hora à frente)
+        // Verificar se é no futuro (pelo menos 30 minutos à frente para desenvolvimento)
         const now = new Date()
-        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
+        const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000) // Reduzido para 30 min para teste
         
-        if (slotTime <= oneHourFromNow) {
+        if (slotTime <= thirtyMinutesFromNow) {
           continue
         }
 
@@ -81,15 +81,13 @@ export async function GET(request: NextRequest) {
         })
 
         if (!hasConflict) {
-          availableSlots.push({
-            time: slotTime.toISOString(),
-            display: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-          })
+          const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+          availableSlots.push(timeSlot)
         }
       }
     }
 
-    return NextResponse.json(availableSlots)
+    return NextResponse.json({ success: true, availableTimes: availableSlots })
   } catch (error) {
     console.error('Erro ao buscar horários disponíveis:', error)
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
