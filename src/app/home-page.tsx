@@ -171,9 +171,6 @@ export default function Home() {
             <Link href="/admin" className="text-slate-400 hover:text-amber-500 transition-colors text-sm">
               Área Administrativa
             </Link>
-            <Link href="/cliente" className="text-slate-400 hover:text-amber-500 transition-colors text-sm">
-              Área do Cliente
-            </Link>
           </div>
         </div>
       </footer>
