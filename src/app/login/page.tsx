@@ -138,10 +138,6 @@ export default function LoginPage() {
               <span className="text-slate-400">Barbeiro:</span>
               <span className="text-white">joao@barberpro.com / barber123</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Cliente:</span>
-              <span className="text-white">cliente@exemplo.com / client123</span>
-            </div>
           </div>
         </div>
       </div>
