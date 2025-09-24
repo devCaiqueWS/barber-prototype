@@ -13,7 +13,7 @@ async function main() {
       name: 'Administrador',
       email: 'admin@barberpro.com',
       password: hashedAdminPassword,
-      role: 'admin'
+      role: 'ADMIN'
     }
   })
 
@@ -27,7 +27,7 @@ async function main() {
       name: 'João Silva',
       email: 'joao@barberpro.com',
       password: hashedBarberPassword,
-      role: 'barber'
+      role: 'BARBER'
     }
   })
 
@@ -38,7 +38,7 @@ async function main() {
       name: 'Pedro Santos',
       email: 'pedro@barberpro.com',
       password: hashedBarberPassword,
-      role: 'barber'
+      role: 'BARBER'
     }
   })
 
@@ -49,7 +49,7 @@ async function main() {
       name: 'Carlos Oliveira',
       email: 'carlos@barberpro.com',
       password: hashedBarberPassword,
-      role: 'barber'
+      role: 'BARBER'
     }
   })
 

@@ -65,9 +65,8 @@ export default function AdminReports() {
       router.push('/')
       return
     }
-
-    fetchReportData()
-  }, [session, status, dateRange])
+    fetchReportData() // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status, dateRange, router])
 
   const fetchReportData = async () => {
     try {

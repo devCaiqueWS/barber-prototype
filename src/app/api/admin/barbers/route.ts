@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const barbers = await prisma.user.findMany({
       where: {
-        role: 'barber'
+        role: 'BARBER'
       },
       select: {
         id: true,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         password: hashedPassword,
-        role: 'barber',
+        role: 'BARBER',
       },
       select: {
         id: true,

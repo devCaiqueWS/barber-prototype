@@ -41,10 +41,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o horário ainda está disponível
+    const appointmentDateStr = appointmentDateTime.toISOString().split('T')[0];
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
         barberId,
-        date: appointmentDateTime,
+        date: appointmentDateStr,
         status: {
           not: 'CANCELLED'
         }
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
           name: clientName,
           email: clientEmail,
           password: defaultPassword,
-          role: 'client'
+          role: 'CLIENT'
         }
       })
     } else {
@@ -91,8 +92,14 @@ export async function POST(request: NextRequest) {
         clientId: client.id,
         barberId,
         serviceId,
-        date: appointmentDateTime,
-        status: 'CONFIRMED',
+        date: appointmentDateStr,
+        startTime: time || appointmentDateTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        endTime: time || appointmentDateTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        clientName: clientName,
+        clientEmail: clientEmail,
+        clientPhone: clientPhone || '',
+        paymentMethod: 'Dinheiro',
+        status: 'confirmed',
       },
       include: {
         client: {

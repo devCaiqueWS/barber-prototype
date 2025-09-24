@@ -34,7 +34,7 @@ export default function LoginPage() {
         router.push('/admin')
       }
     } catch (error) {
-      setError('Erro de conexão. Tente novamente.')
+      setError('Erro de conexão. Tente novamente.' + error)
     } finally {
       setLoading(false)
     }

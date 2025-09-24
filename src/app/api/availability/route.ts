@@ -25,13 +25,11 @@ export async function GET(request: NextRequest) {
     endOfDay.setHours(23, 59, 59, 999)
 
     // Buscar agendamentos existentes do barbeiro na data
+    const dateStr = startOfDay.toISOString().split('T')[0];
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         barberId,
-        date: {
-          gte: startOfDay,
-          lte: endOfDay
-        },
+        date: dateStr,
         status: {
           not: 'CANCELLED'
         }

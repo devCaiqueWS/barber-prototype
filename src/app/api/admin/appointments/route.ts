@@ -18,14 +18,7 @@ export async function GET(request: Request) {
     }
     
     if (date) {
-      const selectedDate = new Date(date)
-      const nextDay = new Date(selectedDate)
-      nextDay.setDate(nextDay.getDate() + 1)
-      
-      where.date = {
-        gte: selectedDate,
-        lt: nextDay,
-      }
+      where.date = date
     }
 
     const appointments = await prisma.appointment.findMany({
@@ -89,7 +82,7 @@ export async function POST(request: Request) {
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
         barberId,
-        date: new Date(date),
+        date: date,
         OR: [
           
         ],

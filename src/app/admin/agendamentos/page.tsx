@@ -53,8 +53,8 @@ export default function AdminAppointments() {
       return
     }
 
-    fetchAppointments()
-  }, [session, status])
+    fetchAppointments() // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status, router])
 
   const fetchAppointments = async () => {
     try {

@@ -27,10 +27,7 @@ export async function GET() {
     const today = await prisma.appointment.count({
       where: {
         barberId,
-        date: {
-          gte: startOfDay,
-          lte: endOfDay
-        },
+        date: startOfDay.toISOString().split('T')[0],
         status: 'CONFIRMED'
       }
     })
@@ -50,8 +47,8 @@ export async function GET() {
       where: {
         barberId,
         date: {
-          gte: startOfWeek,
-          lte: endOfWeek
+          gte: startOfWeek.toISOString().split('T')[0],
+          lte: endOfWeek.toISOString().split('T')[0]
         },
         status: 'CONFIRMED'
       }
@@ -65,8 +62,8 @@ export async function GET() {
       where: {
         barberId,
         date: {
-          gte: startOfMonth,
-          lte: endOfMonth
+          gte: startOfMonth.toISOString().split('T')[0],
+          lte: endOfMonth.toISOString().split('T')[0]
         },
         status: 'CONFIRMED'
       }
@@ -85,8 +82,8 @@ export async function GET() {
       where: {
         barberId,
         date: {
-          gte: startOfMonth,
-          lte: endOfMonth
+          gte: startOfMonth.toISOString().split('T')[0],
+          lte: endOfMonth.toISOString().split('T')[0]
         },
         status: 'CONFIRMED'
       },

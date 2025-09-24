@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
         name: true,
         price: true,
         duration: true,
-  active: true,
         createdAt: true,
         _count: {
           select: {
@@ -38,7 +37,7 @@ export async function PUT(request: NextRequest) {
     const urlParts = request.nextUrl.pathname.split('/');
     const id = urlParts[urlParts.length - 2] === '[id]' ? urlParts[urlParts.length - 1] : urlParts.pop();
     const body = await request.json();
-    const { name, price, duration, isActive } = body;
+    const { name, price, duration } = body;
     // Verificar se o serviço existe
     const existingService = await prisma.service.findUnique({
       where: { id: id as string }
@@ -58,14 +57,12 @@ export async function PUT(request: NextRequest) {
         name,
         price: parseFloat(price),
         duration: parseInt(duration),
-  active: isActive,
       },
       select: {
         id: true,
         name: true,
         price: true,
         duration: true,
-        active: true,
         createdAt: true
       }
     });
@@ -96,13 +93,12 @@ export async function DELETE(request: NextRequest) {
       // Em vez de deletar, desativar o serviço
       const deactivatedService = await prisma.service.update({
         where: { id: id as string },
-  data: { active: false },
+        data: { name: 'DESATIVADO - ' + (await prisma.service.findUnique({ where: { id: id as string } }))?.name },
         select: {
           id: true,
           name: true,
           price: true,
-          duration: true,
-    active: true
+          duration: true
         }
       });
       return NextResponse.json({ 

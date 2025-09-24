@@ -91,7 +91,7 @@ export default function AdminSettings() {
     }
 
     fetchSettings()
-  }, [session, status])
+  }, [session, status, router])
 
   const fetchSettings = async () => {
     try {

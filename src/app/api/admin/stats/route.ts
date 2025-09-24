@@ -15,28 +15,29 @@ export async function GET() {
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
 
     // Agendamentos de hoje
+    const todayStr = today.toISOString().split('T')[0];
     const todayAppointments = await prisma.appointment.count({
       where: {
-        date: {
-          gte: today,
-          lt: tomorrow,
-        },
+        date: todayStr,
       },
     })
 
     // Total de clientes
     const totalClients = await prisma.user.count({
       where: {
-        role: 'client',
+        role: 'CLIENT',
       },
     })
 
     // Faturamento do mês
+    const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+    const endOfMonthStr = endOfMonth.toISOString().split('T')[0];
+    
     const monthlyAppointments = await prisma.appointment.findMany({
       where: {
         date: {
-          gte: startOfMonth,
-          lte: endOfMonth,
+          gte: startOfMonthStr,
+          lte: endOfMonthStr,
         },
         status: 'CONFIRMED',
       },
@@ -56,10 +57,7 @@ export async function GET() {
     // Faturamento de hoje
     const todayAppointmentsRevenue = await prisma.appointment.findMany({
       where: {
-        date: {
-          gte: today,
-          lt: tomorrow,
-        },
+        date: todayStr,
         status: 'CONFIRMED',
       },
       include: {
@@ -76,7 +74,7 @@ export async function GET() {
     }, 0)
     const activeBarbers = await prisma.user.count({
       where: {
-        role: 'barber',
+        role: 'BARBER',
       },
     })
 
@@ -87,10 +85,7 @@ export async function GET() {
         id: true,
       },
       where: {
-        date: {
-          gte: today,
-          lt: tomorrow,
-        },
+        date: todayStr,
       },
     })
 

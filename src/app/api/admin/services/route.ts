@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
         name: true,
         price: true,
         duration: true,
-        active: true,
         createdAt: true,
         _count: {
           select: {
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, price, duration, category, isActive = true } = body
+    const { name, price, duration, category = true } = body
 
     // Validar dados obrigatórios
     if (!name || !price || !duration || !category) {
@@ -55,15 +54,13 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         price: parseFloat(price),
-        duration: parseInt(duration),
-        active: isActive
+        duration: parseInt(duration)
       },
       select: {
         id: true,
         name: true,
         price: true,
         duration: true,
-        active: true,
         createdAt: true
       }
     })

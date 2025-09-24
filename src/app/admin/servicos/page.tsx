@@ -63,7 +63,7 @@ export default function AdminServices() {
     }
 
     fetchServices()
-  }, [session, status])
+  }, [session, status, router])
 
   const fetchServices = async () => {
     try {

@@ -66,7 +66,7 @@ export default function AdminBarbers() {
     }
 
     fetchBarbers()
-  }, [session, status])
+  }, [session, status, router])
 
   const fetchBarbers = async () => {
     try {

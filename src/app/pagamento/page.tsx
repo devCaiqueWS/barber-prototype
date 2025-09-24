@@ -83,7 +83,7 @@ export default function PagamentoPage() {
         setStep(1)
       }
     } catch (error) {
-      setError('Erro no processamento. Tente novamente.')
+      setError('Erro no processamento. Tente novamente.' + error)
       setStep(1)
     } finally {
       setLoading(false)

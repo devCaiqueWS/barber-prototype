@@ -45,9 +45,9 @@ interface Appointment {
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
+  const [stats] = useState<Stats | null>(null)
+  const [recentAppointments] = useState<Appointment[]>([])
+  const [loading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
 
   useEffect(() => {
@@ -68,61 +68,7 @@ export default function AdminPage() {
       return
     }
 
-    console.log('User authorized, fetching data')
-    fetchData()
   }, [session, status, router])
-
-  const fetchData = async () => {
-    try {
-      const userRole = (session?.user as SessionUser)?.role
-      
-      if (userRole === 'barber') {
-        // Para barbeiros: carregar apenas seus dados
-        console.log('Loading barber-specific data')
-        
-        // Buscar estatísticas do barbeiro
-        const statsResponse = await fetch('/api/barber/stats')
-        const statsData = await statsResponse.json()
-        
-        // Adaptar formato para compatibilidade com interface
-        if (statsData.success) {
-          setStats({
-            todayAppointments: statsData.stats.today,
-            totalClients: statsData.stats.totalClients,
-            monthlyRevenue: statsData.stats.monthlyRevenue,  
-            activeBarbers: 1, // Sempre 1 para o próprio barbeiro
-            appointmentsByStatus: {},
-            todayRevenue: 0
-          })
-        }
-
-        // Buscar agendamentos do barbeiro
-        const appointmentsResponse = await fetch('/api/barber/appointments')
-        const appointmentsData = await appointmentsResponse.json()
-        setRecentAppointments(appointmentsData.appointments || [])
-        
-      } else {
-        // Para admin: carregar dados gerais
-        console.log('Loading admin general data')
-        
-        // Buscar estatísticas gerais
-        const statsResponse = await fetch('/api/admin/stats')
-        const statsData = await statsResponse.json()
-        setStats(statsData)
-
-        // Buscar agendamentos recentes
-        const appointmentsResponse = await fetch('/api/admin/appointments?limit=5')
-        const appointmentsData = await appointmentsResponse.json()
-        setRecentAppointments(appointmentsData.appointments || [])
-      }
-
-      
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Scissors, UserPlus, Mail, MoreHorizontal, Plus, Users, Edit, Trash2 } from 'lucide-react'
+import { Mail, Plus, Users, Edit, Trash2 } from 'lucide-react'
 
 interface Barber {
   id: string

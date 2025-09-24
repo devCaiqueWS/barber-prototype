@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Helper function to convert Date to YYYY-MM-DD string
+function dateToString(date: Date): string {
+  return date.toISOString().split('T')[0]
+}
+
 // GET - Gerar relatórios
 export async function GET(request: NextRequest) {
   try {
@@ -32,11 +37,14 @@ export async function GET(request: NextRequest) {
 }
 
 async function generateAppointmentsReport(startDate: Date, endDate: Date, barberId?: string | null) {
+  const startDateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  const endDateStr = endDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  
   const appointments = await prisma.appointment.findMany({
     where: {
       date: {
-        gte: startDate,
-        lte: endDate
+        gte: startDateStr,
+        lte: endDateStr
       },
       ...(barberId && { barberId })
     },
@@ -87,8 +95,8 @@ async function generateRevenueReport(startDate: Date, endDate: Date, barberId?: 
   const appointments = await prisma.appointment.findMany({
     where: {
       date: {
-        gte: startDate,
-        lte: endDate
+        gte: dateToString(startDate),
+        lte: dateToString(endDate)
       },
       status: 'completed',
       ...(barberId && { barberId })
@@ -155,14 +163,14 @@ async function generateRevenueReport(startDate: Date, endDate: Date, barberId?: 
 async function generateBarbersReport(startDate: Date, endDate: Date) {
   const barbers = await prisma.user.findMany({
     where: {
-      role: 'barber'
+      role: 'BARBER'
     },
     include: {
       barberAppointments: {
         where: {
           date: {
-            gte: startDate,
-            lte: endDate
+            gte: dateToString(startDate),
+            lte: dateToString(endDate)
           }
         },
         include: {
@@ -206,8 +214,8 @@ async function generateServicesReport(startDate: Date, endDate: Date) {
       appointments: {
         where: {
           date: {
-            gte: startDate,
-            lte: endDate
+            gte: dateToString(startDate),
+            lte: dateToString(endDate)
           }
         }
       }
@@ -223,7 +231,7 @@ async function generateServicesReport(startDate: Date, endDate: Date) {
       name: service.name,
       price: service.price,
       duration: service.duration,
-      active: service.active,
+      active: true, // service.isActive,
       totalAppointments: appointments.length,
       completedAppointments: completedAppointments.length,
       revenue: completedAppointments.length * service.price
@@ -241,8 +249,8 @@ async function generateGeneralReport(startDate: Date, endDate: Date) {
   const appointments = await prisma.appointment.count({
     where: {
       date: {
-        gte: startDate,
-        lte: endDate
+        gte: dateToString(startDate),
+        lte: dateToString(endDate)
       }
     }
   })
@@ -250,8 +258,8 @@ async function generateGeneralReport(startDate: Date, endDate: Date) {
   const completedAppointments = await prisma.appointment.findMany({
     where: {
       date: {
-        gte: startDate,
-        lte: endDate
+        gte: dateToString(startDate),
+        lte: dateToString(endDate)
       },
       status: 'completed'
     },
@@ -269,7 +277,7 @@ async function generateGeneralReport(startDate: Date, endDate: Date) {
   
   const clients = await prisma.user.count({
     where: {
-      role: 'client',
+      role: 'CLIENT',
       createdAt: {
         gte: startDate,
         lte: endDate
@@ -279,15 +287,11 @@ async function generateGeneralReport(startDate: Date, endDate: Date) {
   
   const barbers = await prisma.user.count({
     where: {
-      role: 'barber'
+      role: 'BARBER'
     }
   })
   
-  const services = await prisma.service.count({
-    where: {
-      active: true
-    }
-  })
+  const services = await prisma.service.count()
   
   return NextResponse.json({
     type: 'general',

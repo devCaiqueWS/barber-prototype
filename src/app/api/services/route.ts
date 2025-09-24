@@ -1,17 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // GET - Buscar serviços disponíveis
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const category = searchParams.get('category')
-
     const services = await prisma.service.findMany({
-      where: {
-        active: true,
-        ...(category && { category })
-      },
       select: {
         id: true,
         name: true,

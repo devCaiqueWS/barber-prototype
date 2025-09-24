@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const barber = await prisma.user.findUnique({
       where: {
         id: id as string,
-        role: 'barber'
+        role: 'BARBER'
       },
       select: {
         id: true,
@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest) {
     const { name, email } = body;
     // Verificar se o barbeiro existe
     const existingBarber = await prisma.user.findUnique({
-      where: { id: id as string, role: 'barber' }
+      where: { id: id as string, role: 'BARBER' }
     });
     if (!existingBarber) {
       return NextResponse.json({ error: 'Barbeiro não encontrado' }, { status: 404 });
@@ -78,17 +78,18 @@ export async function DELETE(request: NextRequest) {
     const id = urlParts[urlParts.length - 2] === '[id]' ? urlParts[urlParts.length - 1] : urlParts.pop();
     // Verificar se o barbeiro existe
     const existingBarber = await prisma.user.findUnique({
-      where: { id: id as string, role: 'barber' }
+      where: { id: id as string, role: 'BARBER' }
     });
     if (!existingBarber) {
       return NextResponse.json({ error: 'Barbeiro não encontrado' }, { status: 404 });
     }
     // Verificar se o barbeiro tem agendamentos futuros
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const futureAppointments = await prisma.appointment.findMany({
       where: {
         barberId: id as string,
         date: {
-          gt: new Date()
+          gt: today
         },
         status: 'confirmed'
       }
@@ -101,7 +102,7 @@ export async function DELETE(request: NextRequest) {
     // Em vez de deletar, vamos desativar o barbeiro
     const deactivatedBarber = await prisma.user.update({
       where: { id: id as string },
-      data: { role: 'inactive' },
+      data: { isActive: false },
       select: {
         id: true,
         name: true,

@@ -9,42 +9,67 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  BARBER
+  CLIENT
+}
+
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   // 'admin', 'barber', 'client'
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  password    String
+  role        Role     @default(CLIENT)
+  phone       String?
+  isActive    Boolean  @default(true)
+  specialties String[] // Para barbeiros - Array de especialidades
+  workDays    String[] // Para barbeiros - Array de dias da semana
+  workStartTime String? // Para barbeiros
+  workEndTime   String? // Para barbeiros
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
   clientAppointments Appointment[] @relation("Client")
   barberAppointments Appointment[] @relation("Barber")
+
+  @@map("users")
 }
 
 model Service {
-  id        String   @id @default(uuid())
-  name      String
-  price     Float
-  duration  Int      // minutes
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  duration    Int      // minutes
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
   appointments Appointment[]
 }
 
 model Appointment {
-  id        String   @id @default(uuid())
-  date      DateTime
-  client    User     @relation("Client", fields: [clientId], references: [id])
-  clientId  String
-  barber    User     @relation("Barber", fields: [barberId], references: [id])
-  barberId  String
-  service   Service  @relation(fields: [serviceId], references: [id])
-  serviceId String
-  status    String   // 'pending', 'confirmed', 'cancelled'
-  clientWhatsapp String? // Número do WhatsApp do cliente
-  paymentMethod String? // Forma de pagamento
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  date          String   // Data no formato YYYY-MM-DD
+  startTime     String   // Horário de início
+  endTime       String   // Horário de fim
+  status        String   @default("pending") // 'pending', 'confirmed', 'completed', 'cancelled'
+  clientName    String   // Nome do cliente
+  clientEmail   String   // Email do cliente
+  clientPhone   String   // Telefone do cliente
+  clientAddress String?  // Endereço do cliente
+  paymentMethod String   // Forma de pagamento
+  notes         String?  // Observações
+  client        User?    @relation("Client", fields: [clientId], references: [id])
+  clientId      String?
+  barber        User?    @relation("Barber", fields: [barberId], references: [id])
+  barberId      String?
+  service       Service  @relation(fields: [serviceId], references: [id])
+  serviceId     String
+  createdAt     DateTime @default(now())
 }
