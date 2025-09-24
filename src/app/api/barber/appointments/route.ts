@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || (session.user as any)?.role !== 'barber') {
+    if (!session || (session.user as { role?: string; id?: string })?.role !== 'barber') {
       return NextResponse.json(
         { error: 'Acesso negado' },
         { status: 403 }
@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
     
-    let whereClause: any = {
-      barberId: (session.user as any)?.id,
+    const whereClause: Record<string, unknown> = {
+      barberId: (session.user as { role?: string; id?: string })?.id,
       status: {
         not: 'CANCELLED'
       }

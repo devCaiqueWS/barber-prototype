@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // GET - Listar barbeiros
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const barbers = await prisma.user.findMany({
       where: {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-  const { name, email, phone, password } = body
+  const { name, email, password } = body
 
     // Verificar se o email já existe
     const existingUser = await prisma.user.findUnique({

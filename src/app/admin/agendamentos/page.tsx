@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, User, Scissors, Phone, MapPin, CreditCard, ChevronLeft, Plus, Filter, Search, Edit, Trash2 } from 'lucide-react'
+import { Calendar, Clock, User, Scissors, Phone, CreditCard, ChevronLeft, Plus, Filter, Search, Edit, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Appointment {
@@ -47,7 +47,7 @@ export default function AdminAppointments() {
       return
     }
 
-    const userRole = (session.user as any).role
+    const userRole = (session.user as { role?: string }).role
     if (userRole !== 'admin' && userRole !== 'barber') {
       router.push('/')
       return
@@ -58,7 +58,7 @@ export default function AdminAppointments() {
 
   const fetchAppointments = async () => {
     try {
-      const endpoint = (session?.user as any)?.role === 'admin' 
+      const endpoint = (session?.user as { role?: string })?.role === 'admin' 
         ? '/api/admin/appointments'
         : '/api/barber/appointments'
       
@@ -127,15 +127,7 @@ export default function AdminAppointments() {
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'Confirmado'
-      case 'pending': return 'Pendente'
-      case 'completed': return 'Concluído'
-      case 'cancelled': return 'Cancelado'
-      default: return status
-    }
-  }
+
 
   if (loading) {
     return (

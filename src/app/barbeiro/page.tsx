@@ -42,7 +42,7 @@ export default function BarberDashboard() {
   })
 
   useEffect(() => {
-    if (status === 'authenticated' && (session?.user as any)?.role === 'barber') {
+    if (status === 'authenticated' && (session?.user as { role?: string })?.role === 'barber') {
       loadAppointments()
       loadStats()
     }
@@ -83,7 +83,7 @@ export default function BarberDashboard() {
     )
   }
 
-  if (status === 'unauthenticated' || (session?.user as any)?.role !== 'barber') {
+  if (status === 'unauthenticated' || (session?.user as { role?: string })?.role !== 'barber') {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center text-white">
@@ -105,10 +105,7 @@ export default function BarberDashboard() {
     })
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('pt-BR')
-  }
+
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

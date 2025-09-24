@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Settings, ChevronLeft, Save, Clock, DollarSign, MapPin, Phone, Mail, Users, Key, Database, Palette } from 'lucide-react'
+import { ChevronLeft, Save, Clock, DollarSign, MapPin, Mail, Key } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface SystemSettings {
@@ -84,7 +84,7 @@ export default function AdminSettings() {
       return
     }
 
-    const userRole = (session.user as any).role
+    const userRole = (session.user as { role?: string }).role
     if (userRole !== 'admin') {
       router.push('/')
       return
@@ -179,15 +179,15 @@ export default function AdminSettings() {
     }
   }
 
-  const updateSettings = (path: string[], value: any) => {
+  const updateSettings = (path: string[], value: string | number | boolean) => {
     if (!settings) return
 
     setSettings(prev => {
       const newSettings = { ...prev }
-      let current: any = newSettings
+      let current = newSettings as Record<string, unknown>
       
       for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]]
+        current = current[path[i]] as Record<string, unknown>
       }
       
       current[path[path.length - 1]] = value

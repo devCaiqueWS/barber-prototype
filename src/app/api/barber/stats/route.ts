@@ -1,21 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 // GET - Buscar estatísticas do barbeiro
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || (session.user as any)?.role !== 'barber') {
+    if (!session || (session.user as { role?: string; id?: string })?.role !== 'barber') {
       return NextResponse.json(
         { error: 'Acesso negado' },
         { status: 403 }
       )
     }
 
-    const barberId = (session.user as any)?.id
+    const barberId = (session.user as { role?: string; id?: string })?.id
     const now = new Date()
     
     // Hoje

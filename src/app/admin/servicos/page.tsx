@@ -56,7 +56,7 @@ export default function AdminServices() {
       return
     }
 
-    const userRole = (session.user as any).role
+    const userRole = (session.user as { role?: string }).role
     if (userRole !== 'admin') {
       router.push('/')
       return

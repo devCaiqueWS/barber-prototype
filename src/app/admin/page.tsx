@@ -18,26 +18,14 @@ interface Stats {
   todayRevenue: number
 }
 
-interface Barber {
-  // ...existing code...
-  name: string
-  email: string
-  phone: string | null
-  isActive: boolean
-  createdAt: string
-  _count: { appointments: number }
+interface SessionUser {
+  id?: string
+  name?: string
+  email?: string
+  role?: string
 }
 
-interface Service {
-  // ...existing code...
-  name: string
-  description: string | null
-  price: number
-  duration: number
-  category: string
-  isActive: boolean
-  _count: { appointments: number }
-}
+
 
 interface Appointment {
   id: string
@@ -59,8 +47,6 @@ export default function AdminPage() {
   const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([])
-  // const [barbers, setBarbers] = useState<Barber[]>([])
-  // const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
 
@@ -75,7 +61,7 @@ export default function AdminPage() {
       return
     }
 
-    const userRole = (session.user as any).role
+    const userRole = (session.user as SessionUser).role
     if (userRole !== 'admin' && userRole !== 'barber') {
       console.log('User role not allowed:', userRole)
       router.push('/')
@@ -88,7 +74,7 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const userRole = (session?.user as any)?.role
+      const userRole = (session?.user as SessionUser)?.role
       
       if (userRole === 'barber') {
         // Para barbeiros: carregar apenas seus dados
@@ -130,16 +116,7 @@ export default function AdminPage() {
         setRecentAppointments(appointmentsData.appointments || [])
       }
 
-      // TEMPORÁRIO: Comentado para evitar erros de API
-      // // Buscar barbeiros
-      // const barbersResponse = await fetch('/api/admin/barbers')
-      // const barbersData = await barbersResponse.json()
-      // setBarbers(barbersData || [])
-
-      // // Buscar serviços
-      // const servicesResponse = await fetch('/api/admin/services')
-      // const servicesData = await servicesResponse.json()
-      // setServices(servicesData || [])
+      
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
@@ -177,7 +154,7 @@ export default function AdminPage() {
             <div className="flex items-center space-x-2">
               <Scissors className="h-8 w-8 text-amber-500" />
               <span className="text-2xl font-bold text-white">
-                {(session?.user as any)?.role === 'barber' ? 'Painel do Barbeiro' : 'Admin Panel'}
+                {(session?.user as SessionUser)?.role === 'barber' ? 'Painel do Barbeiro' : 'Admin Panel'}
               </span>
             </div>
           </div>
@@ -209,7 +186,7 @@ export default function AdminPage() {
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart },
                 { id: 'appointments', label: 'Agendamentos', icon: Calendar },
                 ...(
-                  (session?.user as any)?.role === 'admin' ? [
+                  (session?.user as SessionUser)?.role === 'admin' ? [
                     { id: 'barbers', label: 'Barbeiros', icon: Users },
                     { id: 'services', label: 'Serviços', icon: Scissors },
                     { id: 'reports', label: 'Relatórios', icon: FileText },
@@ -253,7 +230,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">
-                  {(session?.user as any)?.role === 'barber' ? 'Meus Clientes' : 'Total de Clientes'}
+                  {(session?.user as SessionUser)?.role === 'barber' ? 'Meus Clientes' : 'Total de Clientes'}
                 </p>
                 <p className="text-2xl font-bold text-white">{stats.totalClients}</p>
               </div>
@@ -265,7 +242,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">
-                  {(session?.user as any)?.role === 'barber' ? 'Meu Faturamento' : 'Faturamento Mensal'}
+                  {(session?.user as SessionUser)?.role === 'barber' ? 'Meu Faturamento' : 'Faturamento Mensal'}
                 </p>
                 <p className="text-2xl font-bold text-white">R$ {stats.monthlyRevenue.toLocaleString()}</p>
               </div>
@@ -277,10 +254,10 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">
-                  {(session?.user as any)?.role === 'barber' ? 'Status' : 'Barbeiros Ativos'}
+                  {(session?.user as SessionUser)?.role === 'barber' ? 'Status' : 'Barbeiros Ativos'}
                 </p>
                 <p className="text-2xl font-bold text-white">
-                  {(session?.user as any)?.role === 'barber' ? 'Ativo' : stats.activeBarbers}
+                  {(session?.user as SessionUser)?.role === 'barber' ? 'Ativo' : stats.activeBarbers}
                 </p>
               </div>
               <Users className="h-8 w-8 text-amber-500" />
@@ -498,13 +475,13 @@ export default function AdminPage() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-white">
-                {(session?.user as any)?.role === 'barber' ? 'Meus Agendamentos' : 'Agendamentos'}
+                {(session?.user as SessionUser)?.role === 'barber' ? 'Meus Agendamentos' : 'Agendamentos'}
               </h2>
               <div className="flex space-x-2">
                 <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-800">
                   Filtrar
                 </Button>
-                {(session?.user as any)?.role !== 'barber' && (
+                {(session?.user as SessionUser)?.role !== 'barber' && (
                   <Button className="bg-amber-600 hover:bg-amber-700 text-white">
                     Novo Agendamento
                   </Button>

@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, description, price, duration, category, isActive = true } = body
+    const { name, price, duration, category, isActive = true } = body
 
     // Validar dados obrigatórios
     if (!name || !price || !duration || !category) {

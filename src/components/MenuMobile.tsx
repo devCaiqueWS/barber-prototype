@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import React, { useEffect } from 'react'
 
 export default function MenuMobile({ open, setOpen }: { open: boolean, setOpen: (v: boolean) => void }) {
 

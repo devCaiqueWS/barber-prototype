@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { BarChart, ChevronLeft, Download, Calendar, DollarSign, Users, Scissors, TrendingUp, TrendingDown, Clock, FileText } from 'lucide-react'
+import { BarChart, ChevronLeft, Download, Calendar, DollarSign, Users, Scissors, TrendingUp, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ReportData {
@@ -60,7 +60,7 @@ export default function AdminReports() {
       return
     }
 
-    const userRole = (session.user as any).role
+    const userRole = (session.user as { role?: string }).role
     if (userRole !== 'admin') {
       router.push('/')
       return

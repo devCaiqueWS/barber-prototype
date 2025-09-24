@@ -83,7 +83,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { serviceId, barberId, clientId, date, notes } = body
+    const { serviceId, barberId, date } = body
 
     // Validar se o horário está disponível
     const existingAppointment = await prisma.appointment.findFirst({

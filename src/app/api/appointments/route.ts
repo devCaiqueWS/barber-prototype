@@ -10,8 +10,6 @@ export async function POST(request: NextRequest) {
       clientName, 
       clientEmail, 
       clientPhone,
-      clientWhatsapp,
-      paymentMethod,
       serviceId, 
       barberId, 
       date,

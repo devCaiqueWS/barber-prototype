@@ -34,7 +34,7 @@ export async function PUT(request: NextRequest) {
     const urlParts = request.nextUrl.pathname.split('/');
     const id = urlParts[urlParts.length - 2] === '[id]' ? urlParts[urlParts.length - 1] : urlParts.pop();
     const body = await request.json();
-    const { name, email, phone } = body;
+    const { name, email } = body;
     // Verificar se o barbeiro existe
     const existingBarber = await prisma.user.findUnique({
       where: { id: id as string, role: 'barber' }
