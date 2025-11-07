@@ -5,9 +5,10 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Scissors, ArrowLeft, Users, Calendar, DollarSign, Settings, BarChart, Clock, FileText } from "lucide-react";
+import { Scissors, ArrowLeft, Users, Calendar, DollarSign, Settings, BarChart, Clock, FileText, Download, Filter, Plus } from "lucide-react";
 import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
+import ServicesList from "@/components/admin/ServicesList";
 
 interface Stats {
   todayAppointments: number
@@ -45,33 +46,126 @@ interface Appointment {
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [stats] = useState<Stats | null>(null)
+  const [stats] = useState<Stats>({
+    todayAppointments: 0,
+    totalClients: 0,
+    monthlyRevenue: 0,
+    activeBarbers: 0,
+    appointmentsByStatus: {},
+    todayRevenue: 0
+  })
   const [recentAppointments] = useState<Appointment[]>([])
-  const [loading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
+  // Reports tab state
+  const [repStartDate, setRepStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+  const [repEndDate, setRepEndDate] = useState(new Date().toISOString().split('T')[0])
+  const [repClient, setRepClient] = useState('')
+  const [repService, setRepService] = useState<string>('all')
+  const [repServicesOptions, setRepServicesOptions] = useState<Array<{id:string,name:string}>>([])
+  const [repRows, setRepRows] = useState<Array<{ id:string; clientName:string; date:string; startTime:string; service?: { id?: string; name:string } }>>([])
+  const [repLoading, setRepLoading] = useState(false)
 
   useEffect(() => {
-    console.log('Admin useEffect:', { session, status })
+    console.log('Admin useEffect:', { session, status, user: session?.user })
     
-    if (status === 'loading') return
+    if (status === 'loading') {
+      console.log('Status is loading, waiting...')
+      return
+    }
 
     if (!session?.user) {
-      console.log('No user, redirecting to login')
-      router.push('/login')
+      console.log('No user session found, redirecting to login')
+      router.push('/login?callbackUrl=/admin')
       return
     }
 
     const userRole = (session.user as SessionUser).role
-    if (userRole !== 'admin' && userRole !== 'barber') {
-      console.log('User role not allowed:', userRole)
+    console.log('User role found:', userRole)
+    
+    if (userRole !== 'ADMIN' && userRole !== 'BARBER') {
+      console.log('User role not allowed:', userRole, 'Expected: ADMIN or BARBER')
       router.push('/')
       return
     }
+
+    // Se chegou até aqui, o usuário está autenticado e autorizado
+    console.log('User authorized, setting loading to false')
+    setLoading(false)
 
   }, [session, status, router])
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })
+  }
+
+  // Reports tab helpers
+  const fetchServicesOptions = async () => {
+    try {
+      const res = await fetch('/api/admin/services')
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.services) ? data.services : [])
+      setRepServicesOptions(list.map((s: any) => ({ id: s.id, name: s.name })))
+    } catch (e) {
+      console.error('Erro ao carregar serviços:', e)
+    }
+  }
+
+  const fetchAppointmentsReport = async () => {
+    try {
+      setRepLoading(true)
+      const params = new URLSearchParams({ type: 'appointments', startDate: repStartDate, endDate: repEndDate })
+      const res = await fetch(`/api/admin/reports?${params.toString()}`)
+      const data = await res.json()
+      const rows = Array.isArray(data?.data) ? data.data : []
+      setRepRows(rows)
+    } catch (e) {
+      console.error('Erro ao carregar relatório de atendimentos:', e)
+      setRepRows([])
+    } finally {
+      setRepLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'reports') return
+    fetchServicesOptions()
+    fetchAppointmentsReport()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'reports') return
+    fetchAppointmentsReport()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repStartDate, repEndDate])
+
+  const filteredRepRows = repRows.filter((r: any) => {
+    const clientOk = repClient.trim().length === 0 || (r.clientName || '').toLowerCase().includes(repClient.toLowerCase())
+    const serviceOk = repService === 'all' || r.service?.name === repServicesOptions.find(s => s.id === repService)?.name || r.service?.id === repService
+    return clientOk && serviceOk
+  })
+
+  const exportAppointments = async (format: 'xlsx' | 'csv') => {
+    try {
+      const params = new URLSearchParams({ startDate: repStartDate, endDate: repEndDate, format })
+      if (repClient.trim()) params.set('client', repClient.trim())
+      if (repService !== 'all') params.set('serviceId', repService)
+      const response = await fetch(`/api/admin/reports/export?${params.toString()}`)
+      if (!response.ok) throw new Error('Falha ao exportar')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = `atendimentos_${repStartDate}_${repEndDate}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Erro ao exportar atendimentos:', error)
+      alert('Erro ao exportar atendimentos')
+    }
   }
 
   if (status === 'loading' || loading) {
@@ -82,7 +176,7 @@ export default function AdminPage() {
     )
   }
 
-  if (!session?.user || !stats) {
+  if (!session?.user) {
     return null
   }
 
@@ -100,7 +194,7 @@ export default function AdminPage() {
             <div className="flex items-center space-x-2">
               <Scissors className="h-8 w-8 text-amber-500" />
               <span className="text-2xl font-bold text-white">
-                {(session?.user as SessionUser)?.role === 'barber' ? 'Painel do Barbeiro' : 'Admin Panel'}
+                {(session?.user as SessionUser)?.role === 'BARBER' ? 'Painel do Barbeiro' : 'Admin Panel'}
               </span>
             </div>
           </div>
@@ -132,7 +226,7 @@ export default function AdminPage() {
                 { id: 'dashboard', label: 'Dashboard', icon: BarChart },
                 { id: 'appointments', label: 'Agendamentos', icon: Calendar },
                 ...(
-                  (session?.user as SessionUser)?.role === 'admin' ? [
+                  (session?.user as SessionUser)?.role === 'ADMIN' ? [
                     { id: 'barbers', label: 'Barbeiros', icon: Users },
                     { id: 'services', label: 'Serviços', icon: Scissors },
                     { id: 'reports', label: 'Relatórios', icon: FileText },
@@ -176,7 +270,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">
-                  {(session?.user as SessionUser)?.role === 'barber' ? 'Meus Clientes' : 'Total de Clientes'}
+                  {(session?.user as SessionUser)?.role === 'BARBER' ? 'Meus Clientes' : 'Total de Clientes'}
                 </p>
                 <p className="text-2xl font-bold text-white">{stats.totalClients}</p>
               </div>
@@ -188,7 +282,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">
-                  {(session?.user as SessionUser)?.role === 'barber' ? 'Meu Faturamento' : 'Faturamento Mensal'}
+                  {(session?.user as SessionUser)?.role === 'BARBER' ? 'Meu Faturamento' : 'Faturamento Mensal'}
                 </p>
                 <p className="text-2xl font-bold text-white">R$ {stats.monthlyRevenue.toLocaleString()}</p>
               </div>
@@ -200,10 +294,10 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-slate-400 text-sm">
-                  {(session?.user as SessionUser)?.role === 'barber' ? 'Status' : 'Barbeiros Ativos'}
+                  {(session?.user as SessionUser)?.role === 'BARBER' ? 'Status' : 'Barbeiros Ativos'}
                 </p>
                 <p className="text-2xl font-bold text-white">
-                  {(session?.user as SessionUser)?.role === 'barber' ? 'Ativo' : stats.activeBarbers}
+                  {(session?.user as SessionUser)?.role === 'BARBER' ? 'Ativo' : stats.activeBarbers}
                 </p>
               </div>
               <Users className="h-8 w-8 text-amber-500" />
@@ -215,6 +309,8 @@ export default function AdminPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column - Quick Actions */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Quick Actions removed */}
+            {/*
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
               <h2 className="text-xl font-semibold text-white mb-4">Ações Rápidas</h2>
               <div className="space-y-3">
@@ -250,6 +346,7 @@ export default function AdminPage() {
                 </Button>
               </div>
             </div>
+            */}
 
             {/* Performance Overview */}
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
@@ -362,11 +459,11 @@ export default function AdminPage() {
 
         {/* Services Tab */}
         {activeTab === 'services' && (
-          <ServicesManagement />
+          <ServicesList />
         )}
 
         {/* Reports Tab */}
-        {activeTab === 'reports' && (
+        {false && activeTab === 'reports' && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-white">Relatórios</h2>
             
@@ -406,6 +503,95 @@ export default function AdminPage() {
           </div>
         )}
 
+        {activeTab === 'reports' && (
+          <div className="space-y-4 mt-4">
+            {/* Filtros de Cabeçalho */}
+            <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Cliente</label>
+                  <input
+                    type="text"
+                    placeholder="Nome ou email"
+                    value={repClient}
+                    onChange={(e) => setRepClient(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Período - Início</label>
+                  <input
+                    type="date"
+                    value={repStartDate}
+                    onChange={(e) => setRepStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Período - Fim</label>
+                  <input
+                    type="date"
+                    value={repEndDate}
+                    onChange={(e) => setRepEndDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Serviço</label>
+                  <select
+                    value={repService}
+                    onChange={(e) => setRepService(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="all">Todos</option>
+                    {repServicesOptions.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center mt-4">
+                  <Button onClick={fetchAppointmentsReport} className="w-100 text-white bg-slate-600 hover:bg-slate-500 hover:bg-amber-700"><Filter className="h-4 w-4 mr-2" />Filtrar</Button>
+                </div>
+                <div className="flex items-center mt-4">
+                  <Button onClick={() => exportAppointments('xlsx')} className="bg-amber-600 hover:bg-amber-700"><Download className="h-4 w-4 mr-2" />Exportar XLSX</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabela */}
+            <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-700">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-slate-300">Cliente</th>
+                      <th className="text-left py-3 px-4 text-slate-300">Data</th>
+                      <th className="text-left py-3 px-4 text-slate-300">Horário</th>
+                      <th className="text-left py-3 px-4 text-slate-300">Serviço</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-300">
+                    {repLoading ? (
+                      <tr><td colSpan={4} className="py-4 text-center">Carregando...</td></tr>
+                    ) : filteredRepRows.length === 0 ? (
+                      <tr><td colSpan={4} className="py-4 text-center">Sem registros</td></tr>
+                    ) : (
+                      filteredRepRows.map((r: any) => (
+                        <tr key={r.id} className="border-t border-slate-700">
+                          <td className="py-2.5 px-3">{r.clientName}</td>
+                          <td className="py-2.5 px-3">{r.date}</td>
+                          <td className="py-2.5 px-3">{r.startTime}</td>
+                          <td className="py-2.5 px-3">{r.service?.name || '-'}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
@@ -421,15 +607,12 @@ export default function AdminPage() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-white">
-                {(session?.user as SessionUser)?.role === 'barber' ? 'Meus Agendamentos' : 'Agendamentos'}
+                {(session?.user as SessionUser)?.role === 'BARBER' ? 'Meus Agendamentos e Atendimentos' : 'Agendamentos e Atendimentos'}
               </h2>
               <div className="flex space-x-2">
-                <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-800">
-                  Filtrar
-                </Button>
-                {(session?.user as SessionUser)?.role !== 'barber' && (
-                  <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                    Novo Agendamento
+                {(session?.user as SessionUser)?.role !== 'BARBER' && (
+                  <Button className="bg-amber-600 hover:bg-amber-700">
+                    <Plus className="h-4 w-4 mr-2" /> Novo Atendimento
                   </Button>
                 )}
               </div>

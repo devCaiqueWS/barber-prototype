@@ -10,11 +10,15 @@ export async function POST(request: NextRequest) {
       clientName, 
       clientEmail, 
       clientPhone,
+      clientWhatsapp,
       serviceId, 
       barberId, 
       date,
       time,
-      dateTime 
+      dateTime,
+      paymentMethod,
+      payOnline,
+      notes
     } = body
 
     // Construir dateTime se date e time foram fornecidos separadamente
@@ -100,6 +104,7 @@ export async function POST(request: NextRequest) {
         clientPhone: clientPhone || '',
         paymentMethod: 'Dinheiro',
         status: 'confirmed',
+        source: 'online',
       },
       include: {
         client: {

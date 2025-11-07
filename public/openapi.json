@@ -1,0 +1,354 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "BarberPro API",
+    "version": "1.0.0",
+    "description": "Documentação da API pública do BarberPro. Endpoints para serviços, barbeiros, disponibilidade e agendamentos."
+  },
+  "servers": [
+    { "url": "/", "description": "Servidor atual" }
+  ],
+  "tags": [
+    { "name": "Services", "description": "Catálogo de serviços" },
+    { "name": "Barbers", "description": "Listagem de barbeiros" },
+    { "name": "Availability", "description": "Consulta de horários" },
+    { "name": "Appointments", "description": "Criação de agendamentos" }
+  ],
+  "paths": {
+    "/api/services": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "Listar serviços ativos",
+        "responses": {
+          "200": {
+            "description": "Lista de serviços",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "services": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ServicePreview" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/barbers": {
+      "get": {
+        "tags": ["Barbers"],
+        "summary": "Listar barbeiros",
+        "responses": {
+          "200": {
+            "description": "Lista de barbeiros",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "barbers": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Barber" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/availability": {
+      "get": {
+        "tags": ["Availability"],
+        "summary": "Consultar horários disponíveis por barbeiro e data",
+        "parameters": [
+          {
+            "name": "barberId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID do barbeiro"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "example": "2025-02-01" },
+            "description": "Data (YYYY-MM-DD)"
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 30 },
+            "description": "Duração desejada em minutos"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Horários disponíveis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "availableTimes": {
+                      "type": "array",
+                      "items": { "type": "string", "example": "14:30" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/appointments": {
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Criar um agendamento",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AppointmentCreateRequest" },
+              "examples": {
+                "date_time_pair": {
+                  "summary": "Usando data + hora",
+                  "value": {
+                    "clientName": "João Silva",
+                    "clientEmail": "joao@example.com",
+                    "clientPhone": "+55 11 98765-4321",
+                    "serviceId": "c5f2f4e8-3f7c-4d2a-a1b2-1234567890ab",
+                    "barberId": "7a2b1c3d-4e5f-6789-abcd-ef0123456789",
+                    "date": "2025-02-01",
+                    "time": "14:30",
+                    "notes": "Preferência: corte fade"
+                  }
+                },
+                "single_datetime": {
+                  "summary": "Usando dateTime",
+                  "value": {
+                    "clientName": "Maria Souza",
+                    "clientEmail": "maria@example.com",
+                    "clientPhone": "+55 11 99888-7766",
+                    "serviceId": "c5f2f4e8-3f7c-4d2a-a1b2-1234567890ab",
+                    "barberId": "7a2b1c3d-4e5f-6789-abcd-ef0123456789",
+                    "dateTime": "2025-02-01T14:30:00.000Z",
+                    "payOnline": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agendamento criado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "appointment": { "$ref": "#/components/schemas/AppointmentSummary" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    }
+    ,
+    "/api/barber/availability": {
+      "get": {
+        "tags": ["Availability"],
+        "summary": "Obter override de disponibilidade do barbeiro em uma data",
+        "parameters": [
+          { "name": "barberId", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "date", "in": "query", "required": true, "schema": { "type": "string", "example": "2025-02-01" } }
+        ],
+        "responses": {
+          "200": { "description": "Override do dia", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": {"type":"boolean"}, "availability": {"$ref":"#/components/schemas/BarberAvailability"} } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Availability"],
+        "summary": "Definir/atualizar disponibilidade do dia (barbeiro/admin)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BarberAvailabilityUpsert" } } } },
+        "responses": { "200": { "description": "Salvo" }, "500": { "$ref": "#/components/responses/ServerError" } }
+      }
+    },
+    "/api/admin/availability": {
+      "get": { "tags": ["Availability"], "summary": "Listar overrides", "parameters": [
+        { "name": "barberId", "in": "query", "schema": { "type": "string" } },
+        { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+        { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+      ], "responses": { "200": { "description": "Lista", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": {"type":"boolean"}, "overrides": {"type":"array", "items": {"$ref":"#/components/schemas/BarberAvailability"}} } } } } } } },
+      "post": { "tags": ["Availability"], "summary": "Bloquear/definir disponibilidade (admin)", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BarberAvailabilityAdmin" } } } }, "responses": { "200": { "description": "Ok" } } },
+      "delete": { "tags": ["Availability"], "summary": "Desbloquear horário ou limpar dia", "parameters": [ { "name": "barberId", "in": "query", "required": true, "schema": { "type": "string" } }, { "name": "date", "in": "query", "required": true, "schema": { "type": "string" } }, { "name": "slot", "in": "query", "schema": { "type": "string" } }, { "name": "clearDay", "in": "query", "schema": { "type": "boolean" } } ], "responses": { "200": { "description": "Ok" } } }
+    },
+    "/api/admin/appointments": {
+      "post": { "tags": ["Appointments"], "summary": "Criar agendamento manual (walk-in)", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdminAppointmentCreate" } } } }, "responses": { "201": { "description": "Criado" }, "400": { "$ref": "#/components/responses/BadRequest" } } }
+    },
+    "/api/admin/reports/export": {
+      "get": { "tags": ["Appointments"], "summary": "Exportar atendimentos em Excel/CSV", "parameters": [
+        { "name": "format", "in": "query", "schema": { "type": "string", "enum": ["xlsx","csv"] }, "example": "xlsx" },
+        { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+        { "name": "endDate", "in": "query", "schema": { "type": "string" } },
+        { "name": "status", "in": "query", "schema": { "type": "string" } },
+        { "name": "client", "in": "query", "schema": { "type": "string" } },
+        { "name": "barberId", "in": "query", "schema": { "type": "string" } }
+        , { "name": "serviceId", "in": "query", "schema": { "type": "string" } }
+      ], "responses": { "200": { "description": "Arquivo gerado" }, "500": { "$ref": "#/components/responses/ServerError" } } }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ServicePreview": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "price": { "type": "number", "format": "float" },
+          "duration": { "type": "integer", "description": "minutos" },
+          "description": { "type": "string" }
+        },
+        "required": ["id", "name", "price", "duration"]
+      },
+      "Barber": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" }
+        },
+        "required": ["id", "name", "email"]
+      },
+      "AppointmentSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "date": { "type": "string", "example": "2025-02-01" },
+          "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+          "client": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "email": { "type": "string", "format": "email" }
+            },
+            "required": ["name", "email"]
+          },
+          "barber": {
+            "type": "object",
+            "properties": { "name": { "type": "string" } },
+            "required": ["name"]
+          },
+          "service": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "price": { "type": "number" },
+              "duration": { "type": "integer" }
+            },
+            "required": ["name", "price", "duration"]
+          }
+        },
+        "required": ["id", "date", "status", "client", "barber", "service"]
+      },
+      "AppointmentCreateRequest": {
+        "type": "object",
+        "description": "Envie 'date' + 'time' OU um único 'dateTime'.",
+        "properties": {
+          "clientName": { "type": "string" },
+          "clientEmail": { "type": "string", "format": "email" },
+          "clientPhone": { "type": "string" },
+          "clientWhatsapp": { "type": "string" },
+          "serviceId": { "type": "string", "format": "uuid" },
+          "barberId": { "type": "string", "format": "uuid" },
+          "date": { "type": "string", "example": "2025-02-01" },
+          "time": { "type": "string", "example": "14:30" },
+          "dateTime": { "type": "string", "format": "date-time" },
+          "paymentMethod": { "type": "string", "example": "Dinheiro" },
+          "payOnline": { "type": "boolean" },
+          "notes": { "type": "string" }
+        },
+        "required": ["clientName", "clientEmail", "clientPhone", "serviceId", "barberId"]
+      },
+      "AdminAppointmentCreate": {
+        "type": "object",
+        "properties": {
+          "serviceId": { "type": "string" },
+          "barberId": { "type": "string" },
+          "date": { "type": "string", "example": "2025-02-01" },
+          "time": { "type": "string", "example": "14:30" },
+          "clientName": { "type": "string" },
+          "clientEmail": { "type": "string" },
+          "clientPhone": { "type": "string" },
+          "notes": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending","confirmed","completed","cancelled"] }
+        },
+        "required": ["serviceId","barberId","date","time"]
+      },
+      "BarberAvailability": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "barberId": { "type": "string" },
+          "date": { "type": "string" },
+          "isDayBlocked": { "type": "boolean" },
+          "availableSlots": { "type": "array", "items": { "type": "string", "example": "09:00" } },
+          "blockedSlots": { "type": "array", "items": { "type": "string", "example": "10:30" } }
+        }
+      },
+      "BarberAvailabilityUpsert": {
+        "type": "object",
+        "properties": {
+          "barberId": { "type": "string" },
+          "date": { "type": "string" },
+          "isDayBlocked": { "type": "boolean" },
+          "availableSlots": { "type": "array", "items": { "type": "string" } },
+          "blockedSlots": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["barberId","date"]
+      },
+      "BarberAvailabilityAdmin": {
+        "allOf": [ { "$ref": "#/components/schemas/BarberAvailabilityUpsert" }, { "type": "object", "properties": { "mode": { "type": "string", "enum": ["add","set"] } } } ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string" } },
+        "required": ["error"]
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Parâmetros inválidos ou ausentes",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "ServerError": {
+        "description": "Erro interno do servidor",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    }
+  }
+}

@@ -14,6 +14,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  
+  // Pegar callbackUrl da URL se existir
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const callbackUrl = urlParams?.get('callbackUrl') || '/admin'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,8 +34,8 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Credenciais inválidas')
       } else {
-        // Login bem-sucedido - redirecionar baseado no role
-        router.push('/admin')
+        // Login bem-sucedido - redirecionar para callbackUrl ou admin
+        router.push(callbackUrl)
       }
     } catch (error) {
       setError('Erro de conexão. Tente novamente.' + error)

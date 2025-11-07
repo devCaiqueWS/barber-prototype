@@ -20,56 +20,78 @@ enum Role {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String?
-  password    String
-  role        Role     @default(CLIENT)
-  phone       String?
-  isActive    Boolean  @default(true)
-  specialties String[] // Para barbeiros - Array de especialidades
-  workDays    String[] // Para barbeiros - Array de dias da semana
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String?
+  password      String
+  role          Role     @default(CLIENT)
+  phone         String?
+  whatsapp      String? // Campo WhatsApp
+  isActive      Boolean  @default(true)
+  specialties   String[] // Para barbeiros - Array de especialidades
+  workDays      String[] // Para barbeiros - Array de dias da semana
   workStartTime String? // Para barbeiros
   workEndTime   String? // Para barbeiros
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relacionamentos
-  clientAppointments Appointment[] @relation("Client")
-  barberAppointments Appointment[] @relation("Barber")
+  clientAppointments Appointment[]        @relation("Client")
+  barberAppointments Appointment[]        @relation("Barber")
+  // Disponibilidade/bloqueios por dia (somente aplicável a barbeiros)
+  availabilities     BarberAvailability[]
 
   @@map("users")
 }
 
 model Service {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  price       Float
-  duration    Int      // minutes
-  category    String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  price        Float
+  duration     Int // minutes
+  category     String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
   appointments Appointment[]
 }
 
 model Appointment {
-  id            String   @id @default(uuid())
-  date          String   // Data no formato YYYY-MM-DD
-  startTime     String   // Horário de início
-  endTime       String   // Horário de fim
-  status        String   @default("pending") // 'pending', 'confirmed', 'completed', 'cancelled'
-  clientName    String   // Nome do cliente
-  clientEmail   String   // Email do cliente
-  clientPhone   String   // Telefone do cliente
-  clientAddress String?  // Endereço do cliente
-  paymentMethod String   // Forma de pagamento
-  notes         String?  // Observações
-  client        User?    @relation("Client", fields: [clientId], references: [id])
-  clientId      String?
-  barber        User?    @relation("Barber", fields: [barberId], references: [id])
-  barberId      String?
-  service       Service  @relation(fields: [serviceId], references: [id])
-  serviceId     String
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  date           String // Data no formato YYYY-MM-DD
+  startTime      String // Horário de início
+  endTime        String // Horário de fim
+  status         String   @default("pending") // 'pending', 'confirmed', 'completed', 'cancelled'
+  clientName     String // Nome do cliente
+  clientEmail    String // Email do cliente
+  clientPhone    String // Telefone do cliente
+  clientWhatsapp String? // WhatsApp do cliente
+  clientAddress  String? // Endereço do cliente
+  paymentMethod  String // Forma de pagamento
+  payOnline      Boolean  @default(false) // Se vai pagar online
+  notes          String? // Observações
+  client         User?    @relation("Client", fields: [clientId], references: [id])
+  clientId       String?
+  barber         User?    @relation("Barber", fields: [barberId], references: [id])
+  barberId       String?
+  service        Service  @relation(fields: [serviceId], references: [id])
+  serviceId      String
+  createdAt      DateTime @default(now())
+  source         String   @default("online") // origem do agendamento: 'online' | 'manual'
+}
+
+// Disponibilidade e bloqueios por barbeiro e data
+model BarberAvailability {
+  id             String   @id @default(uuid())
+  barber         User     @relation(fields: [barberId], references: [id])
+  barberId       String
+  date           String // YYYY-MM-DD
+  isDayBlocked   Boolean  @default(false)
+  availableSlots String[] // HH:mm (se vazio, usa horário padrão do barbeiro)
+  blockedSlots   String[] // HH:mm
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([barberId, date])
+  @@map("barber_availability")
 }

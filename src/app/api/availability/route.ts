@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
     const selectedDate = new Date(date)
     const startOfDay = new Date(selectedDate)
     startOfDay.setHours(0, 0, 0, 0)
-    
     const endOfDay = new Date(selectedDate)
     endOfDay.setHours(23, 59, 59, 999)
 
@@ -30,9 +29,7 @@ export async function GET(request: NextRequest) {
       where: {
         barberId,
         date: dateStr,
-        status: {
-          not: 'CANCELLED'
-        }
+        NOT: { status: 'cancelled' }
       },
       include: {
         service: {
@@ -43,46 +40,93 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Gerar horários disponíveis (9h às 18h)
-    const availableSlots = []
-    const workStart = 9 // 9:00
-    const workEnd = 18 // 18:00
+    // Buscar configuracoes do barbeiro
+    const barber = await prisma.user.findUnique({
+      where: { id: barberId },
+      select: { workStartTime: true, workEndTime: true, workDays: true }
+    })
+
+    const parseHHMM = (hhmm?: string | null) => {
+      if (!hhmm) return null
+      const [h, m] = hhmm.split(':').map(n => parseInt(n, 10))
+      return { h, m }
+    }
+
+    const defaultStart = parseHHMM(barber?.workStartTime) ?? { h: 9, m: 0 }
+    const defaultEnd = parseHHMM(barber?.workEndTime) ?? { h: 18, m: 0 }
     const slotDuration = 30 // 30 minutos
 
-    for (let hour = workStart; hour < workEnd; hour++) {
-      for (let minute = 0; minute < 60; minute += slotDuration) {
-        const slotTime = new Date(selectedDate)
-        slotTime.setHours(hour, minute, 0, 0)
+    const weekdayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    const weekday = weekdayNames[selectedDate.getDay()]
 
-        // Verificar se é no futuro (pelo menos 30 minutos à frente para desenvolvimento)
-        const now = new Date()
-        const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000) // Reduzido para 30 min para teste
-        
-        if (slotTime <= thirtyMinutesFromNow) {
-          continue
-        }
+    // Overrides do dia
+    const override = await prisma.barberAvailability.findUnique({
+      where: { barberId_date: { barberId, date: dateStr } }
+    })
 
-        // Verificar se não conflita com agendamentos existentes
-  const hasConflict = existingAppointments.some((appointment: {
-            date: Date | string;
-            service?: { duration?: number | null };
-          }) => {
-          const appointmentStart = new Date(appointment.date)
-          const appointmentEnd = new Date(appointmentStart.getTime() + (appointment.service?.duration || 30) * 60 * 1000)
-          const slotEnd = new Date(slotTime.getTime() + duration * 60 * 1000)
+    if (override?.isDayBlocked) {
+      return NextResponse.json({ success: true, availableTimes: [] })
+    }
 
-          return (
-            (slotTime >= appointmentStart && slotTime < appointmentEnd) ||
-            (slotEnd > appointmentStart && slotEnd <= appointmentEnd) ||
-            (slotTime <= appointmentStart && slotEnd >= appointmentEnd)
-          )
-        })
+    const baseSlots: string[] = []
 
-        if (!hasConflict) {
-          const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-          availableSlots.push(timeSlot)
-        }
+    const generateSlots = (start: {h:number;m:number}, end: {h:number;m:number}) => {
+      const slots: string[] = []
+      const startMinutes = start.h * 60 + start.m
+      const endMinutes = end.h * 60 + end.m
+      for (let t = startMinutes; t < endMinutes; t += slotDuration) {
+        const h = Math.floor(t / 60).toString().padStart(2, '0')
+        const m = (t % 60).toString().padStart(2, '0')
+        slots.push(`${h}:${m}`)
       }
+      return slots
+    }
+
+    if (override && override.availableSlots.length > 0) {
+      baseSlots.push(...override.availableSlots)
+    } else {
+      // Se dia não está na escala do barbeiro e sem override explícito, sem horários
+      if (barber?.workDays && barber.workDays.length > 0 && !barber.workDays.includes(weekday)) {
+        return NextResponse.json({ success: true, availableTimes: [] })
+      }
+      baseSlots.push(...generateSlots(defaultStart, defaultEnd))
+    }
+
+    // Aplicar bloqueios específicos
+    const blocked = new Set((override?.blockedSlots ?? []).map(s => s.trim()))
+
+    const now = new Date()
+    const minStart = new Date(now.getTime() + 30 * 60 * 1000) // 30 min adiante
+
+    const isSameDay = new Date().toISOString().split('T')[0] === dateStr
+
+    const availableSlots: string[] = []
+    for (const slot of baseSlots) {
+      if (blocked.has(slot)) continue
+
+      const [hours, minutes] = slot.split(':').map(n => parseInt(n, 10))
+      const slotTime = new Date(selectedDate)
+      slotTime.setHours(hours, minutes, 0, 0)
+
+      if (isSameDay && slotTime <= minStart) continue
+
+      const slotEnd = new Date(slotTime.getTime() + duration * 60 * 1000)
+
+      // Conflito com agendamentos existentes
+      const hasConflict = existingAppointments.some(appt => {
+        const [ah, am] = (appt.startTime || '00:00').split(':').map(n => parseInt(n,10))
+        const apptStart = new Date(selectedDate)
+        apptStart.setHours(ah, am, 0, 0)
+        const apptDuration = appt.service?.duration ?? 30
+        const apptEnd = new Date(apptStart.getTime() + apptDuration * 60 * 1000)
+        return (
+          (slotTime >= apptStart && slotTime < apptEnd) ||
+          (slotEnd > apptStart && slotEnd <= apptEnd) ||
+          (slotTime <= apptStart && slotEnd >= apptEnd)
+        )
+      })
+
+      if (!hasConflict) availableSlots.push(slot)
     }
 
     return NextResponse.json({ success: true, availableTimes: availableSlots })

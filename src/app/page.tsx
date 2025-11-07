@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import MenuMobile from "@/components/MenuMobile";
@@ -9,7 +9,28 @@ export default function Home() {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [services, setServices] = useState<Array<{ id: string; name: string; price: number; duration: number; description?: string }>>([])
+  const [loadingServices, setLoadingServices] = useState(true)
 
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch('/api/services')
+        if (!res.ok) throw new Error('Falha ao carregar serviços')
+        const data = await res.json()
+        setServices(Array.isArray(data?.services) ? data.services : [])
+      } catch (e) {
+        console.error('Erro ao buscar serviços na home:', e)
+        setServices([])
+      } finally {
+        setLoadingServices(false)
+      }
+    }
+    fetchServices()
+  }, [])
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-start">
@@ -94,13 +115,15 @@ export default function Home() {
         <div className="container mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-8 md:mb-12">Nossos Serviços</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {[
-              { name: "Corte Tradicional", price: "R$ 25", duration: "30 min" },
-              { name: "Barba Completa", price: "R$ 20", duration: "25 min" },
-              { name: "Corte + Barba", price: "R$ 40", duration: "50 min" },
-              { name: "Tratamento Capilar", price: "R$ 35", duration: "40 min" },
-            ].map((service, index) => (
-              <div key={index} className="bg-slate-800 rounded-lg p-4 md:p-6 border border-slate-700 hover:border-amber-500 transition-colors flex flex-col gap-2">
+            {loadingServices && (
+              <>
+                {[0,1,2,3].map((i) => (
+                  <div key={i} className="bg-slate-800 rounded-lg p-4 md:p-6 border border-slate-700 animate-pulse h-40" />
+                ))}
+              </>
+            )}
+            {!loadingServices && services.slice(0,4).map((service) => (
+              <div key={service.id} className="bg-slate-800 rounded-lg p-4 md:p-6 border border-slate-700 hover:border-amber-500 transition-colors flex flex-col gap-2">
                 <div className="flex items-center justify-between mb-2 md:mb-3">
                   <Scissors className="h-6 w-6 text-amber-500" />
                   <div className="flex items-center text-amber-500">
@@ -113,10 +136,10 @@ export default function Home() {
                 </div>
                 <h3 className="text-base md:text-lg font-semibold text-white mb-1 md:mb-2">{service.name}</h3>
                 <div className="flex justify-between items-center text-slate-300 mb-2 md:mb-4">
-                  <span className="text-lg md:text-xl font-bold text-amber-500">{service.price}</span>
+                  <span className="text-lg md:text-xl font-bold text-amber-500">{formatCurrency(service.price)}</span>
                   <span className="flex items-center">
                     <Clock className="h-4 w-4 mr-1" />
-                    {service.duration}
+                    {service.duration} min
                   </span>
                 </div>
                 <Button className="w-full no-underline text-white bg-amber-600 hover:bg-amber-700 text-xs md:text-base" asChild>
@@ -124,6 +147,9 @@ export default function Home() {
                 </Button>
               </div>
             ))}
+            {!loadingServices && services.length === 0 && (
+              <div className="col-span-full text-center text-slate-400">Nenhum servi��o dispon��vel</div>
+            )}
           </div>
           <div className="text-center mt-6 md:mt-8">
             <Button variant="outline" size="lg" asChild className="no-underline border-slate-600 text-white hover:bg-slate-800">

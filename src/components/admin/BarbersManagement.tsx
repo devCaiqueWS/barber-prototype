@@ -31,9 +31,8 @@ export default function BarbersManagement() {
     try {
       const response = await fetch('/api/admin/barbers')
       const data = await response.json()
-      if (data.success) {
-        setBarbers(data.barbers)
-      }
+      const list = Array.isArray(data) ? data : (Array.isArray((data as any)?.barbers) ? (data as any).barbers : [])
+      setBarbers(list as Barber[])
     } catch (error) {
       console.error('Erro ao carregar barbeiros:', error)
     } finally {
@@ -59,15 +58,14 @@ export default function BarbersManagement() {
         body: JSON.stringify(formData),
       })
 
-      const data = await response.json()
-      
-      if (data.success) {
+      if (response.ok) {
         await fetchBarbers()
         setShowAddModal(false)
         setEditingBarber(null)
         setFormData({ name: '', email: '', password: '' })
       } else {
-        alert('Erro: ' + data.error)
+        const err = await response.json().catch(() => ({} as any))
+        alert('Erro ao salvar barbeiro' + (err?.error ? `: ${err.error}` : ''))
       }
     } catch (error) {
       console.error('Erro ao salvar barbeiro:', error)
@@ -93,12 +91,11 @@ export default function BarbersManagement() {
         method: 'DELETE',
       })
 
-      const data = await response.json()
-      
-      if (data.success) {
+      if (response.ok) {
         await fetchBarbers()
       } else {
-        alert('Erro: ' + data.error)
+        const err = await response.json().catch(() => ({} as any))
+        alert('Erro ao excluir barbeiro' + (err?.error ? `: ${err.error}` : ''))
       }
     } catch (error) {
       console.error('Erro ao excluir barbeiro:', error)

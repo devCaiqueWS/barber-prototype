@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { BarChart, ChevronLeft, Download, Calendar, DollarSign, Users, Scissors, TrendingUp, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import AppointmentsReportTable from '@/components/admin/AppointmentsReportTable'
 
 interface ReportData {
   summary: {
@@ -361,6 +362,8 @@ export default function AdminReports() {
                 ))}
               </div>
             </div>
+
+            <AppointmentsReportTable />
           </>
         ) : (
           <div className="bg-slate-800 rounded-lg p-12 border border-slate-700 text-center">
