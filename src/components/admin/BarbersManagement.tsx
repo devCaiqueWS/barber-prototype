@@ -111,7 +111,7 @@ export default function BarbersManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <Users className="h-6 w-6 text-amber-500" />
+          <Users className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold text-white">Barbeiros</h2>
         </div>
         <Button

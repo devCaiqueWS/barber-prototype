@@ -104,14 +104,14 @@ export default function PagamentoPage() {
 
   if (!paymentData) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center">
         <div className="text-white">Carregando...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-[#1F1F1F] text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <Link href="/agendamento" className="text-amber-500 hover:text-amber-400 flex items-center">

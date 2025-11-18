@@ -55,7 +55,7 @@ export default function ApiDocsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4">
+    <div className="min-h-screen bg-[#1F1F1F] p-4">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">API Docs</h1>
         <p className="text-slate-300 mb-4">

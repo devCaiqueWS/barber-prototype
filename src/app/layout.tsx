@@ -14,7 +14,7 @@ const geistMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BarberPro - Sistema de Agendamento",
+  title: "JM Barbearia - Sistema de Agendamento",
   description: "Sistema completo para gerenciar sua barbearia",
 };
 
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

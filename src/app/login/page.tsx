@@ -45,7 +45,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#1F1F1F] via-[#1F1F1F] to-[#1F1F1F] flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -57,7 +57,7 @@ export default function LoginPage() {
           
           <div className="flex items-center justify-center space-x-2 mb-6">
             <Scissors className="h-10 w-10 text-amber-500" />
-            <span className="text-3xl font-bold text-white">BarberPro</span>
+            <span className="text-3xl font-bold text-white">JM Barbearia</span>
           </div>
           
           <h2 className="text-2xl font-bold text-white">Acesse sua conta</h2>

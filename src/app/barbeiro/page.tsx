@@ -66,7 +66,7 @@ export default function BarberDashboard() {
 
     if (status === 'loading') {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+            <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center">
                 <div className="text-white">Carregando...</div>
             </div>
         )
@@ -74,7 +74,7 @@ export default function BarberDashboard() {
 
     if (status === 'unauthenticated' || (session?.user as { role?: string })?.role !== 'barber') {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+            <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center">
                 <div className="text-center text-white">
                     <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
                     <p className="mb-6">Você precisa estar logado como barbeiro para acessar esta página.</p>
@@ -122,7 +122,7 @@ export default function BarberDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white">
+        <div className="min-h-screen bg-[#1F1F1F] text-white">
             <div className="container mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="mb-8">

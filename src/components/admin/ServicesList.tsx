@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Scissors, Clock, DollarSign } from "lucide-react";
+import { Scissors } from "lucide-react";
 
 type Service = {
   id: string

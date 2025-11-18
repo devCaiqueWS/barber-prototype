@@ -197,7 +197,7 @@ export default function AdminSettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center">
         <div className="text-white">Carregando configurações...</div>
       </div>
     )
@@ -205,14 +205,14 @@ export default function AdminSettings() {
 
   if (!settings) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center">
         <div className="text-white">Erro ao carregar configurações</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-6">
+    <div className="min-h-screen bg-[#1F1F1F] p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
