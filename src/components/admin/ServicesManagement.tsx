@@ -9,7 +9,7 @@ interface Service {
   name: string
   price: number
   duration: number
-  active: boolean
+  isActive: boolean
   createdAt: string
 }
 
@@ -33,7 +33,7 @@ export default function ServicesManagement() {
       const response = await fetch('/api/admin/services')
       const data = await response.json()
       if (data.success) {
-        setServices(data.services)
+        setServices(data.services as Service[])
       }
     } catch (error) {
       console.error('Erro ao carregar serviços:', error)
@@ -111,14 +111,14 @@ export default function ServicesManagement() {
     }
   }
 
-  const toggleActive = async (id: string, active: boolean) => {
+  const toggleActive = async (id: string, isActive: boolean) => {
     try {
       const response = await fetch(`/api/admin/services/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ active: !active }),
+        body: JSON.stringify({ isActive: !isActive }),
       })
 
       const data = await response.json()
@@ -164,11 +164,11 @@ export default function ServicesManagement() {
                 <div className="flex items-center space-x-3">
                   <h3 className="text-xl font-semibold text-white">{service.name}</h3>
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    service.active 
+                    service.isActive 
                       ? 'bg-green-900/20 text-green-400 border border-green-600' 
                       : 'bg-red-900/20 text-red-400 border border-red-600'
                   }`}>
-                    {service.active ? 'Ativo' : 'Inativo'}
+                    {service.isActive ? 'Ativo' : 'Inativo'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-4 text-slate-400">
@@ -189,12 +189,12 @@ export default function ServicesManagement() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => toggleActive(service.id, service.active)}
+                  onClick={() => toggleActive(service.id, service.isActive)}
                   className={`text-slate-300 border-slate-600 hover:bg-slate-700 ${
-                    service.active ? '' : 'opacity-50'
+                    service.isActive ? '' : 'opacity-50'
                   }`}
                 >
-                  {service.active ? 'Desativar' : 'Ativar'}
+                  {service.isActive ? 'Desativar' : 'Ativar'}
                 </Button>
                 <Button
                   variant="outline"

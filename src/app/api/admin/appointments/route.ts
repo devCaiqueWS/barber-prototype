@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+interface AdminAppointmentBody {
+  serviceId: string
+  barberId: string
+  date: string
+  time: string
+  clientName?: string
+  clientEmail?: string
+  clientPhone?: string
+  notes?: string
+  status?: string
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -75,8 +87,18 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { serviceId, barberId, date, time, clientName, clientEmail, clientPhone, notes, status } = body as any
+    const body = (await request.json()) as AdminAppointmentBody
+    const {
+      serviceId,
+      barberId,
+      date,
+      time,
+      clientName,
+      clientEmail,
+      clientPhone,
+      notes,
+      status,
+    } = body
 
     if (!serviceId || !barberId || !date || !time) {
       return NextResponse.json({ error: 'serviceId, barberId, date e time são obrigatórios' }, { status: 400 })

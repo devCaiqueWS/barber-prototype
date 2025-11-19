@@ -8,8 +8,9 @@ interface Barber {
   id: string
   name: string
   email: string
-  role: string
-  createdAt: string
+  phone?: string
+  isActive?: boolean
+  createdAt?: string
 }
 
 export default function BarbersManagement() {
@@ -29,9 +30,14 @@ export default function BarbersManagement() {
 
   const fetchBarbers = async () => {
     try {
-      const response = await fetch('/api/admin/barbers')
-      const data = await response.json()
-      const list = Array.isArray(data) ? data : (Array.isArray((data as any)?.barbers) ? (data as any).barbers : [])
+      const response = await fetch('/api/barbers')
+      const data: unknown = await response.json()
+      const list =
+        Array.isArray(data)
+          ? data
+          : Array.isArray((data as { barbers?: unknown[] }).barbers)
+          ? ((data as { barbers: unknown[] }).barbers)
+          : []
       setBarbers(list as Barber[])
     } catch (error) {
       console.error('Erro ao carregar barbeiros:', error)
@@ -45,8 +51,8 @@ export default function BarbersManagement() {
     
     try {
       const url = editingBarber 
-        ? `/api/admin/barbers/${editingBarber.id}`
-        : '/api/admin/barbers'
+        ? `/api/barbers/${editingBarber.id}`
+        : '/api/barbers'
       
       const method = editingBarber ? 'PUT' : 'POST'
       
@@ -64,7 +70,9 @@ export default function BarbersManagement() {
         setEditingBarber(null)
         setFormData({ name: '', email: '', password: '' })
       } else {
-        const err = await response.json().catch(() => ({} as any))
+        const err = (await response.json().catch(() => ({}))) as {
+          error?: string
+        }
         alert('Erro ao salvar barbeiro' + (err?.error ? `: ${err.error}` : ''))
       }
     } catch (error) {
@@ -87,14 +95,16 @@ export default function BarbersManagement() {
     if (!confirm('Tem certeza que deseja excluir este barbeiro?')) return
 
     try {
-      const response = await fetch(`/api/admin/barbers/${id}`, {
+      const response = await fetch(`/api/barbers/${id}`, {
         method: 'DELETE',
       })
 
       if (response.ok) {
         await fetchBarbers()
       } else {
-        const err = await response.json().catch(() => ({} as any))
+        const err = (await response.json().catch(() => ({}))) as {
+          error?: string
+        }
         alert('Erro ao excluir barbeiro' + (err?.error ? `: ${err.error}` : ''))
       }
     } catch (error) {
@@ -141,7 +151,7 @@ export default function BarbersManagement() {
                   </div>
                 </div>
                 <p className="text-sm text-slate-500">
-                  Cadastrado em: {new Date(barber.createdAt).toLocaleDateString()}
+                  Cadastrado em: {new Date(barber.createdAt as string).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex space-x-2">

@@ -8,7 +8,7 @@ function getIdFromRequest(request: NextRequest): string | null {
   return last && last !== '[id]' ? last : null
 }
 
-// GET - Buscar serviço por ID (admin)
+// GET - Buscar serviço por ID (público)
 export async function GET(request: NextRequest) {
   try {
     const id = getIdFromRequest(request)
@@ -27,18 +27,10 @@ export async function GET(request: NextRequest) {
         description: true,
         price: true,
         duration: true,
-        category: true,
-        isActive: true,
-        createdAt: true,
-        _count: {
-          select: {
-            appointments: true,
-          },
-        },
       },
     })
 
-    if (!service) {
+    if (!service || service === null) {
       return NextResponse.json(
         { error: 'Serviço não encontrado' },
         { status: 404 },
@@ -47,12 +39,15 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, service })
   } catch (error) {
-    console.error('Erro ao buscar serviço (admin):', error)
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
+    console.error('Erro ao buscar serviço:', error)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 },
+    )
   }
 }
 
-// PUT - Atualizar serviço (admin)
+// PUT - Atualizar serviço (público)
 export async function PUT(request: NextRequest) {
   try {
     const id = getIdFromRequest(request)
@@ -70,8 +65,7 @@ export async function PUT(request: NextRequest) {
       price,
       duration,
       category,
-      isActive: isActiveFromBody,
-      active,
+      isActive,
     } = body as {
       name?: string
       description?: string
@@ -79,45 +73,39 @@ export async function PUT(request: NextRequest) {
       duration?: number | string
       category?: string
       isActive?: boolean
-      active?: boolean
     }
 
-    let isActive = isActiveFromBody
-
-    const existingService = await prisma.service.findUnique({ where: { id } })
-    if (!existingService) {
+    const existing = await prisma.service.findUnique({ where: { id } })
+    if (!existing) {
       return NextResponse.json(
         { error: 'Serviço não encontrado' },
         { status: 404 },
       )
     }
 
-    if (typeof isActive === 'undefined' && typeof active !== 'undefined') {
-      isActive = !!active
-    }
-
-    const priceNumber =
-      typeof price === 'string' ? parseFloat(price) : price
-    const durationNumber =
-      typeof duration === 'string' ? parseInt(duration, 10) : duration
-
     const data: Prisma.ServiceUpdateInput = {}
 
     if (typeof name === 'string') data.name = name
     if (typeof description === 'string') data.description = description
+
+    if (typeof price !== 'undefined') {
+      const priceNumber =
+        typeof price === 'string' ? parseFloat(price) : price
+      if (!Number.isNaN(priceNumber as number)) {
+        data.price = priceNumber
+      }
+    }
+
+    if (typeof duration !== 'undefined') {
+      const durationNumber =
+        typeof duration === 'string' ? parseInt(duration, 10) : duration
+      if (!Number.isNaN(durationNumber as number)) {
+        data.duration = durationNumber
+      }
+    }
+
     if (typeof category === 'string') data.category = category
-    if (typeof priceNumber === 'number' && !Number.isNaN(priceNumber)) {
-      data.price = priceNumber
-    }
-    if (
-      typeof durationNumber === 'number' &&
-      !Number.isNaN(durationNumber)
-    ) {
-      data.duration = durationNumber
-    }
-    if (typeof isActive === 'boolean') {
-      data.isActive = isActive
-    }
+    if (typeof isActive === 'boolean') data.isActive = isActive
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json(
@@ -126,7 +114,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const updatedService = await prisma.service.update({
+    const updated = await prisma.service.update({
       where: { id },
       data,
       select: {
@@ -135,25 +123,20 @@ export async function PUT(request: NextRequest) {
         description: true,
         price: true,
         duration: true,
-        category: true,
-        isActive: true,
-        createdAt: true,
-        _count: {
-          select: {
-            appointments: true,
-          },
-        },
       },
     })
 
-    return NextResponse.json({ success: true, service: updatedService })
+    return NextResponse.json({ success: true, service: updated })
   } catch (error) {
-    console.error('Erro ao atualizar serviço (admin):', error)
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
+    console.error('Erro ao atualizar serviço:', error)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 },
+    )
   }
 }
 
-// DELETE - Deletar ou desativar serviço (admin)
+// DELETE - Deletar ou desativar serviço (público)
 export async function DELETE(request: NextRequest) {
   try {
     const id = getIdFromRequest(request)
@@ -164,8 +147,8 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const existingService = await prisma.service.findUnique({ where: { id } })
-    if (!existingService) {
+    const existing = await prisma.service.findUnique({ where: { id } })
+    if (!existing) {
       return NextResponse.json(
         { error: 'Serviço não encontrado' },
         { status: 404 },
@@ -177,21 +160,15 @@ export async function DELETE(request: NextRequest) {
     })
 
     if (appointmentsCount > 0) {
-      const deactivated = await prisma.service.update({
+      await prisma.service.update({
         where: { id },
         data: { isActive: false },
-        select: {
-          id: true,
-          name: true,
-          isActive: true,
-        },
       })
 
       return NextResponse.json({
         success: true,
         message:
-          'Serviço desativado com sucesso (existem agendamentos associados)',
-        service: deactivated,
+          'Serviço desativado (existem agendamentos associados)',
       })
     }
 
@@ -202,7 +179,10 @@ export async function DELETE(request: NextRequest) {
       message: 'Serviço deletado com sucesso',
     })
   } catch (error) {
-    console.error('Erro ao deletar serviço (admin):', error)
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
+    console.error('Erro ao deletar serviço:', error)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 },
+    )
   }
 }

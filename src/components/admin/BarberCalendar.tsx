@@ -22,9 +22,13 @@ interface AvailabilityResponse {
   } | null
 }
 
+interface SessionUserWithId {
+  id?: string
+}
+
 export default function BarberCalendar() {
   const { data: session } = useSession()
-  const barberId = (session?.user as any)?.id as string | undefined
+  const barberId = (session?.user as SessionUserWithId | undefined)?.id
 
   const todayStr = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState<string>(todayStr)
@@ -48,8 +52,8 @@ export default function BarberCalendar() {
   }
 
   const getSelectedSlots = (): string[] => {
-    const result = new Set<string>()
-    (Object.keys(PERIODS) as PeriodKey[]).forEach((key) => {
+    const result = new Set<string>();
+    (Object.keys(PERIODS) as PeriodKey[]).forEach((key: PeriodKey) => {
       if (!periods[key]) return
       const { start, end } = PERIODS[key]
       generateSlotsForPeriod(start, end).forEach((slot) => result.add(slot))
@@ -295,4 +299,3 @@ export default function BarberCalendar() {
     </div>
   )
 }
-

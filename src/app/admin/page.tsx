@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Scissors, ArrowLeft, Users, Calendar, DollarSign, Settings, BarChart, Clock, FileText, Download, Filter, Plus } from "lucide-react";
 import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
-import ServicesList from "@/components/admin/ServicesList";
-import BarberCalendar from "@/components/admin/BarberCalendar";
+import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
 
 interface Stats {
   todayAppointments: number
@@ -40,6 +39,7 @@ interface Appointment {
   barber: {
     name: string
   } | null
+  date: string
   startTime: string
   status: string
 }
@@ -47,7 +47,7 @@ interface Appointment {
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [stats] = useState<Stats>({
+  const [stats, setStats] = useState<Stats>({
     todayAppointments: 0,
     totalClients: 0,
     monthlyRevenue: 0,
@@ -55,7 +55,7 @@ export default function AdminPage() {
     appointmentsByStatus: {},
     todayRevenue: 0
   })
-  const [recentAppointments] = useState<Appointment[]>([])
+  const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   // Reports tab state
@@ -64,7 +64,7 @@ export default function AdminPage() {
   const [repClient, setRepClient] = useState('')
   const [repService, setRepService] = useState<string>('all')
   const [repServicesOptions, setRepServicesOptions] = useState<Array<{id:string,name:string}>>([])
-  const [repRows, setRepRows] = useState<Array<{ id:string; clientName:string; date:string; startTime:string; service?: { id?: string; name:string } }>>([])
+  const [repRows, setRepRows] = useState<Array<{ id:string; clientName:string; date:string; startTime:string; status?: string; service?: { id?: string; name:string } }>>([])
   const [repLoading, setRepLoading] = useState(false)
 
   useEffect(() => {
@@ -100,13 +100,120 @@ export default function AdminPage() {
     await signOut({ callbackUrl: '/' })
   }
 
+  // Carrega estatísticas dos cards do dashboard
+  const fetchDashboardStats = async () => {
+    try {
+      const res = await fetch('/api/admin/stats')
+      if (!res.ok) {
+        console.error('Erro ao carregar estatísticas do dashboard:', await res.text())
+        return
+      }
+      const data = await res.json()
+      setStats({
+        todayAppointments: Number(data.todayAppointments) || 0,
+        totalClients: Number(data.totalClients) || 0,
+        monthlyRevenue: Number(data.monthlyRevenue) || 0,
+        activeBarbers: Number(data.activeBarbers) || 0,
+        appointmentsByStatus: data.appointmentsByStatus || {},
+        todayRevenue: Number(data.todayRevenue) || 0,
+      })
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas do dashboard:', error)
+    }
+  }
+
+  // Quando a sessão estiver pronta, carregar um resumo dos últimos agendamentos
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!session?.user) return
+    void fetchDashboardStats()
+    void fetchRecentAppointments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
+
+  // Carrega agendamentos recentes para o dashboard
+  const fetchRecentAppointments = async () => {
+    try {
+      const userRole = (((session?.user as SessionUser)?.role) || '').toString().toUpperCase()
+      if (userRole !== 'ADMIN' && userRole !== 'BARBER') return
+
+      const endpoint =
+        userRole === 'ADMIN'
+          ? '/api/admin/appointments?page=1&limit=50'
+          : '/api/barber/appointments'
+
+      const res = await fetch(endpoint)
+      if (!res.ok) {
+        console.error('Erro ao carregar agendamentos recentes:', await res.text())
+        return
+      }
+
+      const data = (await res.json()) as { appointments?: unknown[] } | unknown[]
+
+      const raw: unknown[] =
+        Array.isArray((data as { appointments?: unknown[] }).appointments)
+          ? ((data as { appointments: unknown[] }).appointments)
+          : Array.isArray(data)
+          ? (data as unknown[])
+          : []
+
+      const mapped: Appointment[] = raw.map((item) => {
+        const a = item as {
+          id?: string
+          client?: { name?: string }
+          clientName?: string
+          service?: { name?: string }
+          barber?: { name?: string } | null
+          date?: string
+          startTime?: string
+          status?: string
+        }
+
+        return {
+          id: a.id ?? '',
+          client: {
+            name: a.client?.name ?? a.clientName ?? '',
+          },
+          service: {
+            name: a.service?.name ?? '',
+          },
+          barber: a.barber
+            ? {
+                name: a.barber.name ?? '',
+              }
+            : null,
+          date: a.date ?? '',
+          startTime: a.startTime ?? '',
+          status: a.status ?? 'pending',
+        }
+      })
+
+      const sorted = mapped.sort((a, b) => {
+        const aKey = `${a.date} ${a.startTime}`
+        const bKey = `${b.date} ${b.startTime}`
+        if (aKey > bKey) return -1
+        if (aKey < bKey) return 1
+        return 0
+      })
+
+      setRecentAppointments(sorted.slice(0, 5))
+    } catch (error) {
+      console.error('Erro ao carregar agendamentos recentes:', error)
+    }
+  }
+
   // Reports tab helpers
   const fetchServicesOptions = async () => {
     try {
       const res = await fetch('/api/admin/services')
       const data = await res.json()
-      const list = Array.isArray(data) ? data : (Array.isArray(data?.services) ? data.services : [])
-      setRepServicesOptions(list.map((s: any) => ({ id: s.id, name: s.name })))
+      const list = Array.isArray(data) ? data : (Array.isArray((data as { services?: unknown[] }).services) ? (data as { services: unknown[] }).services : [])
+      setRepServicesOptions(
+        list.map((item) => {
+          const s = item as { id: string; name: string }
+          return { id: s.id, name: s.name }
+        }),
+      )
     } catch (e) {
       console.error('Erro ao carregar serviços:', e)
     }
@@ -115,10 +222,24 @@ export default function AdminPage() {
   const fetchAppointmentsReport = async () => {
     try {
       setRepLoading(true)
-      const params = new URLSearchParams({ type: 'appointments', startDate: repStartDate, endDate: repEndDate })
-      const res = await fetch(`/api/admin/reports?${params.toString()}`)
+      const params = new URLSearchParams({
+        format: 'json',
+        startDate: repStartDate,
+        endDate: repEndDate,
+      })
+      if (repClient.trim()) {
+        params.set('client', repClient.trim())
+      }
+      if (repService !== 'all') {
+        params.set('serviceId', repService)
+      }
+      const res = await fetch(`/api/admin/reports/export?${params.toString()}`)
       const data = await res.json()
-      const rows = Array.isArray(data?.data) ? data.data : []
+      const rows = Array.isArray(data?.rows)
+        ? data.rows
+        : Array.isArray(data)
+        ? data
+        : []
       setRepRows(rows)
     } catch (e) {
       console.error('Erro ao carregar relatório de atendimentos:', e)
@@ -141,9 +262,14 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repStartDate, repEndDate])
 
-  const filteredRepRows = repRows.filter((r: any) => {
-    const clientOk = repClient.trim().length === 0 || (r.clientName || '').toLowerCase().includes(repClient.toLowerCase())
-    const serviceOk = repService === 'all' || r.service?.name === repServicesOptions.find(s => s.id === repService)?.name || r.service?.id === repService
+  const filteredRepRows = repRows.filter((r) => {
+    const clientOk =
+      repClient.trim().length === 0 ||
+      (r.clientName || '').toLowerCase().includes(repClient.toLowerCase())
+    const serviceOk =
+      repService === 'all' ||
+      r.service?.name === repServicesOptions.find((s) => s.id === repService)?.name ||
+      r.service?.id === repService
     return clientOk && serviceOk
   })
 
@@ -460,7 +586,7 @@ export default function AdminPage() {
 
         {/* Services Tab */}
         {activeTab === 'services' && (
-          <ServicesList />
+          <ServicesManagement />
         )}
 
         {/* Reports Tab */}
@@ -545,7 +671,7 @@ export default function AdminPage() {
                     className="w-full px-3 py-2.5 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
                     <option value="all">Todos</option>
-                    {repServicesOptions.map(s => (
+	                    {repServicesOptions.map((s) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
@@ -576,8 +702,8 @@ export default function AdminPage() {
                       <tr><td colSpan={4} className="py-4 text-center">Carregando...</td></tr>
                     ) : filteredRepRows.length === 0 ? (
                       <tr><td colSpan={4} className="py-4 text-center">Sem registros</td></tr>
-                    ) : (
-                      filteredRepRows.map((r: any) => (
+	                    ) : (
+	                      filteredRepRows.map((r) => (
                         <tr key={r.id} className="border-t border-slate-700">
                           <td className="py-2.5 px-3">{r.clientName}</td>
                           <td className="py-2.5 px-3">{r.date}</td>
@@ -604,7 +730,7 @@ export default function AdminPage() {
         )}
 
         {/* Appointments Tab */}
-        {activeTab === 'appointments' && (
+        {activeTab === 'appointments-legacy' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-white">
@@ -612,7 +738,10 @@ export default function AdminPage() {
               </h2>
               <div className="flex space-x-2">
                 {(session?.user as SessionUser)?.role !== 'BARBER' && (
-                  <Button className="bg-amber-600 hover:bg-amber-700">
+                  <Button
+                    className="bg-amber-600 hover:bg-amber-700"
+                    onClick={() => router.push('/admin/agendamentos')}
+                  >
                     <Plus className="h-4 w-4 mr-2" /> Novo Atendimento
                   </Button>
                 )}
@@ -665,7 +794,21 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* Appointments Tab (novo CRUD) */}
+        {activeTab === 'appointments' && (
+          <AppointmentsManagement />
+        )}
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+

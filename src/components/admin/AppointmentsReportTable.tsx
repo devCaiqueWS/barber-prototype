@@ -158,11 +158,18 @@ export default function AppointmentsReportTable() {
             <label className="block text-xs text-slate-400 mb-1">
               Status
             </label>
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as any)
-              }
+              <select
+	              value={statusFilter}
+	              onChange={(e) =>
+	                setStatusFilter(
+	                  e.target.value as
+	                    | "all"
+	                    | "pending"
+	                    | "confirmed"
+	                    | "completed"
+	                    | "cancelled",
+	                )
+	              }
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="all">Todos</option>
@@ -305,4 +312,3 @@ export default function AppointmentsReportTable() {
     </div>
   );
 }
-

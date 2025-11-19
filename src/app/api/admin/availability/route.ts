@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 // GET - Listar overrides de disponibilidade
 export async function GET(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
-    const where: any = {}
+    const where: Prisma.BarberAvailabilityWhereInput = {}
     if (barberId) where.barberId = barberId
     if (startDate && endDate) {
       where.date = { gte: startDate, lte: endDate }
@@ -97,4 +98,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 }
-

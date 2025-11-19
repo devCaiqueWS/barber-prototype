@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+
+type ExportRow = {
+  NumeroAtendimento: string
+  Cliente: string | null
+  Servico: string
+  Produtos: string
+  Valores: number
+  FormaPagamento: string
+  Horario: string
+  Observacao: string
+  Data: string
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +28,7 @@ export async function GET(request: NextRequest) {
     const barberId = searchParams.get('barberId') || undefined
     const serviceId = searchParams.get('serviceId') || undefined
 
-    const where: any = {
+    const where: Prisma.AppointmentWhereInput = {
       date: { gte: startDate, lte: endDate },
       ...(status ? { status } : {}),
       ...(barberId ? { barberId } : {}),
@@ -54,23 +67,37 @@ export async function GET(request: NextRequest) {
     // 7. Horário
     // 8. Observação
     // 9. Data
-    const rows = filtered.map((a) => ({
+    const tableRows = filtered.map((a) => ({
+      id: a.id,
+      clientName: a.clientName,
+      date: a.date,
+      startTime: a.startTime,
+      status: a.status,
+      service: {
+        id: a.serviceId,
+        name: a.service?.name || '',
+      },
+    }))
+
+    const exportRows: ExportRow[] = filtered.map((a) => ({
       NumeroAtendimento: a.id,
       Cliente: a.clientName,
       Servico: a.service?.name || '',
       Produtos: '',
       Valores: a.service?.price ?? 0,
       FormaPagamento: a.paymentMethod || '',
-      Horario: `${a.startTime || ''}${
-        a.endTime ? ` - ${a.endTime}` : ''
-      }`,
+      Horario: `${a.startTime || ''}${a.endTime ? ` - ${a.endTime}` : ''}`,
       Observacao: a.notes || '',
       Data: a.date,
     }))
 
+    if (format === 'json') {
+      return NextResponse.json({ rows: tableRows })
+    }
+
     if (format === 'csv') {
       const header = Object.keys(
-        rows[0] || {
+        exportRows[0] || {
           NumeroAtendimento: '',
           Cliente: '',
           Servico: '',
@@ -81,13 +108,13 @@ export async function GET(request: NextRequest) {
           Observacao: '',
           Data: '',
         },
-      )
+      ) as Array<keyof ExportRow>
       const csv = [header.join(';')]
         .concat(
-          rows.map((r) =>
+          exportRows.map((r) =>
             header
               .map((h) =>
-                sanitizeCsv(String((r as any)[h] ?? '')),
+                sanitizeCsv(String(r[h] ?? '')),
               )
               .join(';'),
           ),
@@ -130,9 +157,8 @@ export async function GET(request: NextRequest) {
       { header: 'Data', key: 'Data', width: 14 },
     ] as const
 
-    // @ts-ignore exceljs types
-    ws.columns = columns as any
-    ws.addRows(rows)
+    ws.columns = columns as unknown as typeof ws.columns
+    ws.addRows(exportRows)
 
     ws.getRow(1).font = { bold: true }
 
@@ -158,4 +184,3 @@ function sanitizeCsv(value: string) {
   if (/[;\n\r]/.test(v)) v = `"${v}"`
   return v
 }
-

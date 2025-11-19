@@ -2,6 +2,26 @@
 
 import { useEffect, useState } from "react";
 
+type SwaggerUIBundleType = {
+  (options: {
+    url: string;
+    dom_id: string;
+    presets?: unknown[];
+    layout?: string;
+  }): unknown;
+  presets: {
+    apis: unknown;
+  };
+};
+
+declare global {
+  interface Window {
+    SwaggerUIBundle?: SwaggerUIBundleType;
+    SwaggerUIStandalonePreset?: unknown;
+    ui?: unknown;
+  }
+}
+
 export default function ApiDocsPage() {
   const [error, setError] = useState<string | null>(null);
 
@@ -18,54 +38,66 @@ export default function ApiDocsPage() {
 
     const init = async () => {
       try {
-        await loadScript("https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.min.js");
-        // Preset é opcional; ignore erro se não carregar
+        await loadScript(
+          "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.min.js",
+        );
+
         try {
-          await loadScript("https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.min.js");
-        } catch {}
-        // @ts-ignore - injetado via CDN
-        const SwaggerUIBundle = (window as any).SwaggerUIBundle;
-        if (!SwaggerUIBundle) throw new Error("SwaggerUIBundle indisponível");
+          await loadScript(
+            "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.min.js",
+          );
+        } catch {
+          // preset opcional; se falhar, seguimos sem ele
+        }
 
-        // @ts-ignore - pode não existir se o preset não carregar
-        const SwaggerUIStandalonePreset = (window as any).SwaggerUIStandalonePreset;
+        const swaggerBundle = window.SwaggerUIBundle;
+        if (!swaggerBundle) {
+          throw new Error("SwaggerUIBundle indisponível");
+        }
 
-        // @ts-ignore
-        (window as any).ui = SwaggerUIBundle({
+        const swaggerStandalonePreset = window.SwaggerUIStandalonePreset;
+
+        window.ui = swaggerBundle({
           url: "/openapi.json",
           dom_id: "#swagger-ui",
-          presets: SwaggerUIStandalonePreset
-            ? [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset]
-            : [SwaggerUIBundle.presets.apis],
+          presets: swaggerStandalonePreset
+            ? [swaggerBundle.presets.apis, swaggerStandalonePreset]
+            : [swaggerBundle.presets.apis],
           layout: "BaseLayout",
         });
-      } catch (e: any) {
+      } catch (e) {
         console.error(e);
-        setError(e?.message || "Não foi possível inicializar a documentação");
+        const message =
+          e instanceof Error
+            ? e.message
+            : "Nǜo foi poss��vel inicializar a documenta��ǜo";
+        setError(message);
       }
     };
 
-    // Carregar CSS
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css";
+    link.href =
+      "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css";
     document.head.appendChild(link);
 
-    init();
+    void init();
   }, []);
 
   return (
     <div className="min-h-screen bg-[#1F1F1F] p-4">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">API Docs</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">
+          API Docs
+        </h1>
         <p className="text-slate-300 mb-4">
-          Documentação OpenAPI em <code className="text-amber-400">/openapi.json</code>
+          Documenta��ǜo OpenAPI em{" "}
+          <code className="text-amber-400">/openapi.json</code>
         </p>
-        {error && (
-          <div className="mb-4 text-red-400">{error}</div>
-        )}
+        {error && <div className="mb-4 text-red-400">{error}</div>}
         <div id="swagger-ui" className="bg-white rounded-md" />
       </div>
     </div>
   );
 }
+

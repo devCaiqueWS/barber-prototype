@@ -6,19 +6,15 @@ import bcrypt from 'bcryptjs'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { 
-      clientName, 
-      clientEmail, 
+    const {
+      clientName,
+      clientEmail,
       clientPhone,
-      clientWhatsapp,
-      serviceId, 
-      barberId, 
+      serviceId,
+      barberId,
       date,
       time,
       dateTime,
-      paymentMethod,
-      payOnline,
-      notes
     } = body
 
     // Construir dateTime se date e time foram fornecidos separadamente
