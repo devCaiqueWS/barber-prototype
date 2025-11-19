@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Scissors, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -56,7 +57,13 @@ export default function LoginPage() {
           </Button>
           
           <div className="flex items-center justify-center space-x-2 mb-6">
-            <Scissors className="h-10 w-10 text-amber-500" />
+            <Image
+              src="/icon.svg"
+              alt="JM Barbearia"
+              width={40}
+              height={40}
+              className="h-10 w-10"
+            />
             <span className="text-3xl font-bold text-white">JM Barbearia</span>
           </div>
           

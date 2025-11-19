@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import MenuMobile from "@/components/MenuMobile";
 import { Scissors, Clock, Star, Users, Calendar, Shield } from "lucide-react";
@@ -38,8 +39,17 @@ export default function Home() {
       <header className="w-full px-4 py-4 bg-[#1F1F1F]/80 backdrop-blur-md shadow-lg rounded-b-2xl mb-8">
         <div className="container flex justify-between items-center mx-auto">
           <div className="flex items-center gap-3">
-            <Scissors className="h-8 w-8 text-amber-500" />
-            <span className="text-3xl font-extrabold text-white tracking-tight">JM Barbearia</span>
+            <Image
+              src="/icon.svg"
+              alt="JM Barbearia"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+              priority
+            />
+            <span className="text-3xl font-extrabold text-white tracking-tight">
+              JM Barbearia
+            </span>
           </div>
           <nav className="hidden md:flex gap-8">
             <Link href="/servicos" className="no-underline text-lg text-slate-300 hover:text-amber-500 font-medium transition-colors">Serviços</Link>
@@ -180,7 +190,13 @@ export default function Home() {
       <footer className="bg-[#1F1F1F] border-t border-[#3D3D3D] py-8 px-4">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <Scissors className="h-6 w-6 text-amber-500" />
+            <Image
+              src="/icon.svg"
+              alt="JM Barbearia"
+              width={24}
+              height={24}
+              className="h-6 w-6"
+            />
             <span className="text-xl font-bold text-white">JM Barbearia</span>
           </div>
           <p className="text-slate-400 mb-4">

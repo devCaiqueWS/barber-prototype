@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Scissors, Clock, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -35,7 +36,13 @@ export default async function ServicosPage() {
               </Link>
             </Button>
             <div className="flex items-center space-x-2">
-              <Scissors className="h-8 w-8 text-amber-500" />
+              <Image
+                src="/icon.svg"
+                alt="JM Barbearia"
+                width={32}
+                height={32}
+                className="h-8 w-8"
+              />
               <span className="text-2xl font-bold text-white">
                 JM Barbearia
               </span>
@@ -175,4 +182,3 @@ export default async function ServicosPage() {
     </div>
   );
 }
-

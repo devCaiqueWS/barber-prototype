@@ -1,15 +1,9 @@
 'use client';
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import {
-  Scissors,
-  Phone,
-  Mail,
-  MapPin,
-  ArrowLeft,
-  MessageCircle,
-} from "lucide-react";
+import { Phone, Mail, MapPin, ArrowLeft, MessageCircle } from "lucide-react";
 
 export default function ContatoPage() {
   return (
@@ -29,7 +23,13 @@ export default function ContatoPage() {
               </Link>
             </Button>
             <div className="flex items-center space-x-2">
-              <Scissors className="h-8 w-8 text-amber-500" />
+              <Image
+                src="/icon.svg"
+                alt="JM Barbearia"
+                width={32}
+                height={32}
+                className="h-8 w-8"
+              />
               <span className="text-2xl font-bold text-white">
                 JM Barbearia
               </span>
