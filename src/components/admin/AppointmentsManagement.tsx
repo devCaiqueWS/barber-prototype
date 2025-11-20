@@ -112,10 +112,16 @@ export default function AppointmentsManagement() {
   }
 
   const filteredAppointments = appointments.filter((appointment) => {
+    const clientName = appointment.client?.name || ''
+    const serviceName = appointment.service?.name || ''
+    const barberName = appointment.barber?.name || ''
+
+    const term = searchTerm.toLowerCase()
+
     const matchesSearch =
-      appointment.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (appointment.barber?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      clientName.toLowerCase().includes(term) ||
+      serviceName.toLowerCase().includes(term) ||
+      barberName.toLowerCase().includes(term)
 
     const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter
     const matchesDate = !dateFilter || appointment.date === dateFilter
@@ -251,11 +257,11 @@ export default function AppointmentsManagement() {
                       <User className="h-5 w-5 text-slate-400 mr-3" />
                       <div>
                         <div className="text-sm font-medium text-white">
-                          {appointment.client.name}
+                          {appointment.client?.name || '-'}
                         </div>
                         <div className="text-sm text-slate-400 flex items-center">
                           <Phone className="h-3 w-3 mr-1" />
-                          <span>{appointment.client.phone}</span>
+                          <span>{appointment.client?.phone || '-'}</span>
                         </div>
                       </div>
                     </div>
@@ -265,7 +271,7 @@ export default function AppointmentsManagement() {
                       <Scissors className="h-4 w-4 text-amber-500 mr-2" />
                       <div>
                         <div className="text-sm font-medium text-white">
-                          {appointment.service.name}
+                      {appointment.service?.name || '-'}
                         </div>
                         <div className="text-sm text-slate-400 flex items-center">
                           <Clock className="h-3 w-3 mr-1" />
