@@ -41,7 +41,7 @@ export default function ContatoPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-10 space-y-10">
+      <main className="container mx-auto px-4 py-8 md:py-10 space-y-8 md:space-y-10">
         {/* Title */}
         <section className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -54,7 +54,7 @@ export default function ContatoPage() {
         </section>
 
         {/* Info + Form */}
-        <section className="grid md:grid-cols-2 gap-8">
+        <section className="grid md:grid-cols-2 gap-6 md:gap-8">
           {/* Contact info */}
           <div className="space-y-4 bg-[#3D3D3D] rounded-lg p-6 border border-[#1F1F1F]">
             <h2 className="text-2xl font-semibold mb-2">Informações de contato</h2>

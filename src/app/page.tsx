@@ -66,7 +66,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-10 pb-10 px-2 w-full">
+      <section className="pt-10 pb-10 px-4 md:px-6 w-full">
         <div className="container mx-auto text-center flex flex-col items-center justify-center">
           <h1 className={`text-3xl md:text-5xl font-extrabold text-white mb-6 drop-shadow-lg transition-all duration-300 ${menuOpen ? 'blur-sm opacity-40' : ''}`}>
             Seu Estilo, <span className="text-amber-500">Nossa Missão</span>
@@ -91,7 +91,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="pt-10 pb-10 px-2 w-full bg-[#3D3D3D]/60 rounded-xl shadow-lg">
+      <section className="pt-10 pb-10 px-4 md:px-6 w-full bg-[#3D3D3D]/60 rounded-xl shadow-lg">
         <div className="container mx-auto">
           <h2 className="text-2xl md:text-4xl font-extrabold text-white text-center mb-8 md:mb-12">Por que escolher a JM Barbearia?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
@@ -169,7 +169,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="w-full py-10 px-20 bg-amber-500">
+      <section className="w-full py-10 px-4 md:px-20 bg-amber-500">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
             Pronto para um novo corte?

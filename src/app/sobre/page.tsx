@@ -39,7 +39,7 @@ export default function SobrePage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-10 space-y-12">
+      <main className="container mx-auto px-4 py-8 md:py-10 space-y-10 md:space-y-12">
         {/* Hero */}
         <section className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -53,7 +53,7 @@ export default function SobrePage() {
         </section>
 
         {/* Info blocks */}
-        <section className="grid md:grid-cols-3 gap-6">
+        <section className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
           <div className="bg-[#3D3D3D] rounded-lg p-6 border border-[#1F1F1F] space-y-3">
             <Users className="h-8 w-8 text-amber-500" />
             <h2 className="text-xl font-semibold">Equipe Especializada</h2>

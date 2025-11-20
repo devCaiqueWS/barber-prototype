@@ -62,8 +62,8 @@ export default async function ServicosPage() {
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8">
           {/* Page Title */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-white mb-4">
+          <div className="text-center mb-10 md:mb-12">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Nossos <span className="text-amber-500">Serviços</span>
             </h1>
             <p className="text-xl text-slate-300 max-w-2xl mx-auto">
@@ -90,7 +90,7 @@ export default async function ServicosPage() {
           </div>
 
           {/* Services Grid - dados vindos do banco */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             {services.map((service) => (
               <div
                 key={service.id}

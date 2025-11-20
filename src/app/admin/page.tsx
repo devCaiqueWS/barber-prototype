@@ -9,6 +9,7 @@ import { Scissors, ArrowLeft, Users, Calendar, DollarSign, Settings, BarChart, C
 import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
 import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
+import BarberCalendar from "@/components/admin/BarberCalendar";
 
 interface Stats {
   todayAppointments: number
@@ -297,7 +298,7 @@ export default function AdminPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center">
+      <div className="min-h-screen bg-[#111111] flex items-center justify-center">
         <div className="text-white">Carregando...</div>
       </div>
     )
@@ -308,33 +309,66 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1F1F1F]">
+    <div className="min-h-screen bg-[#111111]">
       {/* Header */}
-      <header className="border-b border-[#3D3D3D] bg-[#1F1F1F]/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" asChild className="text-slate-300 hover:text-amber-500">
+      <header className="border-b border-[#2A2A2A] bg-[#151515]/95 backdrop-blur-sm sticky top-0 z-30">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center gap-3">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="hidden sm:inline-flex text-slate-300 hover:text-amber-500 hover:bg-transparent"
+            >
               <Link href="/">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
             <div className="flex items-center space-x-2">
-              <Scissors className="h-8 w-8 text-amber-500" />
-              <span className="text-2xl font-bold text-white">
-                {(session?.user as SessionUser)?.role === 'BARBER' ? 'Painel do Barbeiro' : 'Admin Panel'}
+              <span className="inline-flex items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/40 p-2">
+                <Scissors className="h-5 w-5 text-amber-500" />
               </span>
+              <div className="flex flex-col">
+                <span className="text-lg md:text-2xl font-bold text-white leading-tight">
+                  {(session?.user as SessionUser)?.role === 'BARBER' ? 'Painel do Barbeiro' : 'Painel Administrativo'}
+                </span>
+                <span className="text-[11px] md:text-xs text-slate-400">
+                  Gerencie agendas, clientes, barbeiros e serviços em um só lugar
+                </span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-slate-300">Bem-vindo, {session.user.name}</span>
-            <Button variant="outline" className="border-[#3D3D3D] text-white hover:bg-[#3D3D3D]" onClick={handleSignOut}>
+          <div className="flex items-center space-x-3">
+            <div className="hidden sm:flex flex-col items-end mr-1 max-w-[140px] md:max-w-[220px]">
+              <span className="text-[11px] text-slate-500 uppercase tracking-wide">
+                Logado como
+              </span>
+              <span className="text-xs md:text-sm font-medium text-white truncate text-right">
+                {(session.user as SessionUser)?.name || (session.user as SessionUser)?.email}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/')}
+              className="hidden md:inline-flex border-slate-600 text-slate-200 hover:bg-slate-800"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Ver site
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              className="border-red-500/60 text-red-300 hover:bg-red-900/20"
+            >
               Sair
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 md:px-4 py-6 space-y-6">
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">
@@ -346,15 +380,16 @@ export default function AdminPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-8">
-          <div className="border-b border-[#3D3D3D]">
-            <nav className="-mb-px flex space-x-8">
-              {[
-                { id: 'dashboard', label: 'Dashboard', icon: BarChart },
-                { id: 'appointments', label: 'Agendamentos', icon: Calendar },
-                ...(
-                  (session?.user as SessionUser)?.role === 'ADMIN' ? [
-                    { id: 'barbers', label: 'Barbeiros', icon: Users },
+          <div className="mb-8">
+            <div className="border-b border-[#3D3D3D]">
+              <nav className="-mb-px flex space-x-8">
+                {[
+                  { id: 'dashboard', label: 'Dashboard', icon: BarChart },
+                  { id: 'appointments', label: 'Agendamentos', icon: Calendar },
+                  { id: 'calendar', label: 'Calendário', icon: Clock },
+                  ...(
+                    (session?.user as SessionUser)?.role === 'ADMIN' ? [
+                      { id: 'barbers', label: 'Barbeiros', icon: Users },
                     { id: 'services', label: 'Serviços', icon: Scissors },
                     { id: 'reports', label: 'Relatórios', icon: FileText },
                     { id: 'settings', label: 'Configurações', icon: Settings }
@@ -577,6 +612,11 @@ export default function AdminPage() {
           </div>
         </div>
         </>
+        )}
+
+        {/* Calendar Tab */}
+        {activeTab === 'calendar' && (
+          <BarberCalendar />
         )}
 
         {/* Barbers Tab */}
