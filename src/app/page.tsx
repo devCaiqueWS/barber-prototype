@@ -72,7 +72,7 @@ export default function Home() {
             Seu Estilo, <span className="text-amber-500">Nossa Missão</span>
           </h1>
           <p className="text-lg md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto">
-            Transforme seu visual com os melhores barbeiros da cidade.<br />Agende online e tenha uma experiência única e profissional.
+            Agende online e tenha uma experiência única e profissional.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center w-full">
             <Button asChild className="no-underline bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 md:px-8 md:py-4 rounded-xl shadow-lg text-base md:text-lg flex items-center gap-2 transition-all w-full sm:w-auto">
