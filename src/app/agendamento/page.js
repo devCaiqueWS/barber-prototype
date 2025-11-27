@@ -1,9 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
 
-function AgendamentoPage() {
+function BookingPageContent() {
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState([])
@@ -21,6 +24,8 @@ function AgendamentoPage() {
     paymentMethod: '',
     payOnline: false
   })
+  const todayStr = new Date().toISOString().split('T')[0]
+  const hasPrefilledService = useRef(false)
 
   // Carregar serviços ao montar o componente
   useEffect(() => {
@@ -34,9 +39,12 @@ function AgendamentoPage() {
       const data = await response.json()
       if (data.success) {
         setServices(data.services)
+      } else {
+        setServices([])
       }
     } catch (error) {
       console.error('Erro ao carregar serviços:', error)
+      setServices([])
     }
   }
 
@@ -46,9 +54,12 @@ function AgendamentoPage() {
       const data = await response.json()
       if (data.success) {
         setBarbers(data.barbers)
+      } else {
+        setBarbers([])
       }
     } catch (error) {
       console.error('Erro ao carregar barbeiros:', error)
+      setBarbers([])
     }
   }
 
@@ -69,15 +80,34 @@ function AgendamentoPage() {
     setStep(2)
   }
 
+  useEffect(() => {
+    if (hasPrefilledService.current) return
+    const preselectId = searchParams?.get('service')
+    if (!preselectId || services.length === 0) return
+    const found = services.find((s) => s.id === preselectId)
+    if (found) {
+      setSelectedService(found)
+      setStep(2)
+      hasPrefilledService.current = true
+    }
+  }, [services, searchParams])
+
   const handleBarberSelect = (barber) => {
     setSelectedBarber(barber)
     setStep(3)
   }
 
   const handleDateSelect = (date) => {
-    setSelectedDate(date)
+    if (!date || date.length !== 10) {
+      setSelectedDate(date)
+      return
+    }
+
+    const normalized = date < todayStr ? todayStr : date
+
+    setSelectedDate(normalized)
     if (selectedBarber) {
-      loadAvailableTimes(selectedBarber.id, date)
+      loadAvailableTimes(selectedBarber.id, normalized)
     }
     setStep(4)
   }
@@ -92,6 +122,12 @@ function AgendamentoPage() {
     setLoading(true)
 
     try {
+      if (!selectedService || !selectedBarber || !selectedDate || !selectedTime) {
+        alert('Selecione serviço, barbeiro, data e horário antes de confirmar.')
+        setLoading(false)
+        return
+      }
+
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
@@ -159,7 +195,7 @@ function AgendamentoPage() {
 
   return (
     <div className="min-h-screen bg-[#1F1F1F] text-white">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 space-y-6">
         <div className="mb-6">
           <Link href="/" className="text-amber-500 hover:text-amber-400">
             ← Voltar para Home
@@ -172,11 +208,11 @@ function AgendamentoPage() {
           </h1>
           
           {/* Progress Steps */}
-          <div className="flex justify-center space-x-4 mb-8">
+          <div className="flex justify-center flex-wrap gap-3 mb-8">
             {[1, 2, 3, 4, 5].map((num) => (
               <div
                 key={num}
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center ${
                   step >= num ? 'bg-amber-500' : 'bg-slate-600'
                 }`}
               >
@@ -191,7 +227,7 @@ function AgendamentoPage() {
           {step === 1 && (
             <div>
               <h2 className="text-white text-2xl font-bold mb-6 text-center">Escolha seu Serviço</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {services.map((service) => (
                   <div
                     key={service.id}
@@ -217,7 +253,7 @@ function AgendamentoPage() {
               <div className="mb-4 text-center">
                 <p className="text-slate-400">Serviço: <span className="text-amber-500">{selectedService?.name}</span></p>
               </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {barbers.map((barber) => (
                   <div
                     key={barber.id}
@@ -248,13 +284,13 @@ function AgendamentoPage() {
                 <p className="text-slate-400">Serviço: <span className="text-amber-500">{selectedService?.name}</span></p>
                 <p className="text-slate-400">Barbeiro: <span className="text-amber-500">{selectedBarber?.name}</span></p>
               </div>
-              
+             
               <div className="max-w-md mx-auto">
-                <input
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => handleDateSelect(e.target.value)}
-                  className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                <SimpleDatePicker
+                  value={selectedDate}
+                  min={todayStr}
+                  onChange={handleDateSelect}
+                  className="w-full"
                 />
               </div>
               
@@ -279,7 +315,7 @@ function AgendamentoPage() {
                 <p className="text-slate-400">Data: <span className="text-amber-500">{selectedDate}</span></p>
               </div>
               
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
                 {availableTimes.map((time) => (
                   <button
                     key={time}
@@ -510,4 +546,10 @@ function AgendamentoPage() {
   )
 }
 
-export default AgendamentoPage
+export default function AgendamentoPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#1F1F1F] text-white flex items-center justify-center">Carregando...</div>}>
+      <BookingPageContent />
+    </Suspense>
+  )
+}

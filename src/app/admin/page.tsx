@@ -68,6 +68,9 @@ export default function AdminPage() {
   const [repRows, setRepRows] = useState<Array<{ id:string; clientName:string; date:string; startTime:string; status?: string; service?: { id?: string; name:string } }>>([])
   const [repLoading, setRepLoading] = useState(false)
 
+  const sessionUser = (session?.user as SessionUser) || ({} as SessionUser)
+  const userRole = (sessionUser.role || '').toString().toUpperCase()
+
   useEffect(() => {
     console.log('Admin useEffect:', { session, status, user: session?.user })
     
@@ -234,6 +237,9 @@ export default function AdminPage() {
       if (repService !== 'all') {
         params.set('serviceId', repService)
       }
+      if (userRole === 'BARBER' && sessionUser.id) {
+        params.set('barberId', sessionUser.id)
+      }
       const res = await fetch(`/api/admin/reports/export?${params.toString()}`)
       const data = await res.json()
       const rows = Array.isArray(data?.rows)
@@ -279,6 +285,9 @@ export default function AdminPage() {
       const params = new URLSearchParams({ startDate: repStartDate, endDate: repEndDate, format })
       if (repClient.trim()) params.set('client', repClient.trim())
       if (repService !== 'all') params.set('serviceId', repService)
+      if (userRole === 'BARBER' && sessionUser.id) {
+        params.set('barberId', sessionUser.id)
+      }
       const response = await fetch(`/api/admin/reports/export?${params.toString()}`)
       if (!response.ok) throw new Error('Falha ao exportar')
       const blob = await response.blob()
@@ -387,15 +396,15 @@ export default function AdminPage() {
                   { id: 'dashboard', label: 'Dashboard', icon: BarChart },
                   { id: 'appointments', label: 'Agendamentos', icon: Calendar },
                   { id: 'calendar', label: 'Calendário', icon: Clock },
-                  ...(
-                    (session?.user as SessionUser)?.role === 'ADMIN' ? [
-                      { id: 'barbers', label: 'Barbeiros', icon: Users },
+                  ...(userRole === 'ADMIN' ? [
+                    { id: 'barbers', label: 'Barbeiros', icon: Users },
                     { id: 'services', label: 'Serviços', icon: Scissors },
-                    { id: 'reports', label: 'Relatórios', icon: FileText },
+                  ] : []),
+                  { id: 'reports', label: 'Relatórios', icon: FileText },
+                  ...(userRole === 'ADMIN' ? [
                     { id: 'settings', label: 'Configurações', icon: Settings }
-                  ] : []
-                )
-              ].map((tab) => (
+                  ] : [])
+                ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
@@ -688,7 +697,11 @@ export default function AdminPage() {
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Período - Início</label>
                   <input
-                    type="date"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+                    placeholder="YYYY-MM-DD"
+                    maxLength={10}
                     value={repStartDate}
                     onChange={(e) => setRepStartDate(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -697,7 +710,11 @@ export default function AdminPage() {
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Período - Fim</label>
                   <input
-                    type="date"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+                    placeholder="YYYY-MM-DD"
+                    maxLength={10}
                     value={repEndDate}
                     onChange={(e) => setRepEndDate(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"

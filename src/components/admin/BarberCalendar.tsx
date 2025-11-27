@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Calendar as CalendarIcon, Clock } from 'lucide-react'
+import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
 
 interface AvailabilityResponse {
   success: boolean
@@ -196,11 +197,9 @@ export default function BarberCalendar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barberId])
 
-  const handleDateChange = (value: string) => {
-    setSelectedDate(value)
-    if (barberId) {
-      void loadAvailability(value)
-    }
+  const normalizeDateNotPast = (value: string): string => {
+    if (!value || value.length !== 10) return value
+    return value < todayStr ? todayStr : value
   }
 
   const handleSave = async () => {
@@ -307,12 +306,16 @@ export default function BarberCalendar() {
               {getWeekdayLabel(selectedDate) || 'Selecione uma data'}
             </span>
           </div>
-          <input
-            type="date"
+          <SimpleDatePicker
             value={selectedDate}
             min={todayStr}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            onChange={(value) => {
+              const normalized = normalizeDateNotPast(value)
+              setSelectedDate(normalized)
+              if (normalized && barberId) {
+                void loadAvailability(normalized)
+              }
+            }}
           />
           <p className="text-xs text-slate-400">
             Escolha o dia que você deseja configurar. Cada dia pode ter um padrão diferente.
@@ -470,4 +473,3 @@ export default function BarberCalendar() {
     </div>
   )
 }
-
