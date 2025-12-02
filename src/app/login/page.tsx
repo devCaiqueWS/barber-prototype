@@ -137,20 +137,6 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-          <h3 className="text-white font-semibold mb-3">Credenciais de Demo:</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Admin:</span>
-              <span className="text-white">admin@barberpro.com / admin123</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Barbeiro:</span>
-              <span className="text-white">joao@barberpro.com / barber123</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

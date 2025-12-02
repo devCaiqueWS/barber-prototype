@@ -434,7 +434,7 @@ function BookingPageContent() {
                 </div>
 
                 {/* Opção de Pagamento Online */}
-                {(clientData.paymentMethod === 'pix' || 
+                {/* {(clientData.paymentMethod === 'pix' || 
                   clientData.paymentMethod === 'cartao_credito' || 
                   clientData.paymentMethod === 'cartao_debito') && (
                   <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
@@ -467,7 +467,7 @@ function BookingPageContent() {
                       </div>
                     )}
                   </div>
-                )}
+                )} */}
                 
                 <button
                   type="submit"
