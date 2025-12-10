@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const barberId = searchParams.get('barberId')
     const date = searchParams.get('date')
-    const duration = parseInt(searchParams.get('duration') || '30')
+    const rawDuration = parseInt(searchParams.get('duration') || '30')
+    const duration = Number.isFinite(rawDuration) && rawDuration > 0 ? (rawDuration > 30 ? 60 : rawDuration) : 30
 
     if (!barberId || !date) {
       return NextResponse.json(

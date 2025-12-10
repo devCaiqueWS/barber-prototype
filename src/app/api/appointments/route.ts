@@ -17,22 +17,28 @@ export async function POST(request: NextRequest) {
       clientName,
       clientEmail,
       clientPhone,
+      clientWhatsapp,
       serviceId,
       barberId,
       date,
       time,
       dateTime,
       notes,
+      paymentMethod,
+      payOnline,
     } = body as {
       clientName?: string
       clientEmail?: string
       clientPhone?: string
+      clientWhatsapp?: string
       serviceId?: string
       barberId?: string
       date?: string
       time?: string
       dateTime?: string
       notes?: string
+      paymentMethod?: string
+      payOnline?: boolean
     }
 
     if (!clientName || !clientEmail || !clientPhone || !serviceId || !barberId) {
@@ -178,6 +184,10 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    const normalizedPaymentMethod =
+      paymentMethod && paymentMethod.length > 0 ? paymentMethod : 'Dinheiro'
+    const isPayOnline = Boolean(payOnline)
+
     const appointment = await prisma.appointment.create({
       data: {
         clientId: client.id,
@@ -189,8 +199,10 @@ export async function POST(request: NextRequest) {
         clientName,
         clientEmail,
         clientPhone: clientPhone || '',
-        paymentMethod: 'Dinheiro',
-        status: 'confirmed',
+        clientWhatsapp: clientWhatsapp || '',
+        paymentMethod: normalizedPaymentMethod,
+        payOnline: isPayOnline,
+        status: isPayOnline ? 'pending' : 'confirmed',
         notes,
         source: 'online',
       },
@@ -223,6 +235,8 @@ export async function POST(request: NextRequest) {
           id: appointment.id,
           date: appointment.date,
           status: appointment.status,
+          payOnline: appointment.payOnline,
+          paymentMethod: appointment.paymentMethod,
           client: appointment.client,
           barber: appointment.barber,
           service: appointment.service,

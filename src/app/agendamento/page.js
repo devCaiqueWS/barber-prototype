@@ -16,6 +16,7 @@ function BookingPageContent() {
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
   const [availableTimes, setAvailableTimes] = useState([])
+  const [lastAppointmentId, setLastAppointmentId] = useState('')
   const [clientData, setClientData] = useState({
     name: '',
     email: '',
@@ -63,9 +64,9 @@ function BookingPageContent() {
     }
   }
 
-  const loadAvailableTimes = async (barberId, date) => {
+  const loadAvailableTimes = async (barberId, date, durationMinutes = 30) => {
     try {
-      const response = await fetch(`/api/availability?barberId=${barberId}&date=${date}`)
+      const response = await fetch(`/api/availability?barberId=${barberId}&date=${date}&duration=${durationMinutes}`)
       const data = await response.json()
       if (data.success) {
         setAvailableTimes(data.availableTimes)
@@ -78,6 +79,11 @@ function BookingPageContent() {
   const handleServiceSelect = (service) => {
     setSelectedService(service)
     setStep(2)
+  }
+
+  const getSlotDurationForService = () => {
+    const dur = selectedService?.duration || 30
+    return dur > 30 ? 60 : 30
   }
 
   useEffect(() => {
@@ -107,7 +113,7 @@ function BookingPageContent() {
 
     setSelectedDate(normalized)
     if (selectedBarber) {
-      loadAvailableTimes(selectedBarber.id, normalized)
+      loadAvailableTimes(selectedBarber.id, normalized, getSlotDurationForService())
     }
     setStep(4)
   }
@@ -117,9 +123,16 @@ function BookingPageContent() {
     setStep(5)
   }
 
+  const isOnlinePaymentAvailable = () =>
+    clientData.paymentMethod === 'pix' ||
+    clientData.paymentMethod === 'cartao_credito' ||
+    clientData.paymentMethod === 'cartao_debito'
+
   const handleClientDataSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+
+    const shouldPayOnline = isOnlinePaymentAvailable() && clientData.payOnline
 
     try {
       if (!selectedService || !selectedBarber || !selectedDate || !selectedTime) {
@@ -143,35 +156,44 @@ function BookingPageContent() {
           clientPhone: clientData.phone,
           clientWhatsapp: clientData.whatsapp,
           paymentMethod: clientData.paymentMethod,
-          payOnline: clientData.payOnline,
+          payOnline: shouldPayOnline,
         }),
       })
 
       const data = await response.json()
       
       if (data.success) {
-        if (clientData.payOnline) {
-          // Redirecionar para página de pagamento
-          const paymentData = {
-            appointmentId: data.appointment.id,
-            service: selectedService.name,
-            price: selectedService.price,
-            barber: selectedBarber.name,
-            date: selectedDate,
-            time: selectedTime,
-            paymentMethod: clientData.paymentMethod,
-            clientName: clientData.name,
-            clientEmail: clientData.email
+        setLastAppointmentId(data.appointment?.id || '')
+        if (shouldPayOnline) {
+          try {
+            const checkoutRes = await fetch('/api/payments/asaas', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                appointmentId: data.appointment.id,
+                serviceName: selectedService.name,
+                amount: Number(selectedService.price) || 0,
+              }),
+            })
+
+            const checkoutData = await checkoutRes.json()
+
+            if (checkoutRes.ok && checkoutData.checkoutUrl) {
+              window.location.href = checkoutData.checkoutUrl
+              return
+            }
+
+            console.error('Checkout Asaas falhou:', checkoutData)
+            alert('Não foi possível iniciar o pagamento online agora. Seu agendamento foi criado e você pode pagar no local.')
+          } catch (err) {
+            console.error('Erro ao criar checkout Asaas:', err)
+            alert('Não foi possível iniciar o pagamento online agora. Seu agendamento foi criado e você pode pagar no local.')
           }
-          
-          // Armazenar dados do pagamento no localStorage temporariamente
-          localStorage.setItem('paymentData', JSON.stringify(paymentData))
-          
-          // Redirecionar para página de pagamento
-          window.location.href = '/pagamento'
-        } else {
-          setStep(6) // Página de sucesso normal
         }
+
+        setStep(6) // Página de sucesso normal
       } else {
         alert('Erro ao criar agendamento: ' + (data.message || 'Erro desconhecido'))
       }
@@ -191,6 +213,45 @@ function BookingPageContent() {
     setSelectedTime('')
     setClientData({ name: '', email: '', phone: '', whatsapp: '', paymentMethod: '', payOnline: false })
     setAvailableTimes([])
+  }
+
+  const handleAddToCalendar = () => {
+    if (!selectedService || !selectedDate || !selectedTime) return
+    const [hourStr, minuteStr] = selectedTime.split(':')
+    const start = new Date(selectedDate)
+    if (!Number.isFinite(start.getTime())) return
+    start.setHours(Number.parseInt(hourStr, 10) || 0, Number.parseInt(minuteStr, 10) || 0, 0, 0)
+    const durationMinutes = selectedService.duration || 30
+    const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+
+    const pad = (n) => n.toString().padStart(2, '0')
+    const formatLocal = (d) =>
+      `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//BarberPro//Agendamentos//PT-BR',
+      'BEGIN:VEVENT',
+      `UID:${lastAppointmentId || `${Date.now()}@barberpro`}`,
+      `SUMMARY:${selectedService.name} - BarberPro`,
+      `DESCRIPTION:Agendamento com ${selectedBarber?.name || 'barbeiro'}\\nCliente: ${clientData.name || ''}`,
+      `DTSTART:${formatLocal(start)}`,
+      `DTEND:${formatLocal(end)}`,
+      'LOCATION:BarberPro',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ]
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `barberpro-${selectedDate}-${selectedTime}.ics`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   return (
@@ -434,7 +495,7 @@ function BookingPageContent() {
                 </div>
 
                 {/* Opção de Pagamento Online */}
-                {/* {(clientData.paymentMethod === 'pix' || 
+                {(clientData.paymentMethod === 'pix' || 
                   clientData.paymentMethod === 'cartao_credito' || 
                   clientData.paymentMethod === 'cartao_debito') && (
                   <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
@@ -447,7 +508,7 @@ function BookingPageContent() {
                         className="w-4 h-4 text-amber-600 bg-slate-800 border-slate-600 rounded focus:ring-amber-500"
                       />
                       <label htmlFor="payOnline" className="text-white font-medium">
-                        💳 Quero pagar online agora
+                        Quero pagar online agora
                       </label>
                     </div>
                     <p className="text-slate-400 text-sm mt-2 ml-7">
@@ -467,7 +528,7 @@ function BookingPageContent() {
                       </div>
                     )}
                   </div>
-                )} */}
+                )}
                 
                 <button
                   type="submit"

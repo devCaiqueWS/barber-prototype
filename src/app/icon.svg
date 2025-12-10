@@ -4,7 +4,7 @@
   <rect width="64" height="64" rx="14" ry="14" fill="#111827"/>
   <g fill="none" stroke="#FBBF24" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="20" cy="46" r="7"/>
-    <circle cx="44" cy="46" r="7"/>
+    <circle cx="40" cy="46" r="7"/>
     <line x1="24" y1="40" x2="44" y2="20"/>
     <line x1="24" y1="20" x2="44" y2="40"/>
     <line x1="34" y1="18" x2="40" y2="10"/>
