@@ -3,22 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import {
-  Calendar,
-  Clock,
-  User,
-  Scissors,
-  Phone,
-  CreditCard,
-  ChevronLeft,
-  Plus,
-  Filter,
-  Search,
-  Edit,
-  Trash2,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight,
-} from 'lucide-react'
+import { Calendar, Clock, ChevronLeft, Plus, Filter, Search, ChevronLeft as ChevronLeftIcon, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Appointment {
@@ -74,33 +59,6 @@ export default function AdminAppointments() {
     }
   }
 
-  const handleStatusChange = async (appointmentId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/admin/appointments/${appointmentId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      })
-      if (response.ok) {
-        await fetchAppointments()
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error)
-    }
-  }
-
-  const handleDeleteAppointment = async (appointmentId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
-    try {
-      const response = await fetch(`/api/admin/appointments/${appointmentId}`, { method: 'DELETE' })
-      if (response.ok) {
-        await fetchAppointments()
-      }
-    } catch (error) {
-      console.error('Erro ao excluir agendamento:', error)
-    }
-  }
-
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
       const matchesSearch =
@@ -113,34 +71,26 @@ export default function AdminAppointments() {
     })
   }, [appointments, searchTerm, statusFilter, dateFilter])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-600 text-white'
-      case 'pending':
-        return 'bg-yellow-600 text-white'
-      case 'completed':
-        return 'bg-blue-600 text-white'
-      case 'cancelled':
-        return 'bg-red-600 text-white'
-      default:
-        return 'bg-gray-600 text-white'
-    }
-  }
-
   const addDays = (date: Date, days: number) => {
     const d = new Date(date)
     d.setDate(d.getDate() + days)
     return d
   }
 
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(calendarStart, i)), [calendarStart])
-  const hours = useMemo(() => Array.from({ length: 12 }, (_, i) => 8 + i), [])
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const today = useMemo(() => startOfDay(new Date()), [])
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => startOfDay(addDays(calendarStart, i))), [calendarStart])
+  const hours = useMemo(() => Array.from({ length: 11 }, (_, i) => 8 + i), [])
 
-  const normalizeDate = (dateStr: string) => {
-    const d = new Date(dateStr)
-    return Number.isFinite(d.getTime()) ? d.toISOString().split('T')[0] : dateStr
+  const toDateKey = (value: Date | string) => {
+    const d = new Date(value)
+    if (!Number.isFinite(d.getTime())) return ''
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${d.getFullYear()}-${month}-${day}`
   }
+
+  const isSameDay = (a: Date, b: Date) => toDateKey(a) === toDateKey(b)
 
   if (loading) {
     return (
@@ -230,167 +180,88 @@ export default function AdminAppointments() {
 
         </div>
 
-        {/* Lista de agendamentos */}
-        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-          {filteredAppointments.length === 0 ? (
-            <div className="p-12 text-center">
-              <Calendar className="h-16 w-16 mx-auto mb-4 text-slate-600" />
-              <h3 className="text-xl font-semibold text-white mb-2">Nenhum agendamento encontrado</h3>
-              <p className="text-slate-400 mb-6">
-                {appointments.length === 0
-                  ? 'Ainda não há agendamentos cadastrados no sistema.'
-                  : 'Nenhum agendamento corresponde aos filtros aplicados.'}
-              </p>
-              <Button className="bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/agendamento')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Primeiro Agendamento
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Serviço</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Barbeiro</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Data/Hora</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Pagamento</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700">
-                  {filteredAppointments.map((appointment) => (
-                    <tr key={appointment.id} className="hover:bg-slate-700/50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <User className="h-5 w-5 text-slate-400 mr-3" />
-                          <div>
-                            <div className="text-sm font-medium text-white">{appointment.client.name}</div>
-                            <div className="text-sm text-slate-400 flex items-center mt-1">
-                              <Phone className="h-3 w-3 mr-1" />
-                              {appointment.client.phone}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <Scissors className="h-5 w-5 text-slate-400 mr-3" />
-                          <div>
-                            <div className="text-sm font-medium text-white">{appointment.service.name}</div>
-                            <div className="text-sm text-slate-400">R$ {appointment.service.price.toFixed(2)}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-white">{appointment.barber?.name || 'Qualquer barbeiro'}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-slate-400 mr-2" />
-                          <div>
-                            <div className="text-sm text-white">{new Date(appointment.date).toLocaleDateString('pt-BR')}</div>
-                            <div className="text-sm text-slate-400 flex items-center mt-1">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {appointment.startTime} - {appointment.endTime}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={appointment.status}
-                          onChange={(e) => handleStatusChange(appointment.id, e.target.value)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            appointment.status,
-                          )} bg-opacity-90 border-0 focus:outline-none focus:ring-2 focus:ring-amber-500`}
-                        >
-                          <option value="pending">Pendente</option>
-                          <option value="confirmed">Confirmado</option>
-                          <option value="completed">Concluído</option>
-                          <option value="cancelled">Cancelado</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <CreditCard className="h-4 w-4 text-slate-400 mr-2" />
-                          <span className="text-sm text-white capitalize">{appointment.paymentMethod}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-slate-700">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteAppointment(appointment.id)}
-                            className="text-red-500 hover:text-red-400 hover:bg-slate-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
         {/* Calendário semanal */}
-        <div className="mt-6 bg-slate-800 rounded-lg border border-slate-700 p-4 overflow-x-auto">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mt-6 bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-white">Agenda dos próximos dias</h3>
-              <p className="text-sm text-slate-400">Visualize os agendamentos em formato de calendário</p>
+              <div className="flex items-center text-amber-400 text-sm font-semibold">
+                <Calendar className="h-4 w-4 mr-2" />
+                Agenda de atendimentos
+              </div>
+              <h2 className="text-2xl font-bold text-white mt-1">Próximos dias</h2>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="icon" onClick={() => setCalendarStart(addDays(calendarStart, -7))} className="border-slate-600 text-white">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCalendarStart(addDays(calendarStart, -7))}
+                className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
+              >
                 <ChevronLeftIcon className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setCalendarStart(new Date())} className="border-slate-600 text-white">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCalendarStart(today)}
+                className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
+              >
                 Hoje
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setCalendarStart(addDays(calendarStart, 7))} className="border-slate-600 text-white">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCalendarStart(addDays(calendarStart, 7))}
+                className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <div className="min-w-[900px]">
-            <div className="grid" style={{ gridTemplateColumns: '120px repeat(7, minmax(0, 1fr))' }}>
-              <div className="p-2 text-slate-300 text-sm font-medium border-b border-slate-700">Horário</div>
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[1100px]" style={{ gridTemplateColumns: '100px repeat(7, minmax(0, 1fr))' }}>
+              <div className="p-3 text-xs font-semibold uppercase text-slate-300 tracking-wide border border-slate-800 bg-slate-950/60 rounded-tl-xl">
+                Horário
+              </div>
               {weekDays.map((day, idx) => (
-                <div key={idx} className="p-2 text-slate-300 text-sm font-medium border-b border-slate-700 text-center">
-                  <div>{day.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
-                  <div className="text-xs text-slate-400">{day.toISOString().split('T')[0]}</div>
+                <div
+                  key={idx}
+                  className={`p-3 border border-slate-800 text-center text-sm font-semibold text-white bg-slate-950/70 ${
+                    isSameDay(day, today) ? 'bg-slate-800/60' : ''
+                  } ${idx === weekDays.length - 1 ? 'rounded-tr-xl' : ''}`}
+                >
+                  <div className="capitalize">{day.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                  <div className="text-xs text-slate-400">{toDateKey(day)}</div>
                 </div>
               ))}
               {hours.map((hour) => (
                 <div key={`row-${hour}`} className="contents">
-                  <div className="p-2 text-slate-400 text-sm border-b border-slate-800">
+                  <div className="p-3 text-sm text-slate-400 border border-slate-800 bg-slate-950/60">
                     {hour.toString().padStart(2, '0')}:00
                   </div>
                   {weekDays.map((day, colIdx) => {
-                    const dayStr = day.toISOString().split('T')[0]
+                    const dayStr = toDateKey(day)
                     const items = filteredAppointments.filter(
                       (appt) =>
-                        normalizeDate(appt.date) === dayStr &&
+                        toDateKey(appt.date) === dayStr &&
                         appt.startTime.startsWith(hour.toString().padStart(2, '0')),
                     )
                     return (
-                      <div key={`cell-${colIdx}-${hour}`} className="p-2 min-h-[64px] border-b border-slate-800">
+                      <div
+                        key={`cell-${colIdx}-${hour}`}
+                        className={`border border-slate-800 bg-slate-950/40 min-h-[96px] p-2 ${
+                          isSameDay(day, today) ? 'bg-slate-900/50' : ''
+                        }`}
+                      >
                         {items.length === 0 ? (
-                          <div className="text-xs text-slate-600">Sem agendamentos</div>
+                          <div className="text-center text-xs text-slate-600 mt-6">Sem agendamentos</div>
                         ) : (
                           items.map((appt) => (
-                            <div key={appt.id} className="mb-2 rounded-md border border-emerald-600 bg-emerald-900/40 p-2">
-                              <div className="text-sm font-semibold text-emerald-100">{appt.client.name}</div>
-                              <div className="text-xs text-emerald-200">{appt.service.name}</div>
+                            <div
+                              key={appt.id}
+                              className="mb-2 rounded-lg border border-emerald-600/70 bg-emerald-900/60 text-emerald-50 p-3 shadow-sm"
+                            >
+                              <div className="text-sm font-semibold">{appt.client.name}</div>
+                              <div className="text-xs text-emerald-100">{appt.service.name}</div>
                               <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
                               <div className="text-xs text-emerald-200 flex items-center mt-1">
                                 <Clock className="h-3 w-3 mr-1" />

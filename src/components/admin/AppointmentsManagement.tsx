@@ -1,19 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import {
   Calendar,
   Clock,
-  User,
-  Scissors,
-  Phone,
   Plus,
   Filter,
   Search,
-  Edit,
-  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -44,11 +41,31 @@ interface Appointment {
 export default function AppointmentsManagement() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const toDateKey = (value: Date | string) => {
+    const d = new Date(value)
+    if (!Number.isFinite(d.getTime())) return ''
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${d.getFullYear()}-${month}-${day}`
+  }
+
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const addDays = useCallback((date: Date, days: number) => {
+    const d = new Date(date)
+    d.setDate(d.getDate() + days)
+    return startOfDay(d)
+  }, [])
+  const today = useMemo(() => startOfDay(new Date()), [])
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('')
+  const [calendarStart, setCalendarStart] = useState(() => startOfDay(new Date()))
+
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(calendarStart, i)), [addDays, calendarStart])
+  const hours = useMemo(() => Array.from({ length: 11 }, (_, i) => 8 + i), [])
+  const isSameDay = (a: Date, b: Date) => toDateKey(a) === toDateKey(b)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -77,40 +94,6 @@ export default function AppointmentsManagement() {
     }
   }
 
-  const handleStatusChange = async (appointmentId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/admin/appointments/${appointmentId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      if (response.ok) {
-        await fetchAppointments()
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error)
-    }
-  }
-
-  const handleDeleteAppointment = async (appointmentId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
-
-    try {
-      const response = await fetch(`/api/admin/appointments/${appointmentId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        await fetchAppointments()
-      }
-    } catch (error) {
-      console.error('Erro ao excluir agendamento:', error)
-    }
-  }
-
   const filteredAppointments = appointments.filter((appointment) => {
     const clientName = appointment.client?.name || ''
     const serviceName = appointment.service?.name || ''
@@ -123,26 +106,12 @@ export default function AppointmentsManagement() {
       serviceName.toLowerCase().includes(term) ||
       barberName.toLowerCase().includes(term)
 
+    const filterDateKey = toDateKey(dateFilter || '')
     const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter
-    const matchesDate = !dateFilter || appointment.date === dateFilter
+    const matchesDate = !dateFilter || toDateKey(appointment.date) === filterDateKey
 
     return matchesSearch && matchesStatus && matchesDate
   })
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-600 text-white'
-      case 'pending':
-        return 'bg-yellow-600 text-white'
-      case 'completed':
-        return 'bg-blue-600 text-white'
-      case 'cancelled':
-        return 'bg-red-600 text-white'
-      default:
-        return 'bg-gray-600 text-white'
-    }
-  }
 
   if (loading) {
     return <div className="text-white text-center">Carregando agendamentos...</div>
@@ -223,134 +192,103 @@ export default function AppointmentsManagement() {
         </div>
       </div>
 
-      {/* Tabela */}
-      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-700">
-            <thead className="bg-slate-900/60">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Cliente
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Serviço
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Barbeiro
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Data/Hora
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-slate-800 divide-y divide-slate-700">
-              {filteredAppointments.map((appointment) => (
-                <tr key={appointment.id} className="hover:bg-slate-700/50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <User className="h-5 w-5 text-slate-400 mr-3" />
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                          {appointment.client?.name || '-'}
-                        </div>
-                        <div className="text-sm text-slate-400 flex items-center">
-                          <Phone className="h-3 w-3 mr-1" />
-                          <span>{appointment.client?.phone || '-'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <Scissors className="h-4 w-4 text-amber-500 mr-2" />
-                      <div>
-                        <div className="text-sm font-medium text-white">
-                      {appointment.service?.name || '-'}
-                        </div>
-                        <div className="text-sm text-slate-400 flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          <span>{appointment.service.duration} min</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-white">
-                      {appointment.barber?.name || 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-200">
-                    <div className="flex flex-col">
-                      <span className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {appointment.date}
-                      </span>
-                      <span className="flex items-center text-slate-400">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {appointment.startTime} - {appointment.endTime}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                        appointment.status,
-                      )}`}
-                    >
-                      {appointment.status === 'confirmed'
-                        ? 'Confirmado'
-                        : appointment.status === 'pending'
-                        ? 'Pendente'
-                        : appointment.status === 'completed'
-                        ? 'Concluído'
-                        : 'Cancelado'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-slate-300 border-slate-600 hover:bg-slate-700"
-                      onClick={() =>
-                        handleStatusChange(
-                          appointment.id,
-                          appointment.status === 'confirmed' ? 'completed' : 'confirmed',
-                        )
-                      }
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      {appointment.status === 'confirmed' ? 'Concluir' : 'Confirmar'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-400 border-red-600 hover:bg-red-900/20"
-                      onClick={() => handleDeleteAppointment(appointment.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+      {/* Calendário semanal */}
+      <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-lg">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="flex items-center text-amber-400 text-sm font-semibold">
+              <Calendar className="h-4 w-4 mr-2" />
+              Agenda de atendimentos
+            </div>
+            <h3 className="text-2xl font-bold text-white mt-1">Próximos dias</h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCalendarStart(addDays(calendarStart, -7))}
+              className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCalendarStart(today)}
+              className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
+            >
+              Hoje
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCalendarStart(addDays(calendarStart, 7))}
+              className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
-              {filteredAppointments.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-8 text-center text-slate-400 text-sm"
-                  >
-                    Nenhum agendamento encontrado com os filtros atuais.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[1100px]" style={{ gridTemplateColumns: '100px repeat(7, minmax(0, 1fr))' }}>
+            <div className="p-3 text-xs font-semibold uppercase text-slate-300 tracking-wide border border-slate-800 bg-slate-950/60 rounded-tl-xl">
+              Horário
+            </div>
+            {weekDays.map((day, idx) => (
+              <div
+                key={idx}
+                className={`p-3 border border-slate-800 text-center text-sm font-semibold text-white bg-slate-950/70 ${
+                  isSameDay(day, today) ? 'bg-slate-800/60' : ''
+                } ${idx === weekDays.length - 1 ? 'rounded-tr-xl' : ''}`}
+              >
+                <div className="capitalize">{day.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                <div className="text-xs text-slate-400">{toDateKey(day)}</div>
+              </div>
+            ))}
+            {hours.map((hour) => (
+              <div key={`row-${hour}`} className="contents">
+                <div className="p-3 text-sm text-slate-400 border border-slate-800 bg-slate-950/60">
+                  {hour.toString().padStart(2, '0')}:00
+                </div>
+                {weekDays.map((day, colIdx) => {
+                  const dayStr = toDateKey(day)
+                  const items = filteredAppointments.filter(
+                    (appt) =>
+                      toDateKey(appt.date) === dayStr &&
+                      appt.startTime.startsWith(hour.toString().padStart(2, '0')),
+                  )
+                  return (
+                    <div
+                      key={`cell-${colIdx}-${hour}`}
+                      className={`border border-slate-800 bg-slate-950/40 min-h-[96px] p-2 ${
+                        isSameDay(day, today) ? 'bg-slate-900/50' : ''
+                      }`}
+                    >
+                      {items.length === 0 ? (
+                        <div className="text-center text-xs text-slate-600 mt-6">Sem agendamentos</div>
+                      ) : (
+                        items.map((appt) => (
+                          <div
+                            key={appt.id}
+                            className="mb-2 rounded-lg border border-emerald-600/70 bg-emerald-900/60 text-emerald-50 p-3 shadow-sm"
+                          >
+                            <div className="text-sm font-semibold">{appt.client.name}</div>
+                            <div className="text-xs text-emerald-100">{appt.service.name}</div>
+                            <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
+                            <div className="text-xs text-emerald-200 flex items-center mt-1">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {appt.startTime} - {appt.endTime}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
