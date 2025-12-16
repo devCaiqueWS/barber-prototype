@@ -28,7 +28,7 @@ function BookingPageContent() {
   const todayStr = new Date().toISOString().split('T')[0]
   const hasPrefilledService = useRef(false)
 
-  // Carregar serviços ao montar o componente
+  // Carregar serviÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§os ao montar o componente
   useEffect(() => {
     loadServices()
     loadBarbers()
@@ -44,7 +44,7 @@ function BookingPageContent() {
         setServices([])
       }
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error)
+      console.error('Erro ao carregar serviÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§os:', error)
       setServices([])
     }
   }
@@ -72,7 +72,7 @@ function BookingPageContent() {
         setAvailableTimes(data.availableTimes)
       }
     } catch (error) {
-      console.error('Erro ao carregar horários:', error)
+      console.error('Erro ao carregar horÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rios:', error)
     }
   }
 
@@ -136,7 +136,7 @@ function BookingPageContent() {
 
     try {
       if (!selectedService || !selectedBarber || !selectedDate || !selectedTime) {
-        alert('Selecione serviço, barbeiro, data e horário antes de confirmar.')
+        alert('Selecione serviÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§o, barbeiro, data e horÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rio antes de confirmar.')
         setLoading(false)
         return
       }
@@ -186,14 +186,14 @@ function BookingPageContent() {
             }
 
             console.error('Checkout Asaas falhou:', checkoutData)
-            alert('Não foi possível iniciar o pagamento online agora. Seu agendamento foi criado e você pode pagar no local.')
+            alert('NÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o foi possÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­vel iniciar o pagamento online agora. Seu agendamento foi criado e vocÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âª pode pagar no local.')
           } catch (err) {
             console.error('Erro ao criar checkout Asaas:', err)
-            alert('Não foi possível iniciar o pagamento online agora. Seu agendamento foi criado e você pode pagar no local.')
+            alert('NÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o foi possÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­vel iniciar o pagamento online agora. Seu agendamento foi criado e vocÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âª pode pagar no local.')
           }
         }
 
-        setStep(6) // Página de sucesso normal
+        setStep(6) // PÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡gina de sucesso normal
       } else {
         alert('Erro ao criar agendamento: ' + (data.message || 'Erro desconhecido'))
       }
@@ -259,7 +259,7 @@ function BookingPageContent() {
       <div className="container mx-auto px-4 py-8 space-y-6">
         <div className="mb-6">
           <Link href="/" className="text-amber-500 hover:text-amber-400">
-            ← Voltar para Home
+            ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Voltar para Home
           </Link>
         </div>
         
@@ -284,10 +284,10 @@ function BookingPageContent() {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          {/* Step 1: Selecionar Serviço */}
+          {/* Step 1: Selecionar ServiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§o */}
           {step === 1 && (
             <div>
-              <h2 className="text-white text-2xl font-bold mb-6 text-center">Escolha seu Serviço</h2>
+              <h2 className="text-white text-2xl font-bold mb-6 text-center">Escolha seu ServiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§o</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {services.map((service) => (
                   <div
@@ -312,7 +312,7 @@ function BookingPageContent() {
             <div>
               <h2 className="text-white text-2xl font-bold mb-6 text-center">Escolha seu Barbeiro</h2>
               <div className="mb-4 text-center">
-                <p className="text-slate-400">Serviço: <span className="text-amber-500">{selectedService?.name}</span></p>
+                <p className="text-slate-400">ServiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§o: <span className="text-amber-500">{selectedService?.name}</span></p>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {barbers.map((barber) => (
@@ -331,7 +331,7 @@ function BookingPageContent() {
                   onClick={() => setStep(1)}
                   className="text-slate-400 hover:text-white"
                 >
-                  ← Voltar
+                  ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Voltar
                 </button>
               </div>
             </div>
@@ -342,7 +342,7 @@ function BookingPageContent() {
             <div>
               <h2 className="text-white text-2xl font-bold mb-6 text-center">Escolha a Data</h2>
               <div className="mb-4 text-center space-y-2">
-                <p className="text-slate-400">Serviço: <span className="text-amber-500">{selectedService?.name}</span></p>
+                <p className="text-slate-400">ServiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§o: <span className="text-amber-500">{selectedService?.name}</span></p>
                 <p className="text-slate-400">Barbeiro: <span className="text-amber-500">{selectedBarber?.name}</span></p>
               </div>
              
@@ -360,18 +360,18 @@ function BookingPageContent() {
                   onClick={() => setStep(2)}
                   className="text-slate-400 hover:text-white"
                 >
-                  ← Voltar
+                  ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Voltar
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 4: Selecionar Horário */}
+          {/* Step 4: Selecionar HorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rio */}
           {step === 4 && (
             <div>
-              <h2 className="text-white text-2xl font-bold mb-6 text-center">Escolha o Horário</h2>
+              <h2 className="text-white text-2xl font-bold mb-6 text-center">Escolha o HorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rio</h2>
               <div className="mb-6 text-center space-y-2">
-                <p className="text-slate-400">Serviço: <span className="text-amber-500">{selectedService?.name}</span></p>
+                <p className="text-slate-400">ServiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§o: <span className="text-amber-500">{selectedService?.name}</span></p>
                 <p className="text-slate-400">Barbeiro: <span className="text-amber-500">{selectedBarber?.name}</span></p>
                 <p className="text-slate-400">Data: <span className="text-amber-500">{selectedDate}</span></p>
               </div>
@@ -390,7 +390,7 @@ function BookingPageContent() {
               
               {availableTimes.length === 0 && (
                 <p className="text-center text-slate-400 mt-6">
-                  Nenhum horário disponível para esta data
+                  Nenhum horÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rio disponÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­vel para esta data
                 </p>
               )}
               
@@ -399,7 +399,7 @@ function BookingPageContent() {
                   onClick={() => setStep(3)}
                   className="text-slate-400 hover:text-white"
                 >
-                  ← Voltar
+                  ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Voltar
                 </button>
               </div>
             </div>
@@ -410,10 +410,10 @@ function BookingPageContent() {
             <div>
               <h2 className="text-2xl font-bold mb-6 text-center">Seus Dados</h2>
               <div className="mb-6 text-center space-y-2">
-                <p className="text-slate-400">Serviço: <span className="text-amber-500">{selectedService?.name}</span></p>
+                <p className="text-slate-400">ServiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§o: <span className="text-amber-500">{selectedService?.name}</span></p>
                 <p className="text-slate-400">Barbeiro: <span className="text-amber-500">{selectedBarber?.name}</span></p>
                 <p className="text-slate-400">Data: <span className="text-amber-500">{selectedDate}</span></p>
-                <p className="text-slate-400">Horário: <span className="text-amber-500">{selectedTime}</span></p>
+                <p className="text-slate-400">HorÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rio: <span className="text-amber-500">{selectedTime}</span></p>
               </div>
               
               <form onSubmit={handleClientDataSubmit} className="max-w-md mx-auto space-y-4">
@@ -446,7 +446,7 @@ function BookingPageContent() {
                     required
                     value={clientData.phone}
                     onChange={(e) => {
-                      // Remover caracteres não numéricos e aplicar máscara
+                      // Remover caracteres nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o numÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ricos e aplicar mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡scara
                       const value = e.target.value.replace(/\D/g, '')
                       const formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
                       setClientData({...clientData, phone: formatted})
@@ -464,7 +464,7 @@ function BookingPageContent() {
                     required
                     value={clientData.whatsapp}
                     onChange={(e) => {
-                      // Remover caracteres não numéricos e aplicar máscara
+                      // Remover caracteres nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o numÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ricos e aplicar mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡scara
                       const value = e.target.value.replace(/\D/g, '')
                       const formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
                       setClientData({...clientData, whatsapp: formatted})
@@ -473,7 +473,7 @@ function BookingPageContent() {
                     placeholder="(11) 99999-9999"
                     maxLength="15"
                   />
-                  <p className="text-xs text-slate-400 mt-1">Número para contato via WhatsApp</p>
+                  <p className="text-xs text-slate-400 mt-1">NÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºmero para contato via WhatsApp</p>
                 </div>
                 
                 <div>
@@ -488,13 +488,13 @@ function BookingPageContent() {
                   >
                     <option value="">Selecione a forma de pagamento</option>
                     <option value="dinheiro">Dinheiro</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
-                    <option value="cartao_debito">Cartão de Débito</option>
+                    <option value="cartao_credito">CartÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de CrÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©dito</option>
+                    <option value="cartao_debito">CartÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de DÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©bito</option>
                     <option value="pix">PIX</option>
                   </select>
                 </div>
 
-                {/* Opção de Pagamento Online */}
+                {/* OpÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de Pagamento Online */}
                 {(clientData.paymentMethod === 'pix' || 
                   clientData.paymentMethod === 'cartao_credito' || 
                   clientData.paymentMethod === 'cartao_debito') && (
@@ -513,8 +513,8 @@ function BookingPageContent() {
                     </div>
                     <p className="text-slate-400 text-sm mt-2 ml-7">
                       {clientData.paymentMethod === 'pix' 
-                        ? 'Pague com PIX de forma rápida e segura'
-                        : 'Pague com cartão de forma segura pelo site'
+                        ? 'Pague com PIX de forma rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡pida e segura'
+                        : 'Pague com cartÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de forma segura pelo site'
                       }
                     </p>
                     {clientData.payOnline && (
@@ -523,7 +523,7 @@ function BookingPageContent() {
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-sm">Pagamento será processado após confirmação</span>
+                          <span className="text-sm">Pagamento serÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ processado apÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³s confirmaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o</span>
                         </div>
                       </div>
                     )}
@@ -549,13 +549,13 @@ function BookingPageContent() {
                   onClick={() => setStep(4)}
                   className="text-slate-400 hover:text-white"
                 >
-                  ← Voltar
+                  ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Voltar
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 6: Sucesso */}
+                              {/* Step 6: Sucesso */}
           {step === 6 && (
             <div className="text-center">
               <div className="bg-green-900/50 border border-green-500 rounded-lg p-8 max-w-2xl mx-auto">
@@ -577,9 +577,15 @@ function BookingPageContent() {
                 <p className="text-slate-400 mb-6">
                   Você receberá uma confirmação no email: {clientData.email}
                 </p>
-                
-                {/* Botão WhatsApp */}
+
+                {/* Botão WhatsApp / Agenda */}
                 <div className="mb-6">
+                  <button
+                    onClick={handleAddToCalendar}
+                    className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
+                  >
+                    Adicionar à agenda do dispositivo
+                  </button>
                   <a
                     href={`https://wa.me/55${clientData.whatsapp.replace(/\D/g, '')}?text=Olá! Acabei de realizar um agendamento no BarberPro para ${selectedService?.name} no dia ${selectedDate} às ${selectedTime}.`}
                     target="_blank"
@@ -587,11 +593,12 @@ function BookingPageContent() {
                     className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
                   >
                     <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67 0.15-.197 0.297-.767 0.966-.94 1.164-.173 0.199-.347 0.223-.644 0.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458 0.13-.606.134-.133 0.298-.347 0.446-.52 0.149-.174 0.198-.298 0.298-.497 0.099-.198 0.05-.371-0.025-.52-0.075-.149-0.669-1.612-0.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52 0.074-.792 0.372-.272 0.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074 0.149 0.198 2.096 3.2 5.077 4.487 0.709 0.306 1.262 0.489 1.694 0.625 0.712 0.227 1.36 0.195 1.871 0.118 0.571-.085 1.758-.719 2.006-1.413 0.248-.694 0.248-1.289 0.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741 0.982 0.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488" />
                     </svg>
                     Entrar em contato via WhatsApp
                   </a>
                 </div>
+
                 <button
                   onClick={resetBooking}
                   className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
@@ -600,8 +607,7 @@ function BookingPageContent() {
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          )}        </div>
       </div>
     </div>
   )

@@ -1,9 +1,24 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, User, Scissors, Phone, CreditCard, ChevronLeft, Plus, Filter, Search, Edit, Trash2 } from 'lucide-react'
+import {
+  Calendar,
+  Clock,
+  User,
+  Scissors,
+  Phone,
+  CreditCard,
+  ChevronLeft,
+  Plus,
+  Filter,
+  Search,
+  Edit,
+  Trash2,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface Appointment {
@@ -12,19 +27,9 @@ interface Appointment {
   startTime: string
   endTime: string
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
-  client: {
-    name: string
-    phone: string
-    address?: string
-  }
-  service: {
-    name: string
-    price: number
-    duration: number
-  }
-  barber?: {
-    name: string
-  }
+  client: { name: string; phone: string; address?: string }
+  service: { name: string; price: number; duration: number }
+  barber?: { name: string }
   paymentMethod: string
   notes?: string
   createdAt: string
@@ -38,30 +43,27 @@ export default function AdminAppointments() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('')
+  const [calendarStart, setCalendarStart] = useState(() => new Date())
 
   useEffect(() => {
     if (status === 'loading') return
-
     if (!session?.user) {
       router.push('/login')
       return
     }
-
-    const userRole = (session.user as { role?: string }).role
-    if (userRole !== 'admin' && userRole !== 'barber') {
+    const role = (session.user as { role?: string }).role
+    if (role !== 'admin' && role !== 'barber') {
       router.push('/')
       return
     }
-
-    fetchAppointments() // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchAppointments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status, router])
 
   const fetchAppointments = async () => {
     try {
-      const endpoint = (session?.user as { role?: string })?.role === 'admin' 
-        ? '/api/admin/appointments'
-        : '/api/barber/appointments'
-      
+      const role = (session?.user as { role?: string })?.role
+      const endpoint = role === 'admin' ? '/api/admin/appointments' : '/api/barber/appointments'
       const response = await fetch(endpoint)
       const data = await response.json()
       setAppointments(data.appointments || [])
@@ -76,12 +78,9 @@ export default function AdminAppointments() {
     try {
       const response = await fetch(`/api/admin/appointments/${appointmentId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
-
       if (response.ok) {
         await fetchAppointments()
       }
@@ -92,12 +91,8 @@ export default function AdminAppointments() {
 
   const handleDeleteAppointment = async (appointmentId: string) => {
     if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
-
     try {
-      const response = await fetch(`/api/admin/appointments/${appointmentId}`, {
-        method: 'DELETE',
-      })
-
+      const response = await fetch(`/api/admin/appointments/${appointmentId}`, { method: 'DELETE' })
       if (response.ok) {
         await fetchAppointments()
       }
@@ -106,28 +101,46 @@ export default function AdminAppointments() {
     }
   }
 
-  const filteredAppointments = appointments.filter(appointment => {
-    const matchesSearch = appointment.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         appointment.service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (appointment.barber?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter
-    const matchesDate = !dateFilter || appointment.date === dateFilter
-
-    return matchesSearch && matchesStatus && matchesDate
-  })
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((appointment) => {
+      const matchesSearch =
+        appointment.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        appointment.service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (appointment.barber?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter
+      const matchesDate = !dateFilter || appointment.date === dateFilter
+      return matchesSearch && matchesStatus && matchesDate
+    })
+  }, [appointments, searchTerm, statusFilter, dateFilter])
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'bg-green-600 text-white'
-      case 'pending': return 'bg-yellow-600 text-white'
-      case 'completed': return 'bg-blue-600 text-white'
-      case 'cancelled': return 'bg-red-600 text-white'
-      default: return 'bg-gray-600 text-white'
+      case 'confirmed':
+        return 'bg-green-600 text-white'
+      case 'pending':
+        return 'bg-yellow-600 text-white'
+      case 'completed':
+        return 'bg-blue-600 text-white'
+      case 'cancelled':
+        return 'bg-red-600 text-white'
+      default:
+        return 'bg-gray-600 text-white'
     }
   }
 
+  const addDays = (date: Date, days: number) => {
+    const d = new Date(date)
+    d.setDate(d.getDate() + days)
+    return d
+  }
 
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(calendarStart, i)), [calendarStart])
+  const hours = useMemo(() => Array.from({ length: 12 }, (_, i) => 8 + i), [])
+
+  const normalizeDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    return Number.isFinite(d.getTime()) ? d.toISOString().split('T')[0] : dateStr
+  }
 
   if (loading) {
     return (
@@ -149,10 +162,12 @@ export default function AdminAppointments() {
             </Button>
             <h1 className="text-3xl font-bold text-white">Gerenciar Agendamentos</h1>
           </div>
-          <Button className="bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/agendamento')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Agendamento
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button className="bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/agendamento')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Agendamento
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -171,7 +186,7 @@ export default function AdminAppointments() {
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Status</label>
               <select
@@ -212,19 +227,19 @@ export default function AdminAppointments() {
               </Button>
             </div>
           </div>
+
         </div>
 
-        {/* Appointments List */}
+        {/* Lista de agendamentos */}
         <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
           {filteredAppointments.length === 0 ? (
             <div className="p-12 text-center">
               <Calendar className="h-16 w-16 mx-auto mb-4 text-slate-600" />
               <h3 className="text-xl font-semibold text-white mb-2">Nenhum agendamento encontrado</h3>
               <p className="text-slate-400 mb-6">
-                {appointments.length === 0 
+                {appointments.length === 0
                   ? 'Ainda não há agendamentos cadastrados no sistema.'
-                  : 'Nenhum agendamento corresponde aos filtros aplicados.'
-                }
+                  : 'Nenhum agendamento corresponde aos filtros aplicados.'}
               </p>
               <Button className="bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/agendamento')}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -288,7 +303,9 @@ export default function AdminAppointments() {
                         <select
                           value={appointment.status}
                           onChange={(e) => handleStatusChange(appointment.id, e.target.value)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)} bg-opacity-90 border-0 focus:outline-none focus:ring-2 focus:ring-amber-500`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            appointment.status,
+                          )} bg-opacity-90 border-0 focus:outline-none focus:ring-2 focus:ring-amber-500`}
                         >
                           <option value="pending">Pendente</option>
                           <option value="confirmed">Confirmado</option>
@@ -304,11 +321,7 @@ export default function AdminAppointments() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-amber-500 hover:text-amber-400 hover:bg-slate-700"
-                          >
+                          <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-slate-700">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
@@ -329,6 +342,72 @@ export default function AdminAppointments() {
           )}
         </div>
 
+        {/* Calendário semanal */}
+        <div className="mt-6 bg-slate-800 rounded-lg border border-slate-700 p-4 overflow-x-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Agenda dos próximos dias</h3>
+              <p className="text-sm text-slate-400">Visualize os agendamentos em formato de calendário</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="icon" onClick={() => setCalendarStart(addDays(calendarStart, -7))} className="border-slate-600 text-white">
+                <ChevronLeftIcon className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setCalendarStart(new Date())} className="border-slate-600 text-white">
+                Hoje
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => setCalendarStart(addDays(calendarStart, 7))} className="border-slate-600 text-white">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="min-w-[900px]">
+            <div className="grid" style={{ gridTemplateColumns: '120px repeat(7, minmax(0, 1fr))' }}>
+              <div className="p-2 text-slate-300 text-sm font-medium border-b border-slate-700">Horário</div>
+              {weekDays.map((day, idx) => (
+                <div key={idx} className="p-2 text-slate-300 text-sm font-medium border-b border-slate-700 text-center">
+                  <div>{day.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                  <div className="text-xs text-slate-400">{day.toISOString().split('T')[0]}</div>
+                </div>
+              ))}
+              {hours.map((hour) => (
+                <div key={`row-${hour}`} className="contents">
+                  <div className="p-2 text-slate-400 text-sm border-b border-slate-800">
+                    {hour.toString().padStart(2, '0')}:00
+                  </div>
+                  {weekDays.map((day, colIdx) => {
+                    const dayStr = day.toISOString().split('T')[0]
+                    const items = filteredAppointments.filter(
+                      (appt) =>
+                        normalizeDate(appt.date) === dayStr &&
+                        appt.startTime.startsWith(hour.toString().padStart(2, '0')),
+                    )
+                    return (
+                      <div key={`cell-${colIdx}-${hour}`} className="p-2 min-h-[64px] border-b border-slate-800">
+                        {items.length === 0 ? (
+                          <div className="text-xs text-slate-600">Sem agendamentos</div>
+                        ) : (
+                          items.map((appt) => (
+                            <div key={appt.id} className="mb-2 rounded-md border border-emerald-600 bg-emerald-900/40 p-2">
+                              <div className="text-sm font-semibold text-emerald-100">{appt.client.name}</div>
+                              <div className="text-xs text-emerald-200">{appt.service.name}</div>
+                              <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
+                              <div className="text-xs text-emerald-200 flex items-center mt-1">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {appt.startTime} - {appt.endTime}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Summary */}
         {filteredAppointments.length > 0 && (
           <div className="mt-6 bg-slate-800 rounded-lg p-6 border border-slate-700">
@@ -339,19 +418,19 @@ export default function AdminAppointments() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-yellow-500">
-                  {filteredAppointments.filter(a => a.status === 'pending').length}
+                  {filteredAppointments.filter((a) => a.status === 'pending').length}
                 </div>
                 <div className="text-sm text-slate-400">Pendentes</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-green-500">
-                  {filteredAppointments.filter(a => a.status === 'confirmed').length}
+                  {filteredAppointments.filter((a) => a.status === 'confirmed').length}
                 </div>
                 <div className="text-sm text-slate-400">Confirmados</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-blue-500">
-                  {filteredAppointments.filter(a => a.status === 'completed').length}
+                  {filteredAppointments.filter((a) => a.status === 'completed').length}
                 </div>
                 <div className="text-sm text-slate-400">Concluídos</div>
               </div>
