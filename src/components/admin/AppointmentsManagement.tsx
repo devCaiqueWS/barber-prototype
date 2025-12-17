@@ -256,7 +256,7 @@ export default function AppointmentsManagement() {
                   const items = filteredAppointments.filter(
                     (appt) =>
                       toDateKey(appt.date) === dayStr &&
-                      appt.startTime.startsWith(hour.toString().padStart(2, '0')),
+                      (appt.startTime || '').startsWith(hour.toString().padStart(2, '0')),
                   )
                   return (
                     <div
@@ -265,20 +265,20 @@ export default function AppointmentsManagement() {
                         isSameDay(day, today) ? 'bg-slate-900/50' : ''
                       }`}
                     >
-                      {items.length === 0 ? (
-                        <div className="text-center text-xs text-slate-600 mt-6">Sem agendamentos</div>
-                      ) : (
-                        items.map((appt) => (
-                          <div
-                            key={appt.id}
-                            className="mb-2 rounded-lg border border-emerald-600/70 bg-emerald-900/60 text-emerald-50 p-3 shadow-sm"
-                          >
-                            <div className="text-sm font-semibold">{appt.client.name}</div>
-                            <div className="text-xs text-emerald-100">{appt.service.name}</div>
+                        {items.length === 0 ? (
+                          <div className="text-center text-xs text-slate-600 mt-6">Sem agendamentos</div>
+                        ) : (
+                          items.map((appt) => (
+                            <div
+                              key={appt.id}
+                              className="mb-2 rounded-lg border border-emerald-600/70 bg-emerald-900/60 text-emerald-50 p-3 shadow-sm"
+                            >
+                            <div className="text-sm font-semibold">{appt.client?.name || 'Cliente'}</div>
+                            <div className="text-xs text-emerald-100">{appt.service?.name || 'Serviço'}</div>
                             <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
                             <div className="text-xs text-emerald-200 flex items-center mt-1">
                               <Clock className="h-3 w-3 mr-1" />
-                              {appt.startTime} - {appt.endTime}
+                              {(appt.startTime ?? '').trim() || '--:--'} - {(appt.endTime ?? '').trim() || '--:--'}
                             </div>
                           </div>
                         ))
