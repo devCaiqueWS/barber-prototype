@@ -151,7 +151,12 @@ export default function BarbersManagement() {
                   </div>
                 </div>
                 <p className="text-sm text-slate-500">
-                  Cadastrado em: {new Date(barber.createdAt as string).toLocaleDateString()}
+                  Cadastrado em:{' '}
+                  {new Date(barber.createdAt as string).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
                 </p>
               </div>
               <div className="flex space-x-2">

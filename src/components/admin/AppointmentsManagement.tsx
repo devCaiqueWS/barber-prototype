@@ -56,6 +56,11 @@ export default function AppointmentsManagement() {
     return startOfDay(d)
   }, [])
   const today = useMemo(() => startOfDay(new Date()), [])
+  const formatDateBR = (value: Date | string) => {
+    const d = new Date(value)
+    if (!Number.isFinite(d.getTime())) return value as string
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -243,7 +248,7 @@ export default function AppointmentsManagement() {
                 } ${idx === weekDays.length - 1 ? 'rounded-tr-xl' : ''}`}
               >
                 <div className="capitalize">{day.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
-                <div className="text-xs text-slate-400">{toDateKey(day)}</div>
+                <div className="text-xs text-slate-400">{formatDateBR(day)}</div>
               </div>
             ))}
             {hours.map((hour) => (
