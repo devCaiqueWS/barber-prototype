@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Calendar as CalendarIcon, Clock } from 'lucide-react'
 import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
+import { formatDateKey } from '@/lib/date'
 
 interface AvailabilityResponse {
   success: boolean
@@ -76,7 +77,7 @@ export default function BarberCalendar() {
   const { data: session } = useSession()
   const barberId = (session?.user as SessionUserWithId | undefined)?.id
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = formatDateKey(new Date())
   const [selectedDate, setSelectedDate] = useState<string>(todayStr)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)

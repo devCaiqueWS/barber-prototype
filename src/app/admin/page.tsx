@@ -10,6 +10,7 @@ import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
 import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
 import BarberCalendar from "@/components/admin/BarberCalendar";
+import { formatDateKey } from "@/lib/date";
 
 interface Stats {
   todayAppointments: number
@@ -60,8 +61,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   // Reports tab state
-  const [repStartDate, setRepStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
-  const [repEndDate, setRepEndDate] = useState(new Date().toISOString().split('T')[0])
+  const [repStartDate, setRepStartDate] = useState(
+    formatDateKey(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+  )
+  const [repEndDate, setRepEndDate] = useState(formatDateKey(new Date()))
   const [repClient, setRepClient] = useState('')
   const [repService, setRepService] = useState<string>('all')
   const [repServicesOptions, setRepServicesOptions] = useState<Array<{id:string,name:string}>>([])

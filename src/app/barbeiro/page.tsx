@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Calendar, Clock, User, Phone, CreditCard, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatDateKey } from '@/lib/date'
 
 interface Appointment {
     id: string
@@ -33,7 +34,7 @@ export default function BarberDashboard() {
     const { data: session, status } = useSession()
     const [appointments] = useState<Appointment[]>([])
     const [loading] = useState(true)
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+    const [selectedDate, setSelectedDate] = useState(formatDateKey(new Date()))
     const [stats, setStats] = useState<Stats>({
         today: 0,
         thisWeek: 0,

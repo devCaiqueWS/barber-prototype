@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import { formatDateKey, parseDateOnly } from '@/lib/date'
 
 type SimpleDatePickerProps = {
   value?: string
@@ -11,15 +12,9 @@ type SimpleDatePickerProps = {
   className?: string
 }
 
-const isValidDate = (date: Date) => !Number.isNaN(date.getTime())
+const parseDate = (value?: string | null): Date | null => parseDateOnly(value)
 
-const parseDate = (value?: string | null): Date | null => {
-  if (!value) return null
-  const parsed = new Date(`${value}T00:00:00`)
-  return isValidDate(parsed) ? parsed : null
-}
-
-const formatDate = (date: Date) => date.toISOString().split('T')[0]
+const formatDate = (date: Date) => formatDateKey(date)
 
 const toDisplay = (date: Date) =>
   new Intl.DateTimeFormat('pt-BR', {

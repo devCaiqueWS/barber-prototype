@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { BarChart, ChevronLeft, Download, Calendar, DollarSign, Users, Scissors, TrendingUp, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import AppointmentsReportTable from '@/components/admin/AppointmentsReportTable'
+import { formatDateBR, formatDateKey } from '@/lib/date'
 
 interface ReportData {
   summary: {
@@ -49,8 +50,8 @@ export default function AdminReports() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: formatDateKey(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+    endDate: formatDateKey(new Date())
   })
 
   useEffect(() => {
@@ -120,9 +121,7 @@ export default function AdminReports() {
     }).format(value)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR')
-  }
+  const formatDate = (dateString: string) => formatDateBR(dateString)
 
   const getStatusColor = (status: string) => {
     switch (status) {

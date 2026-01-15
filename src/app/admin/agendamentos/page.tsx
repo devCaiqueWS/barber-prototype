@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, ChevronLeft, Plus, Filter, Search, ChevronLeft as ChevronLeftIcon, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatDateKey } from '@/lib/date'
 
 interface Appointment {
   id: string
@@ -82,13 +83,7 @@ export default function AdminAppointments() {
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => startOfDay(addDays(calendarStart, i))), [calendarStart])
   const hours = useMemo(() => Array.from({ length: 11 }, (_, i) => 8 + i), [])
 
-  const toDateKey = (value: Date | string) => {
-    const d = new Date(value)
-    if (!Number.isFinite(d.getTime())) return ''
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${d.getFullYear()}-${month}-${day}`
-  }
+  const toDateKey = (value: Date | string) => formatDateKey(value)
 
   const isSameDay = (a: Date, b: Date) => toDateKey(a) === toDateKey(b)
 

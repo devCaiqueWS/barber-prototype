@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { formatDateBR, formatDateKey } from "@/lib/date";
 
 type AppointmentRow = {
   id: string;
@@ -18,15 +19,12 @@ type AppointmentRow = {
 };
 
 export default function AppointmentsReportTable() {
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      1
-    )
-      .toISOString()
-      .split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    return {
+      startDate: formatDateKey(new Date(now.getFullYear(), now.getMonth(), 1)),
+      endDate: formatDateKey(now),
+    };
   });
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,8 +71,7 @@ export default function AppointmentsReportTable() {
       currency: "BRL",
     }).format(value);
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("pt-BR");
+  const formatDate = (dateString: string) => formatDateBR(dateString);
 
   const filteredAppointments = appointments.filter((a) => {
     const statusOk = statusFilter === "all" || a.status === statusFilter;

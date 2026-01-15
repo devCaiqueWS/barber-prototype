@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { formatDateKey, parseDateOnly } from '@/lib/date'
 import bcrypt from 'bcryptjs'
 
 // Normaliza objeto Date para string HH:mm
@@ -61,8 +62,8 @@ export async function POST(request: NextRequest) {
       appointmentDateTime = parsed
     } else if (date && time) {
       const [hours, minutes] = time.split(':')
-      const d = new Date(date)
-      if (!Number.isFinite(d.getTime())) {
+      const d = parseDateOnly(date)
+      if (!d || !Number.isFinite(d.getTime())) {
         return NextResponse.json(
           { error: 'Data inválida.' },
           { status: 400 },
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const appointmentDateStr = appointmentDateTime.toISOString().split('T')[0]
+    const appointmentDateStr = formatDateKey(appointmentDateTime)
     const startTime = toHHMM(appointmentDateTime)
 
     // Carregar serviço para obter duração
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
       const [ah, am] = (appt.startTime || '00:00')
         .split(':')
         .map((n) => Number.parseInt(n, 10))
-      const apptStart = new Date(appointmentDateStr)
+      const apptStart = parseDateOnly(appointmentDateStr) || new Date(appointmentDateStr)
       apptStart.setHours(ah, am, 0, 0)
       const apptDur = appt.service?.duration ?? 30
       const apptEnd = new Date(apptStart.getTime() + apptDur * 60 * 1000)

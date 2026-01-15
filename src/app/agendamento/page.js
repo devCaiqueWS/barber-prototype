@@ -11,21 +11,7 @@ import { useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 
 import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
-
-const formatDateBR = (value) => {
-  const d = new Date(value)
-  if (!Number.isFinite(d.getTime())) return value || ''
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-const parseDateOnly = (value) => {
-  if (!value || value.length < 10) return new Date(value)
-  const [year, month, day] = value.split('-').map((v) => Number(v))
-  if (!year || !month || !day) return new Date(value)
-  return new Date(year, month - 1, day)
-}
-
-
+import { formatDateBR, formatDateKey, parseDateOnly } from '@/lib/date'
 
 function BookingPageContent() {
 
@@ -67,7 +53,7 @@ function BookingPageContent() {
 
   })
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = formatDateKey(new Date())
 
   const hasPrefilledService = useRef(false)
 
@@ -339,7 +325,7 @@ function BookingPageContent() {
 
       const data = await response.json()
 
-      
+
 
       if (data.success) {
 
@@ -455,7 +441,7 @@ function BookingPageContent() {
 
     const start = parseDateOnly(selectedDate)
 
-    if (!Number.isFinite(start.getTime())) return
+    if (!start || !Number.isFinite(start.getTime())) return
 
     start.setHours(Number.parseInt(hourStr, 10) || 0, Number.parseInt(minuteStr, 10) || 0, 0, 0)
 
@@ -543,7 +529,7 @@ function BookingPageContent() {
 
         </div>
 
-        
+
 
         <div className="text-center mb-8">
 
@@ -553,7 +539,7 @@ function BookingPageContent() {
 
           </h1>
 
-          
+
 
           {/* Progress Steps */}
 
@@ -565,11 +551,9 @@ function BookingPageContent() {
 
                 key={num}
 
-                className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center ${step >= num ? 'bg-amber-500' : 'bg-slate-600'
 
-                  step >= num ? 'bg-amber-500' : 'bg-slate-600'
-
-                }`}
+                  }`}
 
               >
 
@@ -707,7 +691,7 @@ function BookingPageContent() {
 
               </div>
 
-             
+
 
               <div className="max-w-md mx-auto">
 
@@ -725,7 +709,7 @@ function BookingPageContent() {
 
               </div>
 
-              
+
 
               <div className="mt-6 text-center">
 
@@ -769,7 +753,7 @@ function BookingPageContent() {
 
               </div>
 
-              
+
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
 
@@ -793,7 +777,7 @@ function BookingPageContent() {
 
               </div>
 
-              
+
 
               {availableTimes.length === 0 && (
 
@@ -805,7 +789,7 @@ function BookingPageContent() {
 
               )}
 
-              
+
 
               <div className="mt-6 text-center">
 
@@ -851,7 +835,7 @@ function BookingPageContent() {
 
               </div>
 
-              
+
 
               <form onSubmit={handleClientDataSubmit} className="max-w-md mx-auto space-y-4">
 
@@ -867,7 +851,7 @@ function BookingPageContent() {
 
                     value={clientData.name}
 
-                    onChange={(e) => setClientData({...clientData, name: e.target.value})}
+                    onChange={(e) => setClientData({ ...clientData, name: e.target.value })}
 
                     className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
 
@@ -875,7 +859,7 @@ function BookingPageContent() {
 
                 </div>
 
-                
+
 
                 <div>
 
@@ -889,7 +873,7 @@ function BookingPageContent() {
 
                     value={clientData.email}
 
-                    onChange={(e) => setClientData({...clientData, email: e.target.value})}
+                    onChange={(e) => setClientData({ ...clientData, email: e.target.value })}
 
                     className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
 
@@ -897,7 +881,7 @@ function BookingPageContent() {
 
                 </div>
 
-                
+
 
                 <div>
 
@@ -919,7 +903,7 @@ function BookingPageContent() {
 
                       const formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
 
-                      setClientData({...clientData, phone: formatted})
+                      setClientData({ ...clientData, phone: formatted })
 
                     }}
 
@@ -933,7 +917,7 @@ function BookingPageContent() {
 
                 </div>
 
-                
+
 
                 <div>
 
@@ -955,7 +939,7 @@ function BookingPageContent() {
 
                       const formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
 
-                      setClientData({...clientData, whatsapp: formatted})
+                      setClientData({ ...clientData, whatsapp: formatted })
 
                     }}
 
@@ -971,7 +955,7 @@ function BookingPageContent() {
 
                 </div>
 
-                
+
 
                 <div>
 
@@ -985,7 +969,7 @@ function BookingPageContent() {
 
                     onChange={(e) => {
 
-                      setClientData({...clientData, paymentMethod: e.target.value, payOnline: false})
+                      setClientData({ ...clientData, paymentMethod: e.target.value, payOnline: false })
 
                     }}
 
@@ -1011,75 +995,75 @@ function BookingPageContent() {
 
                 {/* Opção de Pagamento Online */}
 
-                {(clientData.paymentMethod === 'pix' || 
+                {(clientData.paymentMethod === 'pix' ||
 
-                  clientData.paymentMethod === 'cartao_credito' || 
+                  clientData.paymentMethod === 'cartao_credito' ||
 
                   clientData.paymentMethod === 'cartao_debito') && (
 
-                  <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                    <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
 
-                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-3">
 
-                      <input
+                        <input
 
-                        type="checkbox"
+                          type="checkbox"
 
-                        id="payOnline"
+                          id="payOnline"
 
-                        checked={clientData.payOnline}
+                          checked={clientData.payOnline}
 
-                        onChange={(e) => setClientData({...clientData, payOnline: e.target.checked})}
+                          onChange={(e) => setClientData({ ...clientData, payOnline: e.target.checked })}
 
-                        className="w-4 h-4 text-amber-600 bg-slate-800 border-slate-600 rounded focus:ring-amber-500"
+                          className="w-4 h-4 text-amber-600 bg-slate-800 border-slate-600 rounded focus:ring-amber-500"
 
-                      />
+                        />
 
-                      <label htmlFor="payOnline" className="text-white font-medium">
+                        <label htmlFor="payOnline" className="text-white font-medium">
 
-                        Quero pagar online agora
+                          Quero pagar online agora
 
-                      </label>
-
-                    </div>
-
-                    <p className="text-slate-400 text-sm mt-2 ml-7">
-
-                      {clientData.paymentMethod === 'pix' 
-
-                        ? 'Pague com PIX de forma rápida e segura'
-
-                        : 'Pague com cartão de forma segura pelo site'
-
-                      }
-
-                    </p>
-
-                    {clientData.payOnline && (
-
-                      <div className="mt-3 ml-7">
-
-                        <div className="flex items-center space-x-2 text-green-400">
-
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-
-                          </svg>
-
-                          <span className="text-sm">Pagamento será processado após confirmação</span>
-
-                        </div>
+                        </label>
 
                       </div>
 
-                    )}
+                      <p className="text-slate-400 text-sm mt-2 ml-7">
 
-                  </div>
+                        {clientData.paymentMethod === 'pix'
 
-                )}
+                          ? 'Pague com PIX de forma rápida e segura'
 
-                
+                          : 'Pague com cartão de forma segura pelo site'
+
+                        }
+
+                      </p>
+
+                      {clientData.payOnline && (
+
+                        <div className="mt-3 ml-7">
+
+                          <div className="flex items-center space-x-2 text-green-400">
+
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+
+                            </svg>
+
+                            <span className="text-sm">Pagamento será processado após confirmação</span>
+
+                          </div>
+
+                        </div>
+
+                      )}
+
+                    </div>
+
+                  )}
+
+
 
                 <button
 
@@ -1087,27 +1071,25 @@ function BookingPageContent() {
 
                   disabled={loading}
 
-                  className={`w-full font-bold py-3 px-6 rounded-lg transition-colors ${
+                  className={`w-full font-bold py-3 px-6 rounded-lg transition-colors ${clientData.payOnline
 
-                    clientData.payOnline 
+                    ? 'bg-green-600 hover:bg-green-700 disabled:bg-slate-600'
 
-                      ? 'bg-green-600 hover:bg-green-700 disabled:bg-slate-600' 
+                    : 'bg-amber-500 hover:bg-amber-600 disabled:bg-slate-600'
 
-                      : 'bg-amber-500 hover:bg-amber-600 disabled:bg-slate-600'
-
-                  } text-white`}
+                    } text-white`}
 
                 >
 
-                  {loading ? 'Processando...' : 
+                  {loading ? 'Processando...' :
 
-                   clientData.payOnline ? 'Agendar e Pagar Online' : 'Confirmar Agendamento'}
+                    clientData.payOnline ? 'Agendar e Pagar Online' : 'Confirmar Agendamento'}
 
                 </button>
 
               </form>
 
-              
+
 
               <div className="mt-6 text-center">
 
@@ -1133,7 +1115,7 @@ function BookingPageContent() {
 
 
 
-                              {/* Step 6: Sucesso */}
+          {/* Step 6: Sucesso */}
 
           {step === 6 && (
 
@@ -1161,11 +1143,11 @@ function BookingPageContent() {
 
                     clientData.paymentMethod === 'dinheiro' ? 'Dinheiro' :
 
-                    clientData.paymentMethod === 'cartao_credito' ? 'Cartão de Crédito' :
+                      clientData.paymentMethod === 'cartao_credito' ? 'Cartão de Crédito' :
 
-                    clientData.paymentMethod === 'cartao_debito' ? 'Cartão de Débito' :
+                        clientData.paymentMethod === 'cartao_debito' ? 'Cartão de Débito' :
 
-                    clientData.paymentMethod === 'pix' ? 'PIX' : clientData.paymentMethod
+                          clientData.paymentMethod === 'pix' ? 'PIX' : clientData.paymentMethod
 
                   }</p>
 
@@ -1187,13 +1169,15 @@ function BookingPageContent() {
 
                     onClick={handleAddToCalendar}
 
-                    className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
+                    className="w-95 mb-4 inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
 
                   >
 
                     Adicionar à agenda do dispositivo
 
                   </button>
+
+
 
                   <a
 
@@ -1203,7 +1187,7 @@ function BookingPageContent() {
 
                     rel="noopener noreferrer"
 
-                    className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
+                    className="inline-flex items-center mb-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
 
                   >
 
@@ -1217,21 +1201,21 @@ function BookingPageContent() {
 
                   </a>
 
+                  <br />
+
+                  <button
+
+                    onClick={resetBooking}
+
+                    className="inline-flex items-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+
+                  >
+
+                    Fazer Novo Agendamento
+
+                  </button>
+
                 </div>
-
-
-
-                <button
-
-                  onClick={resetBooking}
-
-                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-
-                >
-
-                  Fazer Novo Agendamento
-
-                </button>
 
               </div>
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { parseDateOnly } from '@/lib/date'
 
 interface AdminAppointmentBody {
   serviceId: string
@@ -104,6 +105,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'serviceId, barberId, date e time são obrigatórios' }, { status: 400 })
     }
 
+    const baseDate = parseDateOnly(date)
+    if (!baseDate) {
+      return NextResponse.json({ error: 'Data invalida' }, { status: 400 })
+    }
+
     const service = await prisma.service.findUnique({ where: { id: serviceId } })
     if (!service) {
       return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 })
@@ -111,7 +117,7 @@ export async function POST(request: Request) {
 
     // Calcular fim pelo tempo do serviço
     const [h, m] = (time as string).split(':').map((n: string) => parseInt(n, 10))
-    const startDT = new Date(date)
+    const startDT = new Date(baseDate)
     startDT.setHours(h, m, 0, 0)
     const endDT = new Date(startDT.getTime() + (service.duration || 30) * 60 * 1000)
     const endTime = `${endDT.getHours().toString().padStart(2, '0')}:${endDT.getMinutes().toString().padStart(2, '0')}`
@@ -123,7 +129,7 @@ export async function POST(request: Request) {
     })
     const hasConflict = existing.some(appt => {
       const [ah, am] = (appt.startTime || '00:00').split(':').map(n => parseInt(n,10))
-      const apptStart = new Date(date)
+      const apptStart = new Date(baseDate)
       apptStart.setHours(ah, am, 0, 0)
       const apptDur = appt.service?.duration ?? 30
       const apptEnd = new Date(apptStart.getTime() + apptDur * 60 * 1000)

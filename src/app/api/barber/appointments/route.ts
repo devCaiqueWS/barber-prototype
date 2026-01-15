@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { parseDateOnly } from '@/lib/date'
 
 // Helper para validar sessão do barbeiro
 async function getBarberSession() {
@@ -110,6 +111,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const baseDate = parseDateOnly(date)
+    if (!baseDate) {
+      return NextResponse.json(
+        { error: 'Data invalida' },
+        { status: 400 },
+      )
+    }
+
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
     })
@@ -121,7 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     const [h, m] = time.split(':').map((n: string) => parseInt(n, 10))
-    const startDT = new Date(date)
+    const startDT = new Date(baseDate)
     startDT.setHours(h, m, 0, 0)
     const endDT = new Date(
       startDT.getTime() + (service.duration || 30) * 60 * 1000,
@@ -143,7 +152,7 @@ export async function POST(request: NextRequest) {
       const [ah, am] = (appt.startTime || '00:00')
         .split(':')
         .map((n) => parseInt(n, 10))
-      const apptStart = new Date(date)
+      const apptStart = new Date(baseDate)
       apptStart.setHours(ah, am, 0, 0)
       const apptDur = appt.service?.duration ?? 30
       const apptEnd = new Date(apptStart.getTime() + apptDur * 60 * 1000)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { formatDateKey, parseDateOnly } from '@/lib/date'
 
 // GET - Buscar horários disponíveis
 export async function GET(request: NextRequest) {
@@ -17,15 +18,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Converter data string para Date
-    const selectedDate = new Date(date)
-    const startOfDay = new Date(selectedDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(selectedDate)
-    endOfDay.setHours(23, 59, 59, 999)
+    const selectedDate = parseDateOnly(date)
+    if (!selectedDate) {
+      return NextResponse.json(
+        { error: 'Data invÇ­lida' },
+        { status: 400 }
+      )
+    }
 
     // Buscar agendamentos existentes do barbeiro na data
-    const dateStr = startOfDay.toISOString().split('T')[0];
+    const dateStr = formatDateKey(selectedDate)
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         barberId,
@@ -99,7 +101,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const minStart = new Date(now.getTime() + 30 * 60 * 1000) // 30 min adiante
 
-    const isSameDay = new Date().toISOString().split('T')[0] === dateStr
+    const isSameDay = formatDateKey(new Date()) === dateStr
 
     const availableSlots: string[] = []
     for (const slot of baseSlots) {

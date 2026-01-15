@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatDateBR, formatDateKey } from '@/lib/date'
 
 interface Appointment {
   id: string
@@ -41,13 +42,7 @@ interface Appointment {
 export default function AppointmentsManagement() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const toDateKey = (value: Date | string) => {
-    const d = new Date(value)
-    if (!Number.isFinite(d.getTime())) return ''
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${d.getFullYear()}-${month}-${day}`
-  }
+  const toDateKey = (value: Date | string) => formatDateKey(value)
 
   const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
   const addDays = useCallback((date: Date, days: number) => {
@@ -56,11 +51,6 @@ export default function AppointmentsManagement() {
     return startOfDay(d)
   }, [])
   const today = useMemo(() => startOfDay(new Date()), [])
-  const formatDateBR = (value: Date | string) => {
-    const d = new Date(value)
-    if (!Number.isFinite(d.getTime())) return value as string
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
