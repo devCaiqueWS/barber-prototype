@@ -336,6 +336,7 @@ export default function AppointmentsManagement() {
                   const dayStr = toDateKey(day)
                   const items = filteredAppointments.filter(
                     (appt) =>
+                      (appt.status || '').toLowerCase() !== 'cancelled' &&
                       toDateKey(appt.date) === dayStr &&
                       (appt.startTime || '').startsWith(hour.toString().padStart(2, '0')),
                   )
