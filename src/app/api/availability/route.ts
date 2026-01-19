@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
       return { h, m }
     }
 
-    const defaultStart = parseHHMM(barber?.workStartTime) ?? { h: 9, m: 0 }
-    const defaultEnd = parseHHMM(barber?.workEndTime) ?? { h: 18, m: 0 }
+    const defaultStart = parseHHMM(barber?.workStartTime) ?? { h: 8, m: 0 }
+    const defaultEnd = parseHHMM(barber?.workEndTime) ?? { h: 20, m: 0 }
     const slotDuration = 30 // 30 minutos
 
     const weekdayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       const slots: string[] = []
       const startMinutes = start.h * 60 + start.m
       const endMinutes = end.h * 60 + end.m
-      for (let t = startMinutes; t < endMinutes; t += slotDuration) {
+      for (let t = startMinutes; t <= endMinutes; t += slotDuration) {
         const h = Math.floor(t / 60).toString().padStart(2, '0')
         const m = (t % 60).toString().padStart(2, '0')
         slots.push(`${h}:${m}`)

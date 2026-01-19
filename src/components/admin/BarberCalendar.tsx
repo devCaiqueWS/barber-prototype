@@ -62,7 +62,7 @@ const generateSlotsFromIndexes = (startIndex: number, endIndex: number): string[
 }
 
 const DEFAULT_START_INDEX = timeStringToIndex('08:00')
-const DEFAULT_END_INDEX = timeStringToIndex('18:00')
+const DEFAULT_END_INDEX = timeStringToIndex('20:00')
 
 const getWeekdayLabel = (date: string): string => {
   if (!date) return ''
@@ -405,7 +405,7 @@ export default function BarberCalendar() {
               <span>00:00</span>
               <span>06:00</span>
               <span>12:00</span>
-              <span>18:00</span>
+              <span>20:00</span>
               <span>23:30</span>
             </div>
           </div>

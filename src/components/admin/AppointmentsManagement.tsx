@@ -59,7 +59,7 @@ export default function AppointmentsManagement() {
   const [calendarStart, setCalendarStart] = useState(() => startOfDay(new Date()))
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(calendarStart, i)), [addDays, calendarStart])
-  const hours = useMemo(() => Array.from({ length: 11 }, (_, i) => 8 + i), [])
+  const hours = useMemo(() => Array.from({ length: 13 }, (_, i) => 8 + i), [])
   const isSameDay = (a: Date, b: Date) => toDateKey(a) === toDateKey(b)
 
   useEffect(() => {
@@ -225,7 +225,7 @@ export default function AppointmentsManagement() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <div className="grid min-w-[1100px]" style={{ gridTemplateColumns: '100px repeat(7, minmax(0, 1fr))' }}>
             <div className="p-3 text-xs font-semibold uppercase text-slate-300 tracking-wide border border-slate-800 bg-slate-950/60 rounded-tl-xl">
               Horário

@@ -109,12 +109,12 @@ export default function AdminSettings() {
             phone: '',
             email: '',
             workingHours: {
-              monday: { start: '09:00', end: '18:00', enabled: true },
-              tuesday: { start: '09:00', end: '18:00', enabled: true },
-              wednesday: { start: '09:00', end: '18:00', enabled: true },
-              thursday: { start: '09:00', end: '18:00', enabled: true },
-              friday: { start: '09:00', end: '18:00', enabled: true },
-              saturday: { start: '09:00', end: '16:00', enabled: true },
+              monday: { start: '08:00', end: '20:00', enabled: true },
+              tuesday: { start: '08:00', end: '20:00', enabled: true },
+              wednesday: { start: '08:00', end: '20:00', enabled: true },
+              thursday: { start: '08:00', end: '20:00', enabled: true },
+              friday: { start: '08:00', end: '20:00', enabled: true },
+              saturday: { start: '08:00', end: '20:00', enabled: true },
               sunday: { start: '10:00', end: '14:00', enabled: false }
             }
           },

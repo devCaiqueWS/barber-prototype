@@ -36,8 +36,8 @@ export default function AdminBarbers() {
     phone: '',
     specialties: '',
     workDays: [] as string[],
-    workStartTime: '09:00',
-    workEndTime: '18:00',
+    workStartTime: '08:00',
+    workEndTime: '20:00',
     isActive: true
   })
 
@@ -121,8 +121,8 @@ export default function AdminBarbers() {
       phone: barber.phone || '',
       specialties: barber.specialties?.join(', ') || '',
       workDays: barber.workDays || [],
-      workStartTime: barber.workStartTime || '09:00',
-      workEndTime: barber.workEndTime || '18:00',
+      workStartTime: barber.workStartTime || '08:00',
+      workEndTime: barber.workEndTime || '20:00',
       isActive: barber.isActive
     })
     setShowForm(true)
@@ -155,8 +155,8 @@ export default function AdminBarbers() {
       phone: '',
       specialties: '',
       workDays: [],
-      workStartTime: '09:00',
-      workEndTime: '18:00',
+      workStartTime: '08:00',
+      workEndTime: '20:00',
       isActive: true
     })
     setEditingBarber(null)
