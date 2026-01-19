@@ -8,8 +8,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const barberId = searchParams.get('barberId')
     const date = searchParams.get('date')
-    const rawDuration = parseInt(searchParams.get('duration') || '30')
-    const duration = Number.isFinite(rawDuration) && rawDuration > 0 ? (rawDuration > 30 ? 60 : rawDuration) : 30
+    const rawDuration = Number.parseInt(searchParams.get('duration') || '30', 10)
+    const serviceDuration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 30
+    const slotInterval = serviceDuration < 30 ? serviceDuration : 30
 
     if (!barberId || !date) {
       return NextResponse.json(
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     const defaultStart = parseHHMM(barber?.workStartTime) ?? { h: 8, m: 0 }
     const defaultEnd = parseHHMM(barber?.workEndTime) ?? { h: 20, m: 0 }
-    const slotDuration = 30 // 30 minutos
+    const slotDuration = slotInterval
 
     const weekdayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
     const weekday = weekdayNames[selectedDate.getDay()]
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
 
       if (isSameDay && slotTime <= minStart) continue
 
-      const slotEnd = new Date(slotTime.getTime() + duration * 60 * 1000)
+      const slotEnd = new Date(slotTime.getTime() + serviceDuration * 60 * 1000)
 
       // Conflito com agendamentos existentes
       const hasConflict = existingAppointments.some(appt => {

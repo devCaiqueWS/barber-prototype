@@ -57,6 +57,15 @@ export default function AppointmentsManagement() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('')
   const [calendarStart, setCalendarStart] = useState(() => startOfDay(new Date()))
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
+  const [editForm, setEditForm] = useState({
+    date: '',
+    time: '',
+    status: 'confirmed',
+    notes: '',
+    paymentMethod: '',
+  })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(calendarStart, i)), [addDays, calendarStart])
   const hours = useMemo(() => Array.from({ length: 13 }, (_, i) => 8 + i), [])
@@ -86,6 +95,83 @@ export default function AppointmentsManagement() {
       console.error('Erro ao carregar agendamentos:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const openEdit = (appointment: Appointment) => {
+    setEditingAppointment(appointment)
+    setEditForm({
+      date: appointment.date || '',
+      time: appointment.startTime || '',
+      status: appointment.status || 'confirmed',
+      notes: appointment.notes || '',
+      paymentMethod: appointment.paymentMethod || '',
+    })
+  }
+
+  const closeEdit = () => {
+    setEditingAppointment(null)
+    setEditForm({
+      date: '',
+      time: '',
+      status: 'confirmed',
+      notes: '',
+      paymentMethod: '',
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingAppointment) return
+    try {
+      setSavingEdit(true)
+      const response = await fetch(`/api/admin/appointments/${editingAppointment.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: editForm.date,
+          time: editForm.time,
+          status: editForm.status,
+          notes: editForm.notes,
+          paymentMethod: editForm.paymentMethod,
+        }),
+      })
+      if (!response.ok) {
+        const data = await response.json()
+        alert(data?.error || 'Erro ao atualizar agendamento')
+        return
+      }
+      await fetchAppointments()
+      closeEdit()
+    } catch (error) {
+      console.error('Erro ao atualizar agendamento:', error)
+      alert('Erro ao atualizar agendamento')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleCancelAppointment = async () => {
+    if (!editingAppointment) return
+    if (!confirm('Deseja cancelar este agendamento?')) return
+    try {
+      setSavingEdit(true)
+      const response = await fetch(`/api/admin/appointments/${editingAppointment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      })
+      if (!response.ok) {
+        const data = await response.json()
+        alert(data?.error || 'Erro ao cancelar agendamento')
+        return
+      }
+      await fetchAppointments()
+      closeEdit()
+    } catch (error) {
+      console.error('Erro ao cancelar agendamento:', error)
+      alert('Erro ao cancelar agendamento')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -264,9 +350,11 @@ export default function AppointmentsManagement() {
                           <div className="text-center text-xs text-slate-600 mt-6">Sem agendamentos</div>
                         ) : (
                           items.map((appt) => (
-                            <div
+                            <button
                               key={appt.id}
-                              className="mb-2 rounded-lg border border-emerald-600/70 bg-emerald-900/60 text-emerald-50 p-3 shadow-sm"
+                              type="button"
+                              onClick={() => openEdit(appt)}
+                              className="mb-2 w-full text-left rounded-lg border border-emerald-600/70 bg-emerald-900/60 text-emerald-50 p-3 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-900/80"
                             >
                             <div className="text-sm font-semibold">{appt.client?.name || 'Cliente'}</div>
                             <div className="text-xs text-emerald-100">{appt.service?.name || 'Serviço'}</div>
@@ -275,7 +363,7 @@ export default function AppointmentsManagement() {
                               <Clock className="h-3 w-3 mr-1" />
                               {(appt.startTime ?? '').trim() || '--:--'} - {(appt.endTime ?? '').trim() || '--:--'}
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>
@@ -286,6 +374,105 @@ export default function AppointmentsManagement() {
           </div>
         </div>
       </div>
+      {editingAppointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
+          <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-white">Editar agendamento</h2>
+              <p className="text-sm text-slate-400">
+                {editingAppointment.client?.name || 'Cliente'} - {editingAppointment.service?.name || 'ServiÇõo'}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Data</label>
+                  <input
+                    type="date"
+                    value={editForm.date}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, date: e.target.value }))}
+                    className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Horario</label>
+                  <input
+                    type="time"
+                    step={300}
+                    value={editForm.time}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, time: e.target.value }))}
+                    className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value }))}
+                    className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                  >
+                    <option value="pending">Pendente</option>
+                    <option value="confirmed">Confirmado</option>
+                    <option value="completed">Concluido</option>
+                    <option value="cancelled">Cancelado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Pagamento</label>
+                  <select
+                    value={editForm.paymentMethod}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+                    className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                  >
+                    <option value="">Nao informado</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="cartao_credito">Cartao de Credito</option>
+                    <option value="cartao_debito">Cartao de Debito</option>
+                    <option value="pix">PIX</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Observacoes</label>
+                <textarea
+                  rows={3}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleCancelAppointment}
+                className="rounded-md border border-red-500/60 bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20"
+              >
+                Cancelar agendamento
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700"
+                >
+                  Fechar
+                </button>
+                <button
+                  type="button"
+                  disabled={savingEdit}
+                  onClick={handleSaveEdit}
+                  className="rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+                >
+                  {savingEdit ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

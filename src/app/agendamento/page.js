@@ -167,9 +167,9 @@ function BookingPageContent() {
 
   const getSlotDurationForService = () => {
 
-    const dur = selectedService?.duration || 30
-
-    return dur > 30 ? 60 : 30
+    const dur = Number(selectedService?.duration)
+    if (!Number.isFinite(dur) || dur <= 0) return 30
+    return Math.round(dur)
 
   }
 

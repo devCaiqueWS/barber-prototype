@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { parseDateOnly } from '@/lib/date'
 
 // Helper para extrair o ID da URL em rotas dinâmicas
 function getIdFromRequest(request: NextRequest): string | null {
@@ -171,12 +172,33 @@ export async function PUT(request: NextRequest) {
     if (typeof notes === 'string') data.notes = notes
     if (typeof status === 'string') data.status = status
     if (typeof paymentMethod === 'string') data.paymentMethod = paymentMethod
-
     if (date && time) {
+      const baseDate = parseDateOnly(date) || new Date(date)
+      if (!Number.isFinite(baseDate.getTime())) {
+        return NextResponse.json(
+          { error: 'Data invalida' },
+          { status: 400 },
+        )
+      }
+      const [h, m] = time.split(':').map((n) => Number.parseInt(n, 10))
+      baseDate.setHours(h || 0, m || 0, 0, 0)
+
+      const serviceLookupId = serviceId || existing.serviceId
+      const service = serviceLookupId
+        ? await prisma.service.findUnique({
+            where: { id: serviceLookupId },
+            select: { duration: true },
+          })
+        : null
+      const durationMinutes = service?.duration ?? 30
+      const endDT = new Date(baseDate.getTime() + durationMinutes * 60 * 1000)
+      const endHours = endDT.getHours().toString().padStart(2, '0')
+      const endMinutes = endDT.getMinutes().toString().padStart(2, '0')
+      const endTime = endHours + ':' + endMinutes
+
       data.date = date
       data.startTime = time
-      // Mantém endTime simples: igual ao startTime se nada mais for calculado
-      data.endTime = existing.endTime || time
+      data.endTime = endTime
     }
 
     if (Object.keys(data).length === 0) {
