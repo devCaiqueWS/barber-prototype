@@ -265,8 +265,8 @@ export default function BarberCalendar() {
   }
 
   return (
-    <div className="bg-[#3D3D3D] rounded-xl p-6 border border-[#1F1F1F] space-y-6 shadow-lg shadow-black/40">
-      <div className="flex items-start justify-between gap-4">
+    <div className="bg-[#3D3D3D] rounded-xl p-4 sm:p-6 border border-[#1F1F1F] space-y-6 shadow-lg shadow-black/40">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
             <CalendarIcon className="h-7 w-7 text-amber-500" />
@@ -277,7 +277,7 @@ export default function BarberCalendar() {
             cada dia.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-start md:items-end gap-2">
           <span
             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border ${
               isDayBlocked || availableSlots.length === 0
@@ -296,7 +296,7 @@ export default function BarberCalendar() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Seleção de data */}
         <div className="space-y-3 bg-slate-900/40 border border-slate-700/70 rounded-lg p-4">
           <div className="flex items-center justify-between gap-2">
@@ -458,7 +458,7 @@ export default function BarberCalendar() {
         </p>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <div className="text-xs text-slate-400">
           {statusMessage && <span>{statusMessage}</span>}
           {loading && <span>Carregando disponibilidade do dia...</span>}

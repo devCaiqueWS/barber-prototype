@@ -38,7 +38,7 @@ export default function ServicesList() {
     <div className="space-y-4">
       <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed">
+          <table className="min-w-[520px] w-full">
             <colgroup>
               <col className="w-1/2" />
               <col className="w-1/4" />
@@ -59,14 +59,16 @@ export default function ServicesList() {
               ) : (
                 services.map(s => (
                   <tr key={s.id} className="border-t border-slate-700">
-                    <td className="py-3 px-4 table-cell align-middle">
-                      <Scissors className="h-4 w-4 text-amber-500" />
-                      <span>{s.name}</span>
+                    <td className="py-3 px-4 align-middle">
+                      <div className="flex items-center gap-2">
+                        <Scissors className="h-4 w-4 text-amber-500" />
+                        <span>{s.name}</span>
+                      </div>
                     </td>
-                    <td className="py-3 px-4 table-cell align-middle whitespace-nowrap">
+                    <td className="py-3 px-4 align-middle whitespace-nowrap">
                       {formatCurrency(s.price)}
                     </td>
-                    <td className="py-3 px-4 table-cell align-middle whitespace-nowrap">
+                    <td className="py-3 px-4 align-middle whitespace-nowrap">
                       {s.duration} min
                     </td>
                   </tr>

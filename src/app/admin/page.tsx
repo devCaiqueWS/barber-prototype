@@ -10,6 +10,7 @@ import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
 import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
 import BarberCalendar from "@/components/admin/BarberCalendar";
+import SubscriptionsManagement from "@/components/admin/SubscriptionsManagement";
 import { formatDateKey } from "@/lib/date";
 
 interface Stats {
@@ -324,8 +325,8 @@ export default function AdminPage() {
     <div className="min-h-screen bg-[#111111]">
       {/* Header */}
       <header className="border-b border-[#2A2A2A] bg-[#151515]/95 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center gap-3">
-          <div className="flex items-center space-x-3">
+        <div className="container mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+          <div className="flex min-w-0 items-start sm:items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
               size="icon"
@@ -350,7 +351,7 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex w-full sm:w-auto items-center justify-end gap-2 sm:gap-3">
             <div className="hidden sm:flex flex-col items-end mr-1 max-w-[140px] md:max-w-[220px]">
               <span className="text-[11px] text-slate-500 uppercase tracking-wide">
                 Logado como
@@ -383,22 +384,23 @@ export default function AdminPage() {
       <div className="container mx-auto px-3 md:px-4 py-6 space-y-6">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4">
             Painel <span className="text-amber-500">Administrativo</span>
           </h1>
-          <p className="text-xl text-slate-300">
+          <p className="text-base sm:text-lg md:text-xl text-slate-300">
             Gerencie sua barbearia de forma eficiente e profissional.
           </p>
         </div>
 
         {/* Navigation Tabs */}
-          <div className="mb-8">
-            <div className="border-b border-[#3D3D3D]">
-              <nav className="-mb-px flex space-x-8">
+        <div className="mb-8">
+          <div className="border-b border-[#3D3D3D] overflow-x-auto">
+            <nav className="-mb-px flex w-max min-w-full gap-6 sm:gap-8 pr-2">
                 {[
                   { id: 'dashboard', label: 'Dashboard', icon: BarChart },
                   { id: 'appointments', label: 'Agendamentos', icon: Calendar },
                   { id: 'calendar', label: 'Calendário', icon: Clock },
+                  { id: 'subscriptions', label: 'Assinaturas', icon: DollarSign },
                   ...(userRole === 'ADMIN' ? [
                     { id: 'barbers', label: 'Barbeiros', icon: Users },
                     { id: 'services', label: 'Serviços', icon: Scissors },
@@ -411,7 +413,7 @@ export default function AdminPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`group inline-flex shrink-0 items-center whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                     activeTab === tab.id
                       ? 'border-amber-500 text-amber-500'
                       : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-300'
@@ -556,15 +558,15 @@ export default function AdminPage() {
           {/* Right Column - Recent Appointments */}
           <div className="lg:col-span-2">
             <div className="bg-[#3D3D3D] rounded-lg p-6 border border-[#1F1F1F]">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <h2 className="text-xl font-semibold text-white">Agendamentos Recentes</h2>
-                <Button variant="outline" size="sm" className="border-slate-600 text-white hover:bg-slate-700" asChild>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto border-slate-600 text-white hover:bg-slate-700" asChild>
                   <Link href="/admin/agendamentos">Ver Todos</Link>
                 </Button>
               </div>
               
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="min-w-[760px] w-full">
                   <thead>
                     <tr className="border-b border-slate-700">
                       <th className="text-left py-3 px-4 text-slate-300 font-medium">Cliente</th>
@@ -630,6 +632,9 @@ export default function AdminPage() {
         {activeTab === 'calendar' && (
           <BarberCalendar />
         )}
+        {activeTab === 'subscriptions' && (
+          <SubscriptionsManagement />
+        )}
 
         {/* Barbers Tab */}
         {activeTab === 'barbers' && (
@@ -686,7 +691,7 @@ export default function AdminPage() {
           <div className="space-y-4 mt-4">
             {/* Filtros de Cabeçalho */}
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Cliente</label>
                   <input
@@ -736,11 +741,11 @@ export default function AdminPage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex items-center mt-4">
-                  <Button onClick={fetchAppointmentsReport} className="w-100 text-white bg-slate-600 hover:bg-slate-500 hover:bg-amber-700"><Filter className="h-4 w-4 mr-2" />Filtrar</Button>
+                <div className="flex items-end mt-2 lg:mt-4">
+                  <Button onClick={fetchAppointmentsReport} className="w-full text-white bg-slate-600 hover:bg-slate-500"><Filter className="h-4 w-4 mr-2" />Filtrar</Button>
                 </div>
-                <div className="flex items-center mt-4">
-                  <Button onClick={() => exportAppointments('xlsx')} className="bg-amber-600 hover:bg-amber-700"><Download className="h-4 w-4 mr-2" />Exportar XLSX</Button>
+                <div className="flex items-end mt-2 lg:mt-4">
+                  <Button onClick={() => exportAppointments('xlsx')} className="w-full bg-amber-600 hover:bg-amber-700"><Download className="h-4 w-4 mr-2" />Exportar XLSX</Button>
                 </div>
               </div>
             </div>
@@ -748,7 +753,7 @@ export default function AdminPage() {
             {/* Tabela */}
             <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="min-w-[640px] w-full">
                   <thead className="bg-slate-700">
                     <tr>
                       <th className="text-left py-3 px-4 text-slate-300">Cliente</th>
@@ -792,14 +797,14 @@ export default function AdminPage() {
         {/* Appointments Tab */}
         {activeTab === 'appointments-legacy' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="text-2xl font-bold text-white">
                 {(session?.user as SessionUser)?.role === 'BARBER' ? 'Meus Agendamentos e Atendimentos' : 'Agendamentos e Atendimentos'}
               </h2>
-              <div className="flex space-x-2">
+              <div className="flex w-full sm:w-auto gap-2">
                 {(session?.user as SessionUser)?.role !== 'BARBER' && (
                   <Button
-                    className="bg-amber-600 hover:bg-amber-700"
+                    className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
                     onClick={() => router.push('/admin/agendamentos')}
                   >
                     <Plus className="h-4 w-4 mr-2" /> Novo Atendimento
@@ -810,7 +815,7 @@ export default function AdminPage() {
             
             <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="min-w-[760px] w-full">
                   <thead className="bg-slate-700">
                     <tr>
                       <th className="text-left py-3 px-4 text-slate-300">Cliente</th>

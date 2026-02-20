@@ -1063,6 +1063,16 @@ function BookingPageContent() {
 
                   )}
 
+                <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-4">
+
+                  <p className="text-amber-300 text-sm font-medium">
+
+                    Aviso: chegue com 15 min de antecedência. Tolerância de 5 min de atraso (sujeito à ocupação da cadeira).
+
+                  </p>
+
+                </div>
+
 
 
                 <button

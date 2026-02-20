@@ -27,6 +27,7 @@ model User {
   role          Role     @default(CLIENT)
   phone         String?
   whatsapp      String? // Campo WhatsApp
+  asaasCustomerId String? // ID do cliente no Asaas
   isActive      Boolean  @default(true)
   specialties   String[] // Para barbeiros - Array de especialidades
   workDays      String[] // Para barbeiros - Array de dias da semana
@@ -40,6 +41,8 @@ model User {
   barberAppointments Appointment[]        @relation("Barber")
   // Disponibilidade/bloqueios por dia (somente aplicável a barbeiros)
   availabilities     BarberAvailability[]
+  subscriptionsAsBarber Subscription[]    @relation("SubscriptionBarber")
+  subscriptionsAsClient Subscription[]    @relation("SubscriptionClient")
 
   @@map("users")
 }
@@ -78,6 +81,25 @@ model Appointment {
   serviceId      String
   createdAt      DateTime @default(now())
   source         String   @default("online") // origem do agendamento: 'online' | 'manual'
+}
+
+model Subscription {
+  id               String   @id @default(uuid())
+  barber           User?    @relation("SubscriptionBarber", fields: [barberId], references: [id])
+  barberId         String?
+  client           User?    @relation("SubscriptionClient", fields: [clientId], references: [id])
+  clientId         String?
+  clientName       String
+  clientEmail      String?
+  clientWhatsapp   String?
+  amount           Float
+  cycle            String   @default("MONTHLY")
+  status           String   @default("pending") // pending, active, cancelled
+  asaasCustomerId  String?
+  asaasSubscriptionId String?
+  proposalUrl      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // Disponibilidade e bloqueios por barbeiro e data

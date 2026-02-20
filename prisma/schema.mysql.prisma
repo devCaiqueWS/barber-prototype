@@ -15,9 +15,12 @@ model User {
   email     String   @unique
   password  String
   role      String   // 'admin', 'barber', 'client'
+  asaasCustomerId String?
   createdAt DateTime @default(now())
   clientAppointments Appointment[] @relation("Client")
   barberAppointments Appointment[] @relation("Barber")
+  subscriptionsAsBarber Subscription[] @relation("SubscriptionBarber")
+  subscriptionsAsClient Subscription[] @relation("SubscriptionClient")
 }
 
 model Service {
@@ -41,4 +44,23 @@ model Appointment {
   serviceId String
   status    String   // 'PENDING', 'CONFIRMED', 'CANCELLED'
   createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id                 String   @id @default(uuid())
+  barber             User?    @relation("SubscriptionBarber", fields: [barberId], references: [id])
+  barberId           String?
+  client             User?    @relation("SubscriptionClient", fields: [clientId], references: [id])
+  clientId           String?
+  clientName         String
+  clientEmail        String?
+  clientWhatsapp     String?
+  amount             Float
+  cycle              String   @default("MONTHLY")
+  status             String   @default("pending")
+  asaasCustomerId    String?
+  asaasSubscriptionId String?
+  proposalUrl        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }

@@ -182,19 +182,19 @@ export default function AdminAppointments() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1F1F1F] p-6">
+    <div className="min-h-screen bg-[#1F1F1F] p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
               <ChevronLeft className="h-4 w-4 mr-2" />
               Voltar
             </Button>
             <h1 className="text-3xl font-bold text-white">Gerenciar Agendamentos</h1>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button className="bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/agendamento')}>
+          <div className="flex w-full sm:w-auto items-center gap-2">
+            <Button className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/agendamento')}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Agendamento
             </Button>
@@ -202,7 +202,7 @@ export default function AdminAppointments() {
         </div>
 
         {/* Filters */}
-        <div className="bg-slate-800 rounded-lg p-6 mb-6 border border-slate-700">
+        <div className="bg-slate-800 rounded-lg p-4 sm:p-6 mb-6 border border-slate-700">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Buscar</label>
@@ -262,8 +262,8 @@ export default function AdminAppointments() {
         </div>
 
         {/* Calendário semanal */}
-        <div className="mt-6 bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mt-6 bg-slate-900 rounded-2xl border border-slate-800 p-4 sm:p-6 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
               <div className="flex items-center text-amber-400 text-sm font-semibold">
                 <Calendar className="h-4 w-4 mr-2" />
@@ -271,7 +271,7 @@ export default function AdminAppointments() {
               </div>
               <h2 className="text-2xl font-bold text-white mt-1">Próximos dias</h2>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
@@ -299,7 +299,7 @@ export default function AdminAppointments() {
             </div>
           </div>
           <div className="overflow-auto max-h-[70vh]">
-            <div className="grid min-w-[1100px]" style={{ gridTemplateColumns: '100px repeat(7, minmax(0, 1fr))' }}>
+            <div className="grid min-w-[900px] md:min-w-[1100px]" style={{ gridTemplateColumns: '100px repeat(7, minmax(0, 1fr))' }}>
               <div className="p-3 text-xs font-semibold uppercase text-slate-300 tracking-wide border border-slate-800 bg-slate-950/60 rounded-tl-xl">
                 Horário
               </div>
@@ -365,7 +365,7 @@ export default function AdminAppointments() {
 
         {/* Summary */}
         {filteredAppointments.length > 0 && (
-          <div className="mt-6 bg-slate-800 rounded-lg p-6 border border-slate-700">
+          <div className="mt-6 bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-white">{filteredAppointments.length}</div>
@@ -394,7 +394,7 @@ export default function AdminAppointments() {
         )}
         {editingAppointment && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
-            <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
+            <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 sm:p-6 shadow-xl">
               <div className="mb-4">
                 <h2 className="text-xl font-semibold text-white">Editar agendamento</h2>
                 <p className="text-sm text-slate-400">
@@ -402,7 +402,7 @@ export default function AdminAppointments() {
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">Data</label>
                     <input
@@ -423,7 +423,7 @@ export default function AdminAppointments() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">Status</label>
                     <select

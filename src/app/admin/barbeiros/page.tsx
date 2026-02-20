@@ -186,11 +186,11 @@ export default function AdminBarbers() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1F1F1F] p-6">
+    <div className="min-h-screen bg-[#1F1F1F] p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
               <ChevronLeft className="h-4 w-4 mr-2" />
               Voltar
@@ -198,7 +198,7 @@ export default function AdminBarbers() {
             <h1 className="text-3xl font-bold text-white">Gerenciar Barbeiros</h1>
           </div>
           <Button 
-            className="bg-amber-600 hover:bg-amber-700"
+            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
             onClick={() => setShowForm(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -208,7 +208,7 @@ export default function AdminBarbers() {
 
         {/* Search */}
         <div className="mb-6">
-          <div className="relative max-w-md">
+          <div className="relative w-full sm:max-w-md">
             <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -224,7 +224,7 @@ export default function AdminBarbers() {
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 rounded-lg border border-slate-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <h2 className="text-xl font-semibold text-white mb-6">
                   {editingBarber ? 'Editar Barbeiro' : 'Novo Barbeiro'}
                 </h2>
@@ -279,7 +279,7 @@ export default function AdminBarbers() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">Dias de Trabalho</label>
-                    <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
                       {weekDays.map(day => (
                         <button
                           key={day.id}
@@ -332,7 +332,7 @@ export default function AdminBarbers() {
                     </label>
                   </div>
 
-                  <div className="flex justify-end space-x-4 pt-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-4">
                     <Button type="button" variant="outline" onClick={resetForm} className="border-slate-600 text-white hover:bg-slate-700">
                       Cancelar
                     </Button>
@@ -367,10 +367,10 @@ export default function AdminBarbers() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 sm:p-6">
               {filteredBarbers.map((barber) => (
-                <div key={barber.id} className="bg-slate-700 rounded-lg p-6 border border-slate-600 hover:border-slate-500 transition-colors">
-                  <div className="flex items-start justify-between mb-4">
+                <div key={barber.id} className="bg-slate-700 rounded-lg p-4 sm:p-6 border border-slate-600 hover:border-slate-500 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center">
                         <Scissors className="h-6 w-6 text-white" />
@@ -384,7 +384,7 @@ export default function AdminBarbers() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
                         variant="ghost"

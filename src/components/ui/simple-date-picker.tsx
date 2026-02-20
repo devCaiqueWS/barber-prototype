@@ -134,8 +134,8 @@ export function SimpleDatePicker({
             </button>
           </div>
           <div className="grid grid-cols-7 gap-1 text-[11px] text-center text-slate-400 mb-1">
-            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d) => (
-              <span key={d}>{d}</span>
+            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, index) => (
+              <span key={`${d}-${index}`}>{d}</span>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">{dayCells}</div>

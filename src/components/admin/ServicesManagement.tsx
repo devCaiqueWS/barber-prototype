@@ -137,8 +137,8 @@ export default function ServicesManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           <Scissors className="h-6 w-6 text-amber-500" />
           <h2 className="text-2xl font-bold text-white">Serviços</h2>
         </div>
@@ -148,7 +148,7 @@ export default function ServicesManagement() {
             setFormData({ name: '', price: '', duration: '' })
             setShowAddModal(true)
           }}
-          className="bg-amber-600 hover:bg-amber-700"
+          className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
         >
           <Plus className="h-4 w-4 mr-2" />
           Adicionar Serviço
@@ -159,7 +159,7 @@ export default function ServicesManagement() {
       <div className="grid gap-4">
         {services.map((service) => (
           <div key={service.id} className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center space-x-3">
                   <h3 className="text-xl font-semibold text-white">{service.name}</h3>
@@ -171,7 +171,7 @@ export default function ServicesManagement() {
                     {service.isActive ? 'Ativo' : 'Inativo'}
                   </span>
                 </div>
-                <div className="flex items-center space-x-4 text-slate-400">
+                <div className="flex flex-wrap items-center gap-4 text-slate-400">
                   <div className="flex items-center space-x-1">
                     <DollarSign className="h-4 w-4" />
                     <span>R$ {service.price.toFixed(2)}</span>
@@ -190,7 +190,7 @@ export default function ServicesManagement() {
                   })}
                 </p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -231,8 +231,8 @@ export default function ServicesManagement() {
 
       {/* Modal de Adicionar/Editar */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-700">
             <h3 className="text-lg font-semibold text-white mb-4">
               {editingService ? 'Editar Serviço' : 'Adicionar Serviço'}
             </h3>
@@ -283,7 +283,7 @@ export default function ServicesManagement() {
                 />
               </div>
               
-              <div className="flex space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -309,3 +309,4 @@ export default function ServicesManagement() {
     </div>
   )
 }
+

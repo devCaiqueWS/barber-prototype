@@ -116,9 +116,9 @@ export default function AppointmentsReportTable() {
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 mt-8">
+    <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700 mt-8">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full md:w-auto">
           <div>
             <label className="block text-xs text-slate-400 mb-1">
               Data Inicial
@@ -191,23 +191,23 @@ export default function AppointmentsReportTable() {
               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
-          <div className="flex items-end gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-2">
             <Button
               onClick={fetchAppointments}
-              className="bg-slate-600 hover:bg-slate-500"
+              className="w-full sm:w-auto bg-slate-600 hover:bg-slate-500"
             >
               Aplicar
             </Button>
             <Button
               onClick={() => exportAppointments("xlsx")}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
             >
               Exportar XLSX
             </Button>
             <Button
               variant="outline"
               onClick={() => exportAppointments("csv")}
-              className="border-slate-600 text-white hover:bg-slate-700"
+              className="w-full sm:w-auto border-slate-600 text-white hover:bg-slate-700"
             >
               CSV
             </Button>
@@ -216,7 +216,7 @@ export default function AppointmentsReportTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="min-w-[1100px] w-full text-sm">
           <thead>
             <tr className="text-left text-slate-300">
               <th className="py-2 px-3 border-b border-slate-700">

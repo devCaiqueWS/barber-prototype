@@ -212,11 +212,11 @@ export default function AdminSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1F1F1F] p-6">
+    <div className="min-h-screen bg-[#1F1F1F] p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
               <ChevronLeft className="h-4 w-4 mr-2" />
               Voltar
@@ -226,14 +226,14 @@ export default function AdminSettings() {
           <Button 
             onClick={handleSave}
             disabled={saving}
-            className="bg-amber-600 hover:bg-amber-700"
+            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
           >
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="grid lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
@@ -261,7 +261,7 @@ export default function AdminSettings() {
 
           {/* Content */}
           <div className="lg:col-span-3">
-            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 sm:p-6">
               {/* Business Settings */}
               {activeTab === 'business' && (
                 <div className="space-y-6">
@@ -325,8 +325,8 @@ export default function AdminSettings() {
                     <h3 className="text-lg font-medium text-white mb-4">Horários de Funcionamento</h3>
                     <div className="space-y-3">
                       {weekDays.map(day => (
-                        <div key={day.id} className="flex items-center space-x-4">
-                          <div className="w-24">
+                        <div key={day.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                          <div className="w-full sm:w-32">
                             <input
                               type="checkbox"
                               id={`${day.id}-enabled`}
@@ -339,19 +339,19 @@ export default function AdminSettings() {
                             </label>
                           </div>
                           {settings.business.workingHours[day.id as keyof typeof settings.business.workingHours].enabled && (
-                            <div className="flex items-center space-x-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <input
                                 type="time"
                                 value={settings.business.workingHours[day.id as keyof typeof settings.business.workingHours].start}
                                 onChange={(e) => updateSettings(['business', 'workingHours', day.id, 'start'], e.target.value)}
-                                className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                className="w-full sm:w-auto px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                               />
                               <span className="text-slate-400">até</span>
                               <input
                                 type="time"
                                 value={settings.business.workingHours[day.id as keyof typeof settings.business.workingHours].end}
                                 onChange={(e) => updateSettings(['business', 'workingHours', day.id, 'end'], e.target.value)}
-                                className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                className="w-full sm:w-auto px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                               />
                             </div>
                           )}
@@ -625,3 +625,4 @@ export default function AdminSettings() {
     </div>
   )
 }
+

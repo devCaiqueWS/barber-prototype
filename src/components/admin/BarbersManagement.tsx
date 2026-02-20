@@ -119,8 +119,8 @@ export default function BarbersManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           <Users className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold text-white">Barbeiros</h2>
         </div>
@@ -130,7 +130,7 @@ export default function BarbersManagement() {
             setFormData({ name: '', email: '', password: '' })
             setShowAddModal(true)
           }}
-          className="bg-amber-600 hover:bg-amber-700"
+          className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
         >
           <Plus className="h-4 w-4 mr-2" />
           Adicionar Barbeiro
@@ -141,13 +141,13 @@ export default function BarbersManagement() {
       <div className="grid gap-4">
         {barbers.map((barber) => (
           <div key={barber.id} className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-white">{barber.name}</h3>
-                <div className="flex items-center space-x-4 text-slate-400">
+                <div className="flex flex-wrap items-center gap-4 text-slate-400">
                   <div className="flex items-center space-x-1">
                     <Mail className="h-4 w-4" />
-                    <span>{barber.email}</span>
+                    <span className="break-all">{barber.email}</span>
                   </div>
                 </div>
                 <p className="text-sm text-slate-500">
@@ -159,7 +159,7 @@ export default function BarbersManagement() {
                   })}
                 </p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -190,8 +190,8 @@ export default function BarbersManagement() {
 
       {/* Modal de Adicionar/Editar */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-700">
             <h3 className="text-lg font-semibold text-white mb-4">
               {editingBarber ? 'Editar Barbeiro' : 'Adicionar Barbeiro'}
             </h3>
@@ -236,7 +236,7 @@ export default function BarbersManagement() {
                 />
               </div>
               
-              <div className="flex space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"

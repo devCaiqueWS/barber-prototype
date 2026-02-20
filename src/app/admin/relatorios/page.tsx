@@ -152,22 +152,22 @@ export default function AdminReports() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1F1F1F] p-6">
+    <div className="min-h-screen bg-[#1F1F1F] p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
               <ChevronLeft className="h-4 w-4 mr-2" />
               Voltar
             </Button>
             <h1 className="text-3xl font-bold text-white">Relatórios</h1>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2">
             <Button 
               variant="outline"
               onClick={() => exportReport('csv')}
-              className="border-slate-600 text-white hover:bg-slate-700"
+              className="w-full sm:w-auto border-slate-600 text-white hover:bg-slate-700"
             >
               <Download className="h-4 w-4 mr-2" />
               Exportar CSV
@@ -175,7 +175,7 @@ export default function AdminReports() {
             <Button 
               variant="outline"
               onClick={() => exportReport('pdf')}
-              className="border-slate-600 text-white hover:bg-slate-700"
+              className="w-full sm:w-auto border-slate-600 text-white hover:bg-slate-700"
             >
               <Download className="h-4 w-4 mr-2" />
               Exportar PDF
@@ -184,7 +184,7 @@ export default function AdminReports() {
         </div>
 
         {/* Date Range Filter */}
-        <div className="bg-slate-800 rounded-lg p-6 mb-6 border border-slate-700">
+        <div className="bg-slate-800 rounded-lg p-4 sm:p-6 mb-6 border border-slate-700">
           <div className="flex flex-col md:flex-row md:items-end gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-slate-300 mb-2">Período do Relatório</label>
@@ -211,7 +211,7 @@ export default function AdminReports() {
             </div>
             <Button 
               onClick={fetchReportData}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="w-full md:w-auto bg-amber-600 hover:bg-amber-700"
             >
               <BarChart className="h-4 w-4 mr-2" />
               Atualizar Relatório
@@ -223,7 +223,7 @@ export default function AdminReports() {
           <>
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-400">Total de Agendamentos</p>
@@ -233,7 +233,7 @@ export default function AdminReports() {
                 </div>
               </div>
 
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-400">Faturamento Total</p>
@@ -243,7 +243,7 @@ export default function AdminReports() {
                 </div>
               </div>
 
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-400">Clientes Únicos</p>
@@ -253,7 +253,7 @@ export default function AdminReports() {
                 </div>
               </div>
 
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-400">Ticket Médio</p>
@@ -266,7 +266,7 @@ export default function AdminReports() {
 
             <div className="grid lg:grid-cols-2 gap-8 mb-8">
               {/* Appointments by Status */}
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <h3 className="text-lg font-semibold text-white mb-4">Status dos Agendamentos</h3>
                 <div className="space-y-4">
                   {reportData.appointmentsByStatus.map((item, index) => (
@@ -285,7 +285,7 @@ export default function AdminReports() {
               </div>
 
               {/* Top Services */}
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <h3 className="text-lg font-semibold text-white mb-4">Serviços Mais Procurados</h3>
                 <div className="space-y-4">
                   {reportData.appointmentsByService.slice(0, 5).map((service, index) => (
@@ -306,7 +306,7 @@ export default function AdminReports() {
 
             <div className="grid lg:grid-cols-2 gap-8 mb-8">
               {/* Performance by Barber */}
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <h3 className="text-lg font-semibold text-white mb-4">Performance por Barbeiro</h3>
                 <div className="space-y-4">
                   {reportData.appointmentsByBarber.map((barber, index) => (
@@ -329,7 +329,7 @@ export default function AdminReports() {
               </div>
 
               {/* Daily Appointments */}
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
                 <h3 className="text-lg font-semibold text-white mb-4">Agendamentos por Dia</h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {reportData.appointmentsByDay.map((day, index) => (
@@ -349,7 +349,7 @@ export default function AdminReports() {
             </div>
 
             {/* Monthly Revenue Trend */}
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
               <h3 className="text-lg font-semibold text-white mb-4">Tendência de Faturamento Mensal</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {reportData.revenueByMonth.map((month, index) => (
@@ -384,3 +384,4 @@ export default function AdminReports() {
     </div>
   )
 }
+
