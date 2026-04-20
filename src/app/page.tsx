@@ -48,7 +48,7 @@ export default function Home() {
               priority
             />
             <span className="text-3xl font-extrabold text-white tracking-tight">
-              JM Barbearia
+              Elemento
             </span>
           </div>
           <nav className="hidden md:flex gap-8">
