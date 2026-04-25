@@ -5,7 +5,7 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Scissors, ArrowLeft, Users, Calendar, DollarSign, Settings, BarChart, Clock, FileText, Download, Filter, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
 import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
@@ -333,14 +333,11 @@ export default function AdminPage() {
               asChild
               className="hidden sm:inline-flex text-slate-300 hover:text-amber-500 hover:bg-transparent"
             >
-              <Link href="/">
+              <Link href="/" aria-label="Voltar">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
             <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/40 p-2">
-                <Scissors className="h-5 w-5 text-amber-500" />
-              </span>
               <div className="flex flex-col">
                 <span className="text-lg md:text-2xl font-bold text-white leading-tight">
                   {(session?.user as SessionUser)?.role === 'BARBER' ? 'Painel do Barbeiro' : 'Painel Administrativo'}
@@ -362,12 +359,12 @@ export default function AdminPage() {
             </div>
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => router.push('/')}
+              aria-label="Voltar"
               className="hidden md:inline-flex border-slate-600 text-slate-200 hover:bg-slate-800"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Ver site
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
@@ -397,17 +394,17 @@ export default function AdminPage() {
           <div className="border-b border-[#3D3D3D] overflow-x-auto">
             <nav className="-mb-px flex w-max min-w-full gap-6 sm:gap-8 pr-2">
                 {[
-                  { id: 'dashboard', label: 'Dashboard', icon: BarChart },
-                  { id: 'appointments', label: 'Agendamentos', icon: Calendar },
-                  { id: 'calendar', label: 'Calendário', icon: Clock },
-                  { id: 'subscriptions', label: 'Assinaturas', icon: DollarSign },
+                  { id: 'dashboard', label: 'Dashboard' },
+                  { id: 'appointments', label: 'Agendamentos' },
+                  { id: 'calendar', label: 'Calendário' },
+                  { id: 'subscriptions', label: 'Assinaturas' },
                   ...(userRole === 'ADMIN' ? [
-                    { id: 'barbers', label: 'Barbeiros', icon: Users },
-                    { id: 'services', label: 'Serviços', icon: Scissors },
+                    { id: 'barbers', label: 'Barbeiros' },
+                    { id: 'services', label: 'Serviços' },
                   ] : []),
-                  { id: 'reports', label: 'Relatórios', icon: FileText },
+                  { id: 'reports', label: 'Relatórios' },
                   ...(userRole === 'ADMIN' ? [
-                    { id: 'settings', label: 'Configurações', icon: Settings }
+                    { id: 'settings', label: 'Configurações' }
                   ] : [])
                 ].map((tab) => (
                 <button
@@ -419,7 +416,6 @@ export default function AdminPage() {
                       : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-300'
                   }`}
                 >
-                  <tab.icon className="mr-2 h-5 w-5" />
                   {tab.label}
                 </button>
               ))}
@@ -438,8 +434,7 @@ export default function AdminPage() {
                 <p className="text-slate-400 text-sm">Agendamentos Hoje</p>
                 <p className="text-2xl font-bold text-white">{stats.todayAppointments}</p>
               </div>
-              <Calendar className="h-8 w-8 text-amber-500" />
-            </div>
+              </div>
           </div>
           
           <div className="bg-[#3D3D3D] rounded-lg p-6 border border-[#1F1F1F]">
@@ -450,8 +445,7 @@ export default function AdminPage() {
                 </p>
                 <p className="text-2xl font-bold text-white">{stats.totalClients}</p>
               </div>
-              <Users className="h-8 w-8 text-amber-500" />
-            </div>
+              </div>
           </div>
           
           <div className="bg-[#3D3D3D] rounded-lg p-6 border border-[#1F1F1F]">
@@ -462,8 +456,7 @@ export default function AdminPage() {
                 </p>
                 <p className="text-2xl font-bold text-white">R$ {stats.monthlyRevenue.toLocaleString()}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-amber-500" />
-            </div>
+              </div>
           </div>
           
           <div className="bg-[#3D3D3D] rounded-lg p-6 border border-[#1F1F1F]">
@@ -476,8 +469,7 @@ export default function AdminPage() {
                   {(session?.user as SessionUser)?.role === 'BARBER' ? 'Ativo' : stats.activeBarbers}
                 </p>
               </div>
-              <Users className="h-8 w-8 text-amber-500" />
-            </div>
+              </div>
           </div>
         </div>
 
@@ -492,25 +484,21 @@ export default function AdminPage() {
               <div className="space-y-3">
                 <Button className="text-white w-full bg-amber-600 hover:bg-amber-700" asChild>
                   <Link href="/admin/agendamentos">
-                    <Calendar className="text-white mr-2 h-4 w-4" />
                     Gerenciar Agendamentos
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full border-slate-600 text-white hover:bg-slate-700" asChild>
                   <Link href="/admin/servicos">
-                    <Scissors className="mr-2 h-4 w-4" />
                     Gerenciar Serviços
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full border-slate-600 text-white hover:bg-slate-700" asChild>
                   <Link href="/admin/barbeiros">
-                    <Users className="mr-2 h-4 w-4" />
                     Gerenciar Barbeiros
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full border-slate-600 text-white hover:bg-slate-700" asChild>
                   <Link href="/admin/relatorios">
-                    <BarChart className="mr-2 h-4 w-4" />
                     Relatórios
                   </Link>
                 </Button>
@@ -581,7 +569,6 @@ export default function AdminPage() {
                     {recentAppointments.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-slate-400">
-                          <Calendar className="h-12 w-12 mx-auto mb-4 text-slate-600" />
                           <p>Nenhum agendamento encontrado</p>
                           <p className="text-sm mt-1">Os agendamentos aparecerão aqui quando forem criados</p>
                         </td>
@@ -594,7 +581,6 @@ export default function AdminPage() {
                           <td className="py-3 px-4 text-slate-300">{appointment.barber?.name || 'Qualquer barbeiro'}</td>
                           <td className="py-3 px-4 text-slate-300">
                             <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-1" />
                               {appointment.startTime}
                             </div>
                           </td>
@@ -742,10 +728,10 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div className="flex items-end mt-2 lg:mt-4">
-                  <Button onClick={fetchAppointmentsReport} className="w-full text-white bg-slate-600 hover:bg-slate-500"><Filter className="h-4 w-4 mr-2" />Filtrar</Button>
+                  <Button onClick={fetchAppointmentsReport} className="w-full text-white bg-slate-600 hover:bg-slate-500">Filtrar</Button>
                 </div>
                 <div className="flex items-end mt-2 lg:mt-4">
-                  <Button onClick={() => exportAppointments('xlsx')} className="w-full bg-amber-600 hover:bg-amber-700"><Download className="h-4 w-4 mr-2" />Exportar XLSX</Button>
+                  <Button onClick={() => exportAppointments('xlsx')} className="w-full bg-amber-600 hover:bg-amber-700">Exportar XLSX</Button>
                 </div>
               </div>
             </div>
@@ -807,7 +793,7 @@ export default function AdminPage() {
                     className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
                     onClick={() => router.push('/admin/agendamentos')}
                   >
-                    <Plus className="h-4 w-4 mr-2" /> Novo Atendimento
+                    Novo Atendimento
                   </Button>
                 )}
               </div>

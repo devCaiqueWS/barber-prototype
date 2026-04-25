@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Scissors, Plus, Edit, Trash2, Clock, DollarSign } from 'lucide-react'
 
 interface Service {
   id: string
@@ -139,7 +138,6 @@ export default function ServicesManagement() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Scissors className="h-6 w-6 text-amber-500" />
           <h2 className="text-2xl font-bold text-white">Serviços</h2>
         </div>
         <Button
@@ -150,7 +148,6 @@ export default function ServicesManagement() {
           }}
           className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
         >
-          <Plus className="h-4 w-4 mr-2" />
           Adicionar Serviço
         </Button>
       </div>
@@ -173,11 +170,9 @@ export default function ServicesManagement() {
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-slate-400">
                   <div className="flex items-center space-x-1">
-                    <DollarSign className="h-4 w-4" />
                     <span>R$ {service.price.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <Clock className="h-4 w-4" />
                     <span>{service.duration} min</span>
                   </div>
                 </div>
@@ -207,16 +202,14 @@ export default function ServicesManagement() {
                   onClick={() => handleEdit(service)}
                   className="text-slate-300 border-slate-600 hover:bg-slate-700"
                 >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                  </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleDelete(service.id)}
                   className="text-red-400 border-red-600 hover:bg-red-900/20"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  </Button>
               </div>
             </div>
           </div>

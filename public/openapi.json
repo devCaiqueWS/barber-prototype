@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "BarberPro API",
+    "title": "Elemento API",
     "version": "1.0.0",
-    "description": "Documentação da API pública do BarberPro. Endpoints para serviços, barbeiros, disponibilidade e agendamentos."
+    "description": "Documentação da API pública da Elemento Estúdio e Barbearia. Endpoints para serviços, barbeiros, disponibilidade e agendamentos."
   },
   "servers": [
     { "url": "/", "description": "Servidor atual" }

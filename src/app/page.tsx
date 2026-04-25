@@ -1,212 +1,236 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import MenuMobile from "@/components/MenuMobile";
-import { Scissors, Clock, Star, Users, Calendar, Shield } from "lucide-react";
 
 export default function Home() {
-
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const [services, setServices] = useState<Array<{ id: string; name: string; price: number; duration: number; description?: string }>>([])
-  const [loadingServices, setLoadingServices] = useState(true)
+  const [services, setServices] = useState<
+    Array<{ id: string; name: string; price: number; duration: number; description?: string }>
+  >([]);
+  const [loadingServices, setLoadingServices] = useState(true);
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await fetch('/api/services')
-        if (!res.ok) throw new Error('Falha ao carregar serviços')
-        const data = await res.json()
-        setServices(Array.isArray(data?.services) ? data.services : [])
+        const res = await fetch("/api/services");
+        if (!res.ok) throw new Error("Falha ao carregar serviços");
+        const data = await res.json();
+        setServices(Array.isArray(data?.services) ? data.services : []);
       } catch (e) {
-        console.error('Erro ao buscar serviços na home:', e)
-        setServices([])
+        console.error("Erro ao buscar serviços na home:", e);
+        setServices([]);
       } finally {
-        setLoadingServices(false)
+        setLoadingServices(false);
       }
-    }
-    fetchServices()
-  }, [])
+    };
+    fetchServices();
+  }, []);
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   return (
-    <div className="min-h-screen bg-[#1F1F1F] flex flex-col items-center justify-start">
-      {/* Header/Navigation */}
-      <header className="w-full px-4 py-4 bg-[#1F1F1F]/80 backdrop-blur-md shadow-lg rounded-b-2xl mb-8">
-        <div className="container flex justify-between items-center mx-auto">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/icon.svg"
-              alt="JM Barbearia"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-              priority
-            />
-            <span className="text-3xl font-extrabold text-white tracking-tight">
-              Elemento
-            </span>
-          </div>
-          <nav className="hidden md:flex gap-8">
-            <Link href="/servicos" className="no-underline text-lg text-slate-300 hover:text-amber-500 font-medium transition-colors">Serviços</Link>
-            <Link href="/sobre" className="no-underline text-lg text-slate-300 hover:text-amber-500 font-medium transition-colors">Sobre</Link>
-            <Link href="/contato" className="no-underline text-lg text-slate-300 hover:text-amber-500 font-medium transition-colors">Contato</Link>
+    <div className="premium-shell min-h-screen overflow-hidden text-white">
+      <header className="sticky top-0 z-40 bg-[#070606]">
+        <div className="container flex items-center justify-between gap-4 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <div>
+              <span className="brand-wordmark block text-3xl font-bold leading-none text-primary md:text-4xl">
+                Elemento.
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.32em] text-white/55">
+                Estúdio e Barbearia
+              </span>
+            </div>
+          </Link>
+          <nav className="hidden items-center gap-8 md:flex">
+            <Link href="/servicos" className="text-sm font-semibold uppercase tracking-[0.16em] text-white/70 hover:text-primary">
+              Serviços
+            </Link>
+            <Link href="/sobre" className="text-sm font-semibold uppercase tracking-[0.16em] text-white/70 hover:text-primary">
+              Sobre
+            </Link>
+            <Link href="/contato" className="text-sm font-semibold uppercase tracking-[0.16em] text-white/70 hover:text-primary">
+              Contato
+            </Link>
           </nav>
+          <div className="hidden md:block">
+            <Button asChild>
+              <Link href="/agendamento">Agendar agora</Link>
+            </Button>
+          </div>
           <div className="md:hidden">
             <MenuMobile open={menuOpen} setOpen={setMenuOpen} />
           </div>
-          <Button asChild className="no-underline bg-amber-500 hover:bg-amber-700 text-white font-bold px-6 py-2 rounded-lg shadow-md transition-all hidden md:block">
-            <Link href="/agendamento">Agendar Agora</Link>
-          </Button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="pt-10 pb-10 px-4 md:px-6 w-full">
-        <div className="container mx-auto text-center flex flex-col items-center justify-center">
-          <h1 className={`text-3xl md:text-5xl font-extrabold text-white mb-6 drop-shadow-lg transition-all duration-300 ${menuOpen ? 'blur-sm opacity-40' : ''}`}>
-            Seu Estilo, <span className="text-amber-500">Nossa Missão</span>
-          </h1>
-          <p className="text-lg md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto">
-            Agende online e tenha uma experiência única e profissional.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center w-full">
-            <Button asChild className="no-underline bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 md:px-8 md:py-4 rounded-xl shadow-lg text-base md:text-lg flex items-center gap-2 transition-all w-full sm:w-auto">
-              <Link href="/agendamento">
-                <Calendar className="mr-2 h-6 w-6" />
-                Agendar Serviço
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="no-underline border-2 border-amber-500 text-white hover:bg-amber-500 hover:text-slate-900 font-bold px-6 py-3 md:px-8 md:py-4 rounded-xl shadow-lg text-base md:text-lg flex items-center gap-2 transition-all w-full sm:w-auto">
-              <Link href="/servicos">
-                Ver Serviços
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="pt-10 pb-10 px-4 md:px-6 w-full bg-[#3D3D3D]/60 rounded-xl shadow-lg">
-        <div className="container mx-auto">
-          <h2 className="text-2xl md:text-4xl font-extrabold text-white text-center mb-8 md:mb-12">Por que escolher a JM Barbearia?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
-            <div className="text-center p-4 md:p-6 rounded-xl bg-[#3D3D3D] shadow-md hover:scale-105 transition-transform">
-              <div className="bg-amber-500 w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Users className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Profissionais Qualificados</h3>
-              <p className="text-slate-300 text-base md:text-lg">Nossa equipe é formada por barbeiros experientes e apaixonados pela arte.</p>
-            </div>
-            <div className="text-center p-4 md:p-6 rounded-xl bg-[#3D3D3D] shadow-md hover:scale-105 transition-transform">
-              <div className="bg-amber-500 w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Clock className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Agendamento Online</h3>
-              <p className="text-slate-300 text-base md:text-lg">Sistema inteligente que facilita seu agendamento a qualquer hora do dia.</p>
-            </div>
-            <div className="text-center p-4 md:p-6 rounded-xl bg-[#3D3D3D] shadow-md hover:scale-105 transition-transform">
-              <div className="bg-amber-500 w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Shield className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Ambiente Seguro</h3>
-              <p className="text-slate-300 text-base md:text-lg">Seguimos todos os protocolos de higiene e segurança para seu bem-estar.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Preview Section */}
-      <section id="servicos" className="py-10 px-2 w-full">
-        <div className="container mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-8 md:mb-12">Nossos Serviços</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {loadingServices && (
-              <>
-                {[0,1,2,3].map((i) => (
-                  <div key={i} className="bg-[#3D3D3D] rounded-lg p-4 md:p-6 border border-[#1F1F1F] animate-pulse h-40" />
-                ))}
-              </>
-            )}
-            {!loadingServices && services.slice(0,4).map((service) => (
-              <div key={service.id} className="bg-[#3D3D3D] rounded-lg p-4 md:p-6 border border-[#1F1F1F] hover:border-amber-500 transition-colors flex flex-col gap-2">
-                <div className="flex items-center justify-between mb-2 md:mb-3">
-                  <Scissors className="h-6 w-6 text-amber-500" />
-                  <div className="flex items-center text-amber-500">
-                    <Star className="h-4 w-4 fill-current" />
-                    <Star className="h-4 w-4 fill-current" />
-                    <Star className="h-4 w-4 fill-current" />
-                    <Star className="h-4 w-4 fill-current" />
-                    <Star className="h-4 w-4 fill-current" />
-                  </div>
-                </div>
-                <h3 className="text-base md:text-lg font-semibold text-white mb-1 md:mb-2">{service.name}</h3>
-                <div className="flex justify-between items-center text-slate-300 mb-2 md:mb-4">
-                  <span className="text-lg md:text-xl font-bold text-amber-500">{formatCurrency(service.price)}</span>
-                  <span className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1" />
-                    {service.duration} min
-                  </span>
-                </div>
-                <Button className="w-full no-underline text-white bg-amber-600 hover:bg-amber-700 text-xs md:text-base" asChild>
-                  <Link href="/agendamento">Agendar</Link>
+      <main className={menuOpen ? "blur-sm transition" : "transition"}>
+        <section className="px-4 py-16 md:py-24">
+          <div className="container grid items-stretch gap-10 lg:grid-cols-[0.92fr_1.08fr]">
+            <div className="flex flex-col justify-center">
+              <div className="brand-kicker mb-5">Preto, vermelho e presença.</div>
+              <h1 className="max-w-4xl text-5xl font-bold leading-[0.94] md:text-7xl">
+                Barbearia clássica com presença digital de alto padrão.
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg text-white/70 md:text-xl">
+                Um sistema direto, escuro e sólido para agendar serviços e reforçar a identidade da Elemento Estúdio e Barbearia.
+              </p>
+              <div className="red-rule mt-7" />
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button size="lg" asChild>
+                  <Link href="/agendamento">
+                    Agendar serviço
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/servicos">Ver serviços</Link>
                 </Button>
               </div>
+            </div>
+
+            <div className="editorial-grid hidden min-h-[520px] lg:grid">
+              <div className="editorial-tile tile-black col-span-2 items-center">
+                <div>
+                  <div className="tile-type text-4xl text-primary">Elemento</div>
+                  <p className="mt-2 text-[10px] uppercase tracking-[0.22em] text-primary">
+                    Estúdio e Barbearia
+                  </p>
+                </div>
+              </div>
+              <div className="editorial-tile tile-red col-span-1 items-center justify-center">
+                <div className="tile-type rotate-[-90deg] text-4xl">Elemento</div>
+              </div>
+              <div className="editorial-tile tile-photo col-span-2 items-end">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white">
+                  Corte. Barba. Presença.
+                </p>
+              </div>
+              <div className="editorial-tile tile-photo col-span-1 row-span-2 items-end">
+                <p className="tile-type text-2xl text-primary">Clássica.</p>
+              </div>
+              <div className="editorial-tile tile-white col-span-2 items-end">
+                <div className="tile-type text-3xl">
+                  Elemento
+                  <br />
+                  Elemento
+                  <br />
+                  Elemento
+                </div>
+              </div>
+              <div className="editorial-tile tile-red col-span-1 items-center justify-center">
+                <div className="tile-type text-3xl">
+                  Ele
+                  <br />
+                  men
+                  <br />
+                  to
+                </div>
+              </div>
+              <div className="editorial-tile tile-black col-span-1 items-end">
+                <div className="tile-type text-3xl text-primary">
+                  Forte.
+                  <br />
+                  Direta.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 py-10">
+          <div className="container grid gap-4 md:grid-cols-3">
+            {[
+              { title: "Profissionais qualificados", text: "Equipe preparada para um atendimento preciso e consistente." },
+              { title: "Agenda inteligente", text: "Escolha serviço, barbeiro, data e horário em poucos passos." },
+              { title: "Operação confiável", text: "Fluxos simples para cliente e gestão robusta para a barbearia." },
+            ].map((feature) => (
+              <div key={feature.title} className="premium-card p-6 transition hover:border-primary/40">
+                <div className="mb-5 h-2 w-14 bg-primary" />
+                <h3 className="text-2xl font-bold">{feature.title}</h3>
+                <p className="mt-3 text-sm text-white/65">{feature.text}</p>
+              </div>
             ))}
-            {!loadingServices && services.length === 0 && (
-              <div className="col-span-full text-center text-slate-400">Nenhum servi��o dispon��vel</div>
-            )}
           </div>
-          <div className="text-center mt-6 md:mt-8">
-            <Button variant="outline" size="lg" asChild className="no-underline border-slate-600 text-white hover:bg-[#3D3D3D]">
-              <Link href="/servicos">Ver Todos os Serviços</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="w-full py-10 px-4 md:px-20 bg-amber-500">
-        <div className="container mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Pronto para um novo corte?
-          </h2>
-          <p className="text-xl text-amber-100 mb-8">
-            Agende seu horário agora e garante o melhor atendimento.
-          </p>
-          <Button size="lg" asChild className="no-underline bg-white text-black hover:bg-slate-100">
-            <Link href="/agendamento">
-              <Calendar className="mr-2 h-5 w-5" />
-              Fazer Agendamento
-            </Link>
-          </Button>
-        </div>
-      </section>
+        <section id="servicos" className="px-4 py-14">
+          <div className="container">
+            <div className="mb-9 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <div className="brand-kicker mb-3">Serviços</div>
+                <h2 className="text-4xl font-bold md:text-5xl">Escolha o próximo ritual</h2>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/servicos">Ver todos</Link>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {loadingServices && [0, 1, 2, 3].map((item) => (
+                <div key={item} className="premium-card h-48 animate-pulse" />
+              ))}
+              {!loadingServices && services.slice(0, 4).map((service) => (
+                <div key={service.id} className="premium-card flex min-h-56 flex-col p-5">
+                  <div className="mb-5 flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Elemento</span>
+                    <span className="bg-white/10 px-3 py-1 text-xs text-white/70">
+                      {service.duration} min
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold">{service.name}</h3>
+                  <p className="mt-2 line-clamp-2 text-sm text-white/55">
+                    {service.description || "Serviço profissional executado com excelência."}
+                  </p>
+                  <div className="mt-auto pt-6">
+                    <div className="mb-4 text-2xl font-bold text-primary">{formatCurrency(service.price)}</div>
+                    <Button className="w-full" asChild>
+                      <Link href={`/agendamento?service=${service.id}`}>Agendar</Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {!loadingServices && services.length === 0 && (
+                <div className="premium-card col-span-full p-8 text-center text-white/60">
+                  Nenhum serviço disponível no momento.
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer className="bg-[#1F1F1F] border-t border-[#3D3D3D] py-8 px-4">
-        <div className="container mx-auto text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Image
-              src="/icon.svg"
-              alt="JM Barbearia"
-              width={24}
-              height={24}
-              className="h-6 w-6"
-            />
-            <span className="text-xl font-bold text-white">JM Barbearia</span>
+        <section className="px-4 pb-16">
+          <div className="container">
+            <div className="grid md:grid-cols-[0.7fr_1.3fr]">
+              <div className="tile-red p-8 md:p-12">
+                <div className="mb-5 h-2 w-16 bg-black" />
+                <h2 className="tile-type text-4xl md:text-5xl">Agende.</h2>
+              </div>
+              <div className="tile-black p-8 md:p-12">
+                <h2 className="text-4xl font-bold md:text-5xl">Pronto para elevar o padrão?</h2>
+                <p className="mt-4 max-w-2xl text-white/68">
+                  Agende seu horário e viva uma experiência alinhada à presença da marca Elemento.
+                </p>
+                <Button className="mt-8" size="lg" asChild>
+                  <Link href="/agendamento">Fazer agendamento</Link>
+                </Button>
+              </div>
+            </div>
           </div>
-          <p className="text-slate-400 mb-4">
-            © 2025 JM Barbearia. Todos os direitos reservados.
-          </p>
-          <div className="flex justify-center space-x-6">
-            <Link href="/admin" className="underline-offset-4 text-slate-400 hover:text-amber-500 transition-colors text-sm">
-              Área Administrativa
-            </Link>
+        </section>
+      </main>
+
+      <footer className="bg-[#0d0b0b] px-4 py-8">
+        <div className="container flex flex-col items-center justify-between gap-4 text-center md:flex-row md:text-left">
+          <div>
+            <div className="brand-wordmark text-xl font-bold">Elemento Estúdio e Barbearia</div>
+            <p className="text-sm text-white/48">© 2026 Todos os direitos reservados.</p>
           </div>
+          <Link href="/admin" className="text-sm font-semibold uppercase tracking-[0.18em] text-white/52 hover:text-primary">
+            Área administrativa
+          </Link>
         </div>
       </footer>
     </div>

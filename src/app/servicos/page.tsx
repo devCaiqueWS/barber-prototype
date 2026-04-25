@@ -1,15 +1,14 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Scissors, Clock, ArrowLeft, AlertCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import SiteFooter from "@/components/SiteFooter";
+import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const categories = [
-  { id: "all", name: "Todos os Serviços" },
+  { id: "all", name: "Todos" },
   { id: "Cabelo", name: "Cabelo" },
   { id: "Barba", name: "Barba" },
   { id: "Sobrancelhas", name: "Sobrancelhas" },
@@ -31,172 +30,112 @@ export default async function ServicosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1F1F1F] via-[#1F1F1F] to-[#1F1F1F] flex flex-col">
-      {/* Header */}
-      <header className="border-b border-[#3D3D3D] bg-[#1F1F1F]/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-              className="text-slate-300 hover:text-amber-500"
-            >
-              <Link href="/">
+    <div className="premium-shell flex min-h-screen flex-col">
+      <header className="bg-[#070606]">
+        <div className="container mx-auto flex items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild className="text-white/70 hover:text-primary">
+              <Link href="/" aria-label="Voltar">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
-            <div className="flex items-center space-x-2">
-              <Image
-                src="/icon.svg"
-                alt="JM Barbearia"
-                width={32}
-                height={32}
-                className="h-8 w-8"
-              />
-              <span className="text-2xl font-bold text-white">
-                JM Barbearia
-              </span>
-            </div>
+            <span className="brand-wordmark text-3xl font-bold text-primary md:text-4xl">Elemento.</span>
           </div>
-          <Button asChild className="bg-amber-600 hover:bg-amber-700">
-            <Link
-              className="text-white no-underline hover:no-underline"
-              href="/agendamento"
-            >
-              Agendar Agora
-            </Link>
+          <Button asChild>
+            <Link href="/agendamento">Agendar agora</Link>
           </Button>
         </div>
       </header>
 
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8">
-          {/* Page Title */}
-          <div className="text-center mb-10 md:mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Nossos <span className="text-amber-500">Serviços</span>
+        <section className="container mx-auto grid px-4 py-10 md:grid-cols-[1.1fr_0.9fr] md:py-14">
+          <div className="solid-black p-8 md:p-12">
+            <div className="brand-kicker mb-4">Carta de serviços</div>
+            <h1 className="max-w-3xl text-5xl font-bold leading-[0.9] md:text-7xl">
+              Serviços Elemento.
             </h1>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Escolha entre nossa variedade de serviços profissionais,
-              executados pelos melhores barbeiros da cidade.
+            <p className="mt-6 max-w-2xl text-lg text-white/68">
+              Corte, barba e cuidado com presença clássica, operação direta e acabamento profissional.
             </p>
           </div>
+          <div className="solid-red flex items-center justify-center p-8 md:p-12">
+            <div className="tile-type text-center text-5xl md:text-7xl">
+              Forte.
+              <br />
+              Direta.
+            </div>
+          </div>
+        </section>
 
-          {/* Category Filter (visual apenas, ainda sem filtro funcional) */}
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
+        <section className="container mx-auto px-4 pb-8">
+          <div className="flex flex-wrap gap-3">
             {categories.map((category, index) => (
-              <Button
-                key={category.id}
-                variant={index === 0 ? "default" : "outline"}
-                className={
-                  index === 0
-                    ? "bg-amber-600 hover:bg-amber-700"
-                    : "border-slate-600 text-slate-300 hover:bg-slate-800"
-                }
-              >
+              <Button key={category.id} variant={index === 0 ? "default" : "outline"}>
                 {category.name}
               </Button>
             ))}
           </div>
+        </section>
 
-          {/* Services Grid - dados vindos do banco */}
+        <section className="container mx-auto px-4 pb-14">
           {loadError ? (
-            <div className="mb-12 bg-red-900/40 border border-red-700 text-red-100 rounded-lg p-5 flex items-start space-x-3">
-              <AlertCircle className="h-5 w-5 mt-1" />
+            <div className="solid-burgundy mb-10 flex items-start gap-3 p-5 text-red-100">
               <div>
                 <h3 className="font-semibold">Não foi possível carregar os serviços.</h3>
-                <p className="text-sm text-red-200">Tente novamente em instantes.</p>
+                <p className="text-sm text-red-100/75">Tente novamente em instantes.</p>
               </div>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-amber-500 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/20"
-                >
-                  {/* Service Image Placeholder */}
-                  <div className="h-48 bg-slate-700 flex items-center justify-center">
-                    <Scissors className="h-16 w-16 text-slate-600" />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {services.map((service, index) => (
+                <div key={service.id} className={index % 5 === 1 ? "solid-white" : "premium-card"}>
+                  <div className={index % 5 === 0 ? "brick-texture flex h-36 items-center justify-center" : "solid-black flex h-36 items-center justify-center"}>
+                    <span className="brand-wordmark text-2xl font-bold text-primary">Elemento.</span>
                   </div>
-
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-white mb-2">
-                      {service.name}
-                    </h3>
-                    <p className="text-slate-400 text-sm mb-4">
-                      {service.description ||
-                        "Serviço profissional executado com excelência."}
-                    </p>
-
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center text-slate-300">
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span className="text-sm">
-                          {service.duration} min
-                        </span>
-                      </div>
-                      <span className="text-2xl font-bold text-amber-500">
-                        R$ {service.price.toFixed(2)}
+                  <div className="flex min-h-72 flex-col p-6">
+                    <div className="mb-5 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-[0.2em] opacity-65">Elemento.</span>
+                      <span className="text-sm opacity-70">
+                        {service.duration} min
                       </span>
                     </div>
-
-                    <Button
-                      className="w-full bg-amber-600 hover:bg-amber-700"
-                      asChild
-                    >
-                      <Link
-                        className="text-white no-underline hover:no-underline"
-                        href={`/agendamento?service=${service.id}`}
-                      >
-                        Agendar Serviço
-                      </Link>
-                    </Button>
+                    <h3 className="text-3xl font-bold">{service.name}</h3>
+                    <p className="mt-3 text-sm opacity-70">
+                      {service.description || "Serviço profissional executado com excelência."}
+                    </p>
+                    <div className="mt-auto pt-6">
+                      <div className="mb-4 text-3xl font-bold text-primary">
+                        R$ {service.price.toFixed(2)}
+                      </div>
+                      <Button className="w-full" asChild>
+                        <Link href={`/agendamento?service=${service.id}`}>Agendar serviço</Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
+        </section>
 
-          {/* Call to Action */}
-          <div className="text-center bg-slate-800 rounded-lg p-8 border border-slate-700">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              Não encontrou o que procurava?
-            </h2>
-            <p className="text-slate-300 mb-6">
-              Entre em contato conosco para serviços personalizados ou tire
-              suas dúvidas sobre qualquer um dos nossos serviços.
+        <section className="container mx-auto grid px-4 pb-16 md:grid-cols-[0.95fr_1.05fr]">
+          <div className="solid-red p-8 md:p-10">
+            <h2 className="tile-type text-4xl md:text-5xl">Não encontrou?</h2>
+          </div>
+          <div className="solid-black p-8 md:p-10">
+            <p className="mb-6 max-w-2xl text-white/70">
+              Fale com a equipe para serviços personalizados, dúvidas ou recomendações.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                asChild
-                className="bg-amber-600 hover:bg-amber-700"
-              >
-                <Link
-                  className="text-white no-underline hover:no-underline"
-                  href="/contato"
-                >
-                  Entre em Contato
-                </Link>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild>
+                <Link href="/contato">Entrar em contato</Link>
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="border-slate-600 text-white hover:bg-slate-700"
-              >
-                <Link
-                  className="text-white no-underline hover:no-underline"
-                  href="/agendamento"
-                >
-                  Fazer Agendamento
-                </Link>
+              <Button variant="outline" asChild>
+                <Link href="/agendamento">Fazer agendamento</Link>
               </Button>
             </div>
           </div>
-        </div>
+        </section>
       </main>
 
       <SiteFooter />

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Scissors } from "lucide-react";
 
 type Service = {
   id: string
@@ -61,7 +60,6 @@ export default function ServicesList() {
                   <tr key={s.id} className="border-t border-slate-700">
                     <td className="py-3 px-4 align-middle">
                       <div className="flex items-center gap-2">
-                        <Scissors className="h-4 w-4 text-amber-500" />
                         <span>{s.name}</span>
                       </div>
                     </td>

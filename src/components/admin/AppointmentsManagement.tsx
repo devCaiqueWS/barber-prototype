@@ -3,15 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import {
-  Calendar,
-  Clock,
-  Plus,
-  Filter,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDateBR, formatDateKey } from '@/lib/date'
 
@@ -203,14 +194,12 @@ export default function AppointmentsManagement() {
       {/* Header / Ações */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Calendar className="h-6 w-6 text-amber-500" />
           <h2 className="text-2xl font-bold text-white">Agendamentos</h2>
         </div>
         <Button
           className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
           onClick={() => router.push('/agendamento')}
         >
-          <Plus className="h-4 w-4 mr-2" />
           Novo Agendamento
         </Button>
       </div>
@@ -221,7 +210,6 @@ export default function AppointmentsManagement() {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Buscar</label>
             <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Cliente, serviço ou barbeiro..."
@@ -266,7 +254,6 @@ export default function AppointmentsManagement() {
                 setDateFilter('')
               }}
             >
-              <Filter className="h-4 w-4 mr-2" />
               Limpar Filtros
             </Button>
           </div>
@@ -278,7 +265,6 @@ export default function AppointmentsManagement() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <div className="flex items-center text-amber-400 text-sm font-semibold">
-              <Calendar className="h-4 w-4 mr-2" />
               Agenda de atendimentos
             </div>
             <h3 className="text-2xl font-bold text-white mt-1">Próximos dias</h3>
@@ -290,8 +276,7 @@ export default function AppointmentsManagement() {
               onClick={() => setCalendarStart(addDays(calendarStart, -7))}
               className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+              </Button>
             <Button
               variant="outline"
               size="sm"
@@ -306,8 +291,7 @@ export default function AppointmentsManagement() {
               onClick={() => setCalendarStart(addDays(calendarStart, 7))}
               className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
             >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+              </Button>
           </div>
         </div>
 
@@ -361,7 +345,6 @@ export default function AppointmentsManagement() {
                             <div className="text-xs text-emerald-100">{appt.service?.name || 'Serviço'}</div>
                             <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
                             <div className="text-xs text-emerald-200 flex items-center mt-1">
-                              <Clock className="h-3 w-3 mr-1" />
                               {(appt.startTime ?? '').trim() || '--:--'} - {(appt.endTime ?? '').trim() || '--:--'}
                             </div>
                           </button>

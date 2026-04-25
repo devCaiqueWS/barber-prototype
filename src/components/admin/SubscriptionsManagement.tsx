@@ -53,7 +53,7 @@ const buildSubscriptionProposalMessage = ({
   const paymentLinkText = proposalUrl ? `Link de pagamento: ${proposalUrl}` : ''
 
   return [
-    `Ola ${clientName}, segue a proposta de assinatura mensal da JM Barbearia.`,
+    `Ola ${clientName}, segue a proposta de assinatura mensal da Elemento Estudio e Barbearia.`,
     `Valor: R$ ${valueText}.`,
     paymentLinkText,
     '',
@@ -63,7 +63,7 @@ const buildSubscriptionProposalMessage = ({
     '3. Renovacao: nao acumulativo; servicos nao usados nao passam para o mes seguinte; renovacao manual via PIX ou automatica no debito recorrente.',
     '4. Atendimento sem renovacao: plano vencido no dia do atendimento sera cobrado no valor avulso vigente.',
     '5. Agendamento obrigatorio: www.jmbarbearia.online, sujeito a disponibilidade de agenda.',
-    '6. Alteracoes no plano: a JM Barbearia pode atualizar precos, termos ou condicoes com 30 dias de antecedencia.',
+    '6. Alteracoes no plano: a Elemento Estudio e Barbearia pode atualizar precos, termos ou condicoes com 30 dias de antecedencia.',
     '',
     `Termos completos: ${termsUrl}`,
   ]

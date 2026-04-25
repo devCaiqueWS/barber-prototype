@@ -3,12 +3,12 @@
 
 
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 
 import { useSearchParams } from 'next/navigation'
 
-import { ArrowLeft } from 'lucide-react'
 
 import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
 import { formatDateBR, formatDateKey, parseDateOnly } from '@/lib/date'
@@ -465,13 +465,13 @@ function BookingPageContent() {
 
       'VERSION:2.0',
 
-      'PRODID:-//BarberPro//Agendamentos//PT-BR',
+      'PRODID:-//Elemento//Agendamentos//PT-BR',
 
       'BEGIN:VEVENT',
 
       `UID:${lastAppointmentId || `${Date.now()}@barberpro`}`,
 
-      `SUMMARY:${selectedService.name} - BarberPro`,
+      `SUMMARY:${selectedService.name} - Elemento Estúdio e Barbearia`,
 
       `DESCRIPTION:Agendamento com ${selectedBarber?.name || 'barbeiro'}\\nCliente: ${clientData.name || ''}`,
 
@@ -479,7 +479,7 @@ function BookingPageContent() {
 
       `DTEND:${formatLocal(end)}`,
 
-      'LOCATION:BarberPro',
+      'LOCATION:Elemento Estúdio e Barbearia',
 
       'END:VEVENT',
 
@@ -497,7 +497,7 @@ function BookingPageContent() {
 
     link.href = url
 
-    link.download = `barberpro-${selectedDate}-${selectedTime}.ics`
+    link.download = `elemento-${selectedDate}-${selectedTime}.ics`
 
     document.body.appendChild(link)
 
@@ -513,17 +513,15 @@ function BookingPageContent() {
 
   return (
 
-    <div className="min-h-screen bg-[#1F1F1F] text-white">
+    <div className="premium-shell min-h-screen text-white">
 
       <div className="container mx-auto px-4 py-8 space-y-6">
 
         <div className="mb-6">
 
-          <Link href="/" className="text-amber-500 hover:text-amber-400 inline-flex items-center gap-2">
+          <Link href="/" aria-label="Voltar" className="inline-flex h-10 w-10 items-center justify-center text-primary hover:text-red-300">
 
-            <ArrowLeft className="h-4 w-4" />
-
-            Voltar para Home
+            <ArrowLeft className="h-5 w-5" />
 
           </Link>
 
@@ -533,9 +531,10 @@ function BookingPageContent() {
 
         <div className="text-center mb-8">
 
-          <h1 className="text-white text-3xl font-bold mb-4">
+          <div className="brand-kicker mb-3">Reserva online</div>
+          <h1 className="mb-4 text-4xl font-bold text-white md:text-5xl">
 
-            Sistema de <span className="text-amber-500">Agendamento</span>
+            Agendamento <span className="text-amber-500">Elemento</span>
 
           </h1>
 
@@ -569,7 +568,7 @@ function BookingPageContent() {
 
 
 
-        <div className="max-w-4xl mx-auto">
+          <div className="premium-card max-w-4xl mx-auto rounded-[2rem] p-5 sm:p-8">
 
           {/* Step 1: Selecionar Serviço */}
 
@@ -587,7 +586,7 @@ function BookingPageContent() {
 
                     key={service.id}
 
-                    className="bg-slate-800 p-6 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors"
+                    className="premium-card cursor-pointer rounded-2xl p-6 transition hover:-translate-y-1 hover:border-primary/40"
 
                     onClick={() => handleServiceSelect(service)}
 
@@ -635,7 +634,7 @@ function BookingPageContent() {
 
                     key={barber.id}
 
-                    className="bg-slate-800 p-6 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors"
+                    className="premium-card cursor-pointer rounded-2xl p-6 transition hover:-translate-y-1 hover:border-primary/40"
 
                     onClick={() => handleBarberSelect(barber)}
 
@@ -657,13 +656,12 @@ function BookingPageContent() {
 
                   onClick={() => setStep(1)}
 
-                  className="text-slate-400 hover:text-white inline-flex items-center gap-2"
+                  aria-label="Voltar"
+                  className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
 
                 >
 
                   <ArrowLeft className="h-4 w-4" />
-
-                  Voltar
 
                 </button>
 
@@ -717,13 +715,12 @@ function BookingPageContent() {
 
                   onClick={() => setStep(2)}
 
-                  className="text-slate-400 hover:text-white inline-flex items-center gap-2"
+                  aria-label="Voltar"
+                  className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
 
                 >
 
                   <ArrowLeft className="h-4 w-4" />
-
-                  Voltar
 
                 </button>
 
@@ -765,7 +762,7 @@ function BookingPageContent() {
 
                     onClick={() => handleTimeSelect(time)}
 
-                    className="p-3 bg-slate-800 hover:bg-amber-500 rounded-lg transition-colors"
+                    className="rounded-xl border border-white/10 bg-[#151414] p-3 transition-colors hover:border-primary hover:bg-primary"
 
                   >
 
@@ -797,13 +794,12 @@ function BookingPageContent() {
 
                   onClick={() => setStep(3)}
 
-                  className="text-slate-400 hover:text-white inline-flex items-center gap-2"
+                  aria-label="Voltar"
+                  className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
 
                 >
 
                   <ArrowLeft className="h-4 w-4" />
-
-                  Voltar
 
                 </button>
 
@@ -1063,7 +1059,7 @@ function BookingPageContent() {
 
                   )}
 
-                <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-4">
+                <div className="rounded-xl border border-primary/40 bg-primary/10 p-4">
 
                   <p className="text-amber-300 text-sm font-medium">
 
@@ -1085,7 +1081,7 @@ function BookingPageContent() {
 
                     ? 'bg-green-600 hover:bg-green-700 disabled:bg-slate-600'
 
-                    : 'bg-amber-500 hover:bg-amber-600 disabled:bg-slate-600'
+                    : 'bg-primary hover:bg-[#c21111] disabled:bg-slate-600'
 
                     } text-white`}
 
@@ -1107,13 +1103,12 @@ function BookingPageContent() {
 
                   onClick={() => setStep(4)}
 
-                  className="text-slate-400 hover:text-white inline-flex items-center gap-2"
+                  aria-label="Voltar"
+                  className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
 
                 >
 
                   <ArrowLeft className="h-4 w-4" />
-
-                  Voltar
 
                 </button>
 
@@ -1191,7 +1186,7 @@ function BookingPageContent() {
 
                   <a
 
-                    href={`https://wa.me/55${clientData.whatsapp.replace(/\D/g, '')}?text=Olá! Acabei de realizar um agendamento no BarberPro para ${selectedService?.name} no dia ${formatDateBR(selectedDate)} às ${selectedTime}.`}
+                    href={`https://wa.me/55${clientData.whatsapp.replace(/\D/g, '')}?text=Olá! Acabei de realizar um agendamento na Elemento Estúdio e Barbearia para ${selectedService?.name} no dia ${formatDateBR(selectedDate)} às ${selectedTime}.`}
 
                     target="_blank"
 

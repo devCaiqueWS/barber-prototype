@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { Calendar, Clock, User, Phone, CreditCard, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDateKey } from '@/lib/date'
+import { ArrowLeft } from 'lucide-react'
 
 interface Appointment {
     id: string
@@ -127,9 +127,8 @@ export default function BarberDashboard() {
             <div className="container mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <Link href="/" className="text-amber-500 hover:text-amber-400 flex items-center mb-4">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Voltar para Home
+                    <Link href="/" aria-label="Voltar" className="mb-4 flex h-10 w-10 items-center justify-center text-amber-500 hover:text-amber-400">
+                        <ArrowLeft className="h-5 w-5" />
                     </Link>
                     <h1 className="text-3xl font-bold">
                         Dashboard do <span className="text-amber-500">Barbeiro</span>
@@ -147,8 +146,7 @@ export default function BarberDashboard() {
                                 <p className="text-slate-400 text-sm">Hoje</p>
                                 <p className="text-2xl font-bold text-green-400">{stats.today}</p>
                             </div>
-                            <Calendar className="h-8 w-8 text-green-400" />
-                        </div>
+                            </div>
                     </div>
 
                     <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
@@ -157,8 +155,7 @@ export default function BarberDashboard() {
                                 <p className="text-slate-400 text-sm">Esta Semana</p>
                                 <p className="text-2xl font-bold text-blue-400">{stats.thisWeek}</p>
                             </div>
-                            <Clock className="h-8 w-8 text-blue-400" />
-                        </div>
+                            </div>
                     </div>
 
                     <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
@@ -167,8 +164,7 @@ export default function BarberDashboard() {
                                 <p className="text-slate-400 text-sm">Este Mês</p>
                                 <p className="text-2xl font-bold text-amber-400">{stats.thisMonth}</p>
                             </div>
-                            <User className="h-8 w-8 text-amber-400" />
-                        </div>
+                            </div>
                     </div>
 
                     <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
@@ -177,8 +173,7 @@ export default function BarberDashboard() {
                                 <p className="text-slate-400 text-sm">Total</p>
                                 <p className="text-2xl font-bold text-purple-400">{stats.total}</p>
                             </div>
-                            <CreditCard className="h-8 w-8 text-purple-400" />
-                        </div>
+                            </div>
                     </div>
                 </div>
 
@@ -207,7 +202,6 @@ export default function BarberDashboard() {
                         </div>
                     ) : appointments.length === 0 ? (
                         <div className="p-8 text-center">
-                            <Calendar className="h-16 w-16 text-slate-600 mx-auto mb-4" />
                             <p className="text-slate-400 text-lg">Nenhum agendamento para esta data</p>
                             <p className="text-slate-500 text-sm mt-2">
                                 Selecione uma data diferente ou aguarde novos agendamentos
@@ -221,7 +215,6 @@ export default function BarberDashboard() {
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-4 mb-2">
                                                 <div className="flex items-center space-x-2">
-                                                    <Clock className="h-4 w-4 text-amber-500" />
                                                     <span className="font-semibold">{formatTime(appointment.date)}</span>
                                                 </div>
                                                 <div className={`px-2 py-1 rounded-full text-xs ${getStatusColor(appointment.status)}`}>
@@ -247,7 +240,6 @@ export default function BarberDashboard() {
                                                     <p className="font-medium">{appointment.service.duration} min</p>
                                                     {appointment.clientWhatsapp && (
                                                         <p className="text-slate-500 flex items-center mt-1">
-                                                            <Phone className="h-3 w-3 mr-1" />
                                                             {appointment.clientWhatsapp}
                                                         </p>
                                                     )}

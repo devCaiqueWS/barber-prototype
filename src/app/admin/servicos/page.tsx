@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Scissors, ChevronLeft, Plus, Edit, Trash2, Search, Clock, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 interface Service {
   id: string
@@ -187,9 +187,8 @@ export default function AdminServices() {
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar
+            <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => router.back()} className="text-white hover:bg-slate-700">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-3xl font-bold text-white">Gerenciar Serviços</h1>
           </div>
@@ -197,7 +196,6 @@ export default function AdminServices() {
             className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
             onClick={() => setShowForm(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
             Novo Serviço
           </Button>
         </div>
@@ -208,7 +206,6 @@ export default function AdminServices() {
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Buscar</label>
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Nome ou descrição do serviço..."
@@ -343,7 +340,6 @@ export default function AdminServices() {
         <div className="bg-slate-800 rounded-lg border border-slate-700">
           {filteredServices.length === 0 ? (
             <div className="p-12 text-center">
-              <Scissors className="h-16 w-16 mx-auto mb-4 text-slate-600" />
               <h3 className="text-xl font-semibold text-white mb-2">Nenhum serviço encontrado</h3>
               <p className="text-slate-400 mb-6">
                 {services.length === 0 
@@ -355,7 +351,6 @@ export default function AdminServices() {
                 className="bg-amber-600 hover:bg-amber-700"
                 onClick={() => setShowForm(true)}
               >
-                <Plus className="h-4 w-4 mr-2" />
                 Cadastrar Primeiro Serviço
               </Button>
             </div>
@@ -366,8 +361,7 @@ export default function AdminServices() {
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center">
-                        <Scissors className="h-6 w-6 text-white" />
-                      </div>
+                        </div>
                       <div>
                         <h3 className="font-semibold text-white">{service.name}</h3>
                         <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
@@ -384,16 +378,14 @@ export default function AdminServices() {
                         onClick={() => handleEdit(service)}
                         className="text-amber-500 hover:text-amber-400 hover:bg-slate-600"
                       >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                        </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDelete(service.id)}
                         className="text-red-500 hover:text-red-400 hover:bg-slate-600"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        </Button>
                     </div>
                   </div>
 
@@ -404,11 +396,9 @@ export default function AdminServices() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-slate-300">
-                        <DollarSign className="h-4 w-4 mr-2" />
                         <span className="text-lg font-semibold text-white">R$ {service.price.toFixed(2)}</span>
                       </div>
                       <div className="flex items-center text-slate-300">
-                        <Clock className="h-4 w-4 mr-2" />
                         <span>{formatDuration(service.duration)}</span>
                       </div>
                     </div>

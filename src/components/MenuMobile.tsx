@@ -1,6 +1,8 @@
 "use client";
+
 import Link from "next/link";
 import React, { useEffect } from "react";
+import { Menu, X } from "lucide-react";
 
 export default function MenuMobile({
   open,
@@ -24,65 +26,41 @@ export default function MenuMobile({
     <>
       <button
         aria-label="Abrir menu"
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 font-bold text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="flex h-10 w-10 items-center justify-center bg-primary text-white hover:bg-[#c21111] focus:outline-none focus:ring-2 focus:ring-primary"
         onClick={() => setOpen(true)}
       >
-        <span>
-          <svg
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6"
-          >
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </span>
-        Menu
+        <Menu className="h-6 w-6" />
       </button>
+
       {open && (
         <>
-          <div
-            className="fixed inset-0 bg-black/80 z-[100]"
-            onClick={() => setOpen(false)}
-          />
-          <nav className="fixed top-0 left-0 w-full h-screen bg-[#1F1F1F]/95 rounded-b-xl shadow-lg z-[101] flex flex-col items-center pt-6 pb-4 animate-slideDown">
+          <div className="fixed inset-0 z-[100] bg-black/85" onClick={() => setOpen(false)} />
+          <nav className="fixed left-0 top-0 z-[101] flex h-screen w-full animate-slideDown flex-col items-center bg-[#0D0B0B] pt-8">
             <button
               aria-label="Fechar menu"
-              className="absolute top-3 right-4 text-amber-500 text-2xl font-bold"
+              className="absolute right-4 top-3 flex h-10 w-10 items-center justify-center text-primary"
               onClick={() => setOpen(false)}
             >
-              ×
+              <X className="h-6 w-6" />
             </button>
-            <Link
-              href="/servicos"
-              className="w-full text-center px-4 py-3 text-lg text-slate-300 hover:text-amber-500 border-b border-slate-800"
-              onClick={() => setOpen(false)}
-            >
-              Serviços
-            </Link>
-            <Link
-              href="/sobre"
-              className="w-full text-center px-4 py-3 text-lg text-slate-300 hover:text-amber-500 border-b border-slate-800"
-              onClick={() => setOpen(false)}
-            >
-              Sobre
-            </Link>
-            <Link
-              href="/contato"
-              className="w-full text-center px-4 py-3 text-lg text-slate-300 hover:text-amber-500 border-b border-slate-800"
-              onClick={() => setOpen(false)}
-            >
-              Contato
-            </Link>
+            <div className="brand-wordmark mb-6 text-4xl font-bold text-primary">Elemento</div>
+            {[
+              ["Serviços", "/servicos"],
+              ["Sobre", "/sobre"],
+              ["Contato", "/contato"],
+            ].map(([label, href]) => (
+              <Link
+                key={href}
+                href={href}
+                className="w-full border-b border-white/10 px-4 py-3 text-center text-lg text-white/75 hover:text-primary"
+                onClick={() => setOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
             <Link
               href="/agendamento"
-              className="w-full text-center px-4 py-3 text-lg text-amber-500 font-bold hover:bg-amber-500 hover:text-white rounded-lg mt-2 transition"
+              className="mt-5 w-[calc(100%-2rem)] bg-primary px-4 py-3 text-center text-lg font-bold text-white transition hover:bg-[#c21111]"
               onClick={() => setOpen(false)}
             >
               Agendar Agora
@@ -108,4 +86,3 @@ export default function MenuMobile({
     </>
   );
 }
-

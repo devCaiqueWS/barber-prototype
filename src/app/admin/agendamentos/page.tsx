@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, ChevronLeft, Plus, Filter, Search, ChevronLeft as ChevronLeftIcon, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDateKey } from '@/lib/date'
+import { ArrowLeft } from 'lucide-react'
 
 interface Appointment {
   id: string
@@ -187,15 +187,13 @@ export default function AdminAppointments() {
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar
+            <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => router.back()} className="text-white hover:bg-slate-700">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-3xl font-bold text-white">Gerenciar Agendamentos</h1>
           </div>
           <div className="flex w-full sm:w-auto items-center gap-2">
             <Button className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700" onClick={() => router.push('/agendamento')}>
-              <Plus className="h-4 w-4 mr-2" />
               Novo Agendamento
             </Button>
           </div>
@@ -207,7 +205,6 @@ export default function AdminAppointments() {
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Buscar</label>
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Cliente, serviço ou barbeiro..."
@@ -253,7 +250,6 @@ export default function AdminAppointments() {
                 }}
                 className="w-full border-slate-600 text-white hover:bg-slate-700"
               >
-                <Filter className="h-4 w-4 mr-2" />
                 Limpar Filtros
               </Button>
             </div>
@@ -266,7 +262,6 @@ export default function AdminAppointments() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
               <div className="flex items-center text-amber-400 text-sm font-semibold">
-                <Calendar className="h-4 w-4 mr-2" />
                 Agenda de atendimentos
               </div>
               <h2 className="text-2xl font-bold text-white mt-1">Próximos dias</h2>
@@ -278,8 +273,7 @@ export default function AdminAppointments() {
                 onClick={() => setCalendarStart(addDays(calendarStart, -7))}
                 className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
               >
-                <ChevronLeftIcon className="h-4 w-4" />
-              </Button>
+                </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -294,8 +288,7 @@ export default function AdminAppointments() {
                 onClick={() => setCalendarStart(addDays(calendarStart, 7))}
                 className="border-slate-700 text-white bg-slate-800/70 hover:bg-slate-700"
               >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+                </Button>
             </div>
           </div>
           <div className="overflow-auto max-h-[70vh]">
@@ -348,7 +341,6 @@ export default function AdminAppointments() {
                               <div className="text-xs text-emerald-100">{appt.service.name}</div>
                               <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
                               <div className="text-xs text-emerald-200 flex items-center mt-1">
-                                <Clock className="h-3 w-3 mr-1" />
                                 {appt.startTime} - {appt.endTime}
                               </div>
                             </button>

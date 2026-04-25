@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { BarChart, ChevronLeft, Download, Calendar, DollarSign, Users, Scissors, TrendingUp, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import AppointmentsReportTable from '@/components/admin/AppointmentsReportTable'
 import { formatDateBR, formatDateKey } from '@/lib/date'
+import { ArrowLeft } from 'lucide-react'
 
 interface ReportData {
   summary: {
@@ -157,9 +157,8 @@ export default function AdminReports() {
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar
+            <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => router.back()} className="text-white hover:bg-slate-700">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-3xl font-bold text-white">Relatórios</h1>
           </div>
@@ -169,7 +168,6 @@ export default function AdminReports() {
               onClick={() => exportReport('csv')}
               className="w-full sm:w-auto border-slate-600 text-white hover:bg-slate-700"
             >
-              <Download className="h-4 w-4 mr-2" />
               Exportar CSV
             </Button>
             <Button 
@@ -177,7 +175,6 @@ export default function AdminReports() {
               onClick={() => exportReport('pdf')}
               className="w-full sm:w-auto border-slate-600 text-white hover:bg-slate-700"
             >
-              <Download className="h-4 w-4 mr-2" />
               Exportar PDF
             </Button>
           </div>
@@ -213,7 +210,6 @@ export default function AdminReports() {
               onClick={fetchReportData}
               className="w-full md:w-auto bg-amber-600 hover:bg-amber-700"
             >
-              <BarChart className="h-4 w-4 mr-2" />
               Atualizar Relatório
             </Button>
           </div>
@@ -229,8 +225,7 @@ export default function AdminReports() {
                     <p className="text-sm font-medium text-slate-400">Total de Agendamentos</p>
                     <p className="text-2xl font-bold text-white">{reportData.summary.totalAppointments}</p>
                   </div>
-                  <Calendar className="h-8 w-8 text-amber-500" />
-                </div>
+                  </div>
               </div>
 
               <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
@@ -239,8 +234,7 @@ export default function AdminReports() {
                     <p className="text-sm font-medium text-slate-400">Faturamento Total</p>
                     <p className="text-2xl font-bold text-white">{formatCurrency(reportData.summary.totalRevenue)}</p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-green-500" />
-                </div>
+                  </div>
               </div>
 
               <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
@@ -249,8 +243,7 @@ export default function AdminReports() {
                     <p className="text-sm font-medium text-slate-400">Clientes Únicos</p>
                     <p className="text-2xl font-bold text-white">{reportData.summary.totalClients}</p>
                   </div>
-                  <Users className="h-8 w-8 text-blue-500" />
-                </div>
+                  </div>
               </div>
 
               <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
@@ -259,8 +252,7 @@ export default function AdminReports() {
                     <p className="text-sm font-medium text-slate-400">Ticket Médio</p>
                     <p className="text-2xl font-bold text-white">{formatCurrency(reportData.summary.averageTicket)}</p>
                   </div>
-                  <TrendingUp className="h-8 w-8 text-purple-500" />
-                </div>
+                  </div>
               </div>
             </div>
 
@@ -291,7 +283,6 @@ export default function AdminReports() {
                   {reportData.appointmentsByService.slice(0, 5).map((service, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <Scissors className="h-4 w-4 text-amber-500" />
                         <span className="text-slate-300">{service.serviceName}</span>
                       </div>
                       <div className="text-right">
@@ -335,7 +326,6 @@ export default function AdminReports() {
                   {reportData.appointmentsByDay.map((day, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <Calendar className="h-4 w-4 text-blue-500" />
                         <span className="text-slate-300">{formatDate(day.date)}</span>
                       </div>
                       <div className="text-right">
@@ -366,7 +356,6 @@ export default function AdminReports() {
           </>
         ) : (
           <div className="bg-slate-800 rounded-lg p-12 border border-slate-700 text-center">
-            <FileText className="h-16 w-16 mx-auto mb-4 text-slate-600" />
             <h3 className="text-xl font-semibold text-white mb-2">Nenhum dado encontrado</h3>
             <p className="text-slate-400 mb-6">
               Não há dados suficientes para gerar relatórios no período selecionado.
@@ -375,7 +364,6 @@ export default function AdminReports() {
               onClick={fetchReportData}
               className="bg-amber-600 hover:bg-amber-700"
             >
-              <BarChart className="h-4 w-4 mr-2" />
               Tentar Novamente
             </Button>
           </div>

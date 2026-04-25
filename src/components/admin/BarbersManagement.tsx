@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Mail, Plus, Users, Edit, Trash2 } from 'lucide-react'
 
 interface Barber {
   id: string
@@ -121,7 +120,6 @@ export default function BarbersManagement() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Users className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold text-white">Barbeiros</h2>
         </div>
         <Button
@@ -132,7 +130,6 @@ export default function BarbersManagement() {
           }}
           className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
         >
-          <Plus className="h-4 w-4 mr-2" />
           Adicionar Barbeiro
         </Button>
       </div>
@@ -146,7 +143,6 @@ export default function BarbersManagement() {
                 <h3 className="text-xl font-semibold text-white">{barber.name}</h3>
                 <div className="flex flex-wrap items-center gap-4 text-slate-400">
                   <div className="flex items-center space-x-1">
-                    <Mail className="h-4 w-4" />
                     <span className="break-all">{barber.email}</span>
                   </div>
                 </div>
@@ -166,16 +162,14 @@ export default function BarbersManagement() {
                   onClick={() => handleEdit(barber)}
                   className="text-slate-300 border-slate-600 hover:bg-slate-700"
                 >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                  </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleDelete(barber.id)}
                   className="text-red-400 border-red-600 hover:bg-red-900/20"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  </Button>
               </div>
             </div>
           </div>

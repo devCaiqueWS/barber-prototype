@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
-import { Calendar as CalendarIcon, Clock } from 'lucide-react'
 import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
 import { formatDateKey } from '@/lib/date'
 
@@ -269,7 +268,6 @@ export default function BarberCalendar() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-            <CalendarIcon className="h-7 w-7 text-amber-500" />
             Meu Calendário
           </h2>
           <p className="text-sm text-slate-300 max-w-xl">
@@ -285,7 +283,6 @@ export default function BarberCalendar() {
                 : 'bg-emerald-500/10 border-emerald-500/60 text-emerald-300'
             }`}
           >
-            <Clock className="h-3 w-3 mr-1" />
             {isDayBlocked || availableSlots.length === 0
               ? 'Dia sem atendimento'
               : `${availableSlots.length} horário(s) disponíveis`}

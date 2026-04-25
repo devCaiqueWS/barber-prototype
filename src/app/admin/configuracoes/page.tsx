@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Save, Clock, DollarSign, MapPin, Mail, Key } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 interface SystemSettings {
   business: {
@@ -69,11 +69,11 @@ export default function AdminSettings() {
   ]
 
   const tabs = [
-    { id: 'business', label: 'Negócio', icon: MapPin },
-    { id: 'appointments', label: 'Agendamentos', icon: Clock },
-    { id: 'payments', label: 'Pagamentos', icon: DollarSign },
-    { id: 'notifications', label: 'Notificações', icon: Mail },
-    { id: 'security', label: 'Segurança', icon: Key }
+    { id: 'business', label: 'Negócio' },
+    { id: 'appointments', label: 'Agendamentos' },
+    { id: 'payments', label: 'Pagamentos' },
+    { id: 'notifications', label: 'Notificações' },
+    { id: 'security', label: 'Segurança' }
   ]
 
   useEffect(() => {
@@ -103,8 +103,8 @@ export default function AdminSettings() {
         // If no settings exist, create default ones
         const defaultSettings: SystemSettings = {
           business: {
-            name: 'BarberPro',
-            description: 'Barbearia profissional',
+            name: 'Elemento Estúdio e Barbearia',
+            description: 'Barbearia premium, clássica e profissional',
             address: '',
             phone: '',
             email: '',
@@ -217,9 +217,8 @@ export default function AdminSettings() {
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar
+            <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => router.back()} className="text-white hover:bg-slate-700">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-3xl font-bold text-white">Configurações</h1>
           </div>
@@ -228,7 +227,6 @@ export default function AdminSettings() {
             disabled={saving}
             className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
           >
-            <Save className="h-4 w-4 mr-2" />
             {saving ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </div>
@@ -238,9 +236,7 @@ export default function AdminSettings() {
           <div className="lg:col-span-1">
             <div className="bg-slate-800 rounded-lg border border-slate-700 p-4">
               <nav className="space-y-2">
-                {tabs.map(tab => {
-                  const Icon = tab.icon
-                  return (
+                {tabs.map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
@@ -250,11 +246,9 @@ export default function AdminSettings() {
                           : 'text-slate-300 hover:bg-slate-700'
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
                       <span>{tab.label}</span>
                     </button>
-                  )
-                })}
+                ))}
               </nav>
             </div>
           </div>

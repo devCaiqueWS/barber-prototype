@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CreditCard, Smartphone, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 interface PaymentData {
   service: string
@@ -111,12 +111,11 @@ export default function PagamentoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1F1F1F] text-white">
+    <div className="premium-shell min-h-screen text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link href="/agendamento" className="text-amber-500 hover:text-amber-400 flex items-center">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar para Agendamento
+          <Link href="/agendamento" aria-label="Voltar" className="flex h-10 w-10 items-center justify-center text-primary hover:text-red-300">
+            <ArrowLeft className="h-5 w-5" />
           </Link>
         </div>
 
@@ -130,7 +129,7 @@ export default function PagamentoPage() {
           </div>
 
           {/* Resumo do Agendamento */}
-          <div className="bg-slate-800 rounded-lg p-6 mb-6 border border-slate-700">
+          <div className="premium-card mb-6 rounded-2xl p-6">
             <h3 className="text-lg font-semibold mb-4 text-amber-500">Resumo do Agendamento</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -164,7 +163,6 @@ export default function PagamentoPage() {
               {paymentData.paymentMethod === 'pix' && (
                 <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
                   <div className="flex items-center space-x-3 mb-4">
-                    <Smartphone className="h-6 w-6 text-green-500" />
                     <h3 className="text-lg font-semibold">Pagamento via PIX</h3>
                   </div>
                   <p className="text-slate-400 mb-6">
@@ -184,7 +182,6 @@ export default function PagamentoPage() {
               {(paymentData.paymentMethod === 'cartao_credito' || paymentData.paymentMethod === 'cartao_debito') && (
                 <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
                   <div className="flex items-center space-x-3 mb-6">
-                    <CreditCard className="h-6 w-6 text-blue-500" />
                     <h3 className="text-lg font-semibold">
                       {paymentData.paymentMethod === 'cartao_credito' ? 'Cartão de Crédito' : 'Cartão de Débito'}
                     </h3>
@@ -241,7 +238,6 @@ export default function PagamentoPage() {
 
                     {error && (
                       <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg text-sm flex items-center">
-                        <AlertCircle className="h-4 w-4 mr-2" />
                         {error}
                       </div>
                     )}
@@ -275,7 +271,6 @@ export default function PagamentoPage() {
           {/* Sucesso */}
           {step === 3 && (
             <div className="text-center py-12">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-6" />
               <h3 className="text-2xl font-bold mb-4 text-green-400">
                 Pagamento Confirmado! 🎉
               </h3>
@@ -292,9 +287,10 @@ export default function PagamentoPage() {
                 <Button 
                   onClick={() => window.location.href = '/'}
                   variant="outline"
+                  aria-label="Voltar"
                   className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
-                  Voltar ao Início
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
               </div>
             </div>

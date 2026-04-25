@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     let resolvedClientName = clientName?.trim() || ''
     let resolvedEmail = clientEmail?.trim() || ''
     let resolvedWhatsapp = clientWhatsapp?.trim() || ''
-    let resolvedClientId = clientId
+    const resolvedClientId = clientId
     let existingAsaasCustomerId = ''
 
     if (clientId) {

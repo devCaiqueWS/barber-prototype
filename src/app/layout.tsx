@@ -1,21 +1,22 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono } from "next/font/google";
+import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 
-const geistSans = Inter({
-  variable: "--font-geist-sans",
+const elementoSans = Inter({
+  variable: "--font-elemento-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Roboto_Mono({
-  variable: "--font-geist-mono",
+const elementoDisplay = Cormorant_Garamond({
+  variable: "--font-elemento-display",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "JM Barbearia - Sistema de Agendamento",
-  description: "Sistema completo para gerenciar sua barbearia",
+  title: "Elemento Estúdio e Barbearia",
+  description: "Sistema premium de agendamento da Elemento Estúdio e Barbearia",
 };
 
 export default function RootLayout({
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${elementoSans.variable} ${elementoDisplay.variable} antialiased`}
       >
         <AuthProvider>
           {children}

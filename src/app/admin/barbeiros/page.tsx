@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Users, ChevronLeft, Plus, Edit, Trash2, Search, Mail, Phone, Calendar, Scissors } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 interface Barber {
   id: string
@@ -191,9 +191,8 @@ export default function AdminBarbers() {
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" onClick={() => router.back()} className="text-white hover:bg-slate-700">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar
+            <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => router.back()} className="text-white hover:bg-slate-700">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-3xl font-bold text-white">Gerenciar Barbeiros</h1>
           </div>
@@ -201,7 +200,6 @@ export default function AdminBarbers() {
             className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
             onClick={() => setShowForm(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
             Novo Barbeiro
           </Button>
         </div>
@@ -209,7 +207,6 @@ export default function AdminBarbers() {
         {/* Search */}
         <div className="mb-6">
           <div className="relative w-full sm:max-w-md">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar barbeiros..."
@@ -350,7 +347,6 @@ export default function AdminBarbers() {
         <div className="bg-slate-800 rounded-lg border border-slate-700">
           {filteredBarbers.length === 0 ? (
             <div className="p-12 text-center">
-              <Users className="h-16 w-16 mx-auto mb-4 text-slate-600" />
               <h3 className="text-xl font-semibold text-white mb-2">Nenhum barbeiro encontrado</h3>
               <p className="text-slate-400 mb-6">
                 {barbers.length === 0 
@@ -362,7 +358,6 @@ export default function AdminBarbers() {
                 className="bg-amber-600 hover:bg-amber-700"
                 onClick={() => setShowForm(true)}
               >
-                <Plus className="h-4 w-4 mr-2" />
                 Cadastrar Primeiro Barbeiro
               </Button>
             </div>
@@ -373,8 +368,7 @@ export default function AdminBarbers() {
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center">
-                        <Scissors className="h-6 w-6 text-white" />
-                      </div>
+                        </div>
                       <div>
                         <h3 className="font-semibold text-white">{barber.name}</h3>
                         <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
@@ -391,33 +385,28 @@ export default function AdminBarbers() {
                         onClick={() => handleEdit(barber)}
                         className="text-amber-500 hover:text-amber-400 hover:bg-slate-600"
                       >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                        </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDelete(barber.id)}
                         className="text-red-500 hover:text-red-400 hover:bg-slate-600"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        </Button>
                     </div>
                   </div>
 
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center text-slate-300">
-                      <Mail className="h-4 w-4 mr-2" />
                       {barber.email}
                     </div>
                     {barber.phone && (
                       <div className="flex items-center text-slate-300">
-                        <Phone className="h-4 w-4 mr-2" />
                         {barber.phone}
                       </div>
                     )}
                     {barber._count && (
                       <div className="flex items-center text-slate-300">
-                        <Calendar className="h-4 w-4 mr-2" />
                         {barber._count.appointments} agendamentos
                       </div>
                     )}
