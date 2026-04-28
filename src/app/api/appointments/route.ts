@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       clientName,
       clientEmail,
       clientPhone,
+      clientInstagram,
       clientWhatsapp,
       serviceId,
       barberId,
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
       clientName?: string
       clientEmail?: string
       clientPhone?: string
+      clientInstagram?: string
       clientWhatsapp?: string
       serviceId?: string
       barberId?: string
@@ -42,12 +44,18 @@ export async function POST(request: NextRequest) {
       payOnline?: boolean
     }
 
-    if (!clientName || !clientEmail || !clientPhone || !serviceId || !barberId) {
+    if (!clientName || !clientEmail || !clientWhatsapp || !serviceId || !barberId) {
       return NextResponse.json(
-        { error: 'Nome, e-mail, telefone, serviço e barbeiro são obrigatórios.' },
+        { error: 'Nome, e-mail, WhatsApp, serviço e barbeiro são obrigatórios.' },
         { status: 400 },
       )
     }
+
+    const contactPhone = clientPhone || clientWhatsapp
+    const instagram = clientInstagram?.trim()
+    const appointmentNotes = [instagram ? `Instagram: ${instagram}` : null, notes]
+      .filter(Boolean)
+      .join('\n')
 
     // Construir Date a partir de date+time ou dateTime
     let appointmentDateTime: Date | null = null
@@ -175,7 +183,8 @@ export async function POST(request: NextRequest) {
           email: clientEmail,
           password: defaultPassword,
           role: 'CLIENT',
-          phone: clientPhone,
+          phone: contactPhone,
+          whatsapp: clientWhatsapp,
         },
       })
     } else if (client.name !== clientName) {
@@ -199,12 +208,12 @@ export async function POST(request: NextRequest) {
         endTime,
         clientName,
         clientEmail,
-        clientPhone: clientPhone || '',
+        clientPhone: contactPhone || '',
         clientWhatsapp: clientWhatsapp || '',
         paymentMethod: normalizedPaymentMethod,
         payOnline: isPayOnline,
         status: isPayOnline ? 'pending' : 'confirmed',
-        notes,
+        notes: appointmentNotes || undefined,
         source: 'online',
       },
       include: {

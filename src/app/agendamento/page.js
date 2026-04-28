@@ -43,7 +43,7 @@ function BookingPageContent() {
 
     email: '',
 
-    phone: '',
+    instagram: '',
 
     whatsapp: '',
 
@@ -309,7 +309,9 @@ function BookingPageContent() {
 
           clientEmail: clientData.email,
 
-          clientPhone: clientData.phone,
+          clientPhone: clientData.whatsapp,
+
+          clientInstagram: clientData.instagram,
 
           clientWhatsapp: clientData.whatsapp,
 
@@ -425,7 +427,7 @@ function BookingPageContent() {
 
     setSelectedTime('')
 
-    setClientData({ name: '', email: '', phone: '', whatsapp: '', paymentMethod: '', payOnline: false })
+    setClientData({ name: '', email: '', instagram: '', whatsapp: '', paymentMethod: '', payOnline: false })
 
     setAvailableTimes([])
 
@@ -881,33 +883,27 @@ function BookingPageContent() {
 
                 <div>
 
-                  <label className="block text-sm font-medium mb-2">Telefone</label>
+                  <label className="block text-sm font-medium mb-2">Insta <span className="text-slate-400">(opcional)</span></label>
 
                   <input
 
-                    type="tel"
+                    type="text"
 
-                    required
-
-                    value={clientData.phone}
+                    value={clientData.instagram}
 
                     onChange={(e) => {
 
-                      // Remover caracteres numéricos e aplicar máscara
+                      const value = e.target.value.trimStart()
 
-                      const value = e.target.value.replace(/\D/g, '')
-
-                      const formatted = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-
-                      setClientData({ ...clientData, phone: formatted })
+                      setClientData({ ...clientData, instagram: value })
 
                     }}
 
                     className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
 
-                    placeholder="(11) 99999-9999"
+                    placeholder="@seuinstagram"
 
-                    maxLength="15"
+                    maxLength="50"
 
                   />
 
@@ -955,7 +951,7 @@ function BookingPageContent() {
 
                 <div>
 
-                  <label className="block text-sm font-medium mb-2">Forma de Pagamento</label>
+                  <label className="block text-sm font-medium mb-2">Forma de pgto</label>
 
                   <select
 

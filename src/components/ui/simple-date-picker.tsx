@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDateKey, parseDateOnly } from '@/lib/date'
 
 type SimpleDatePickerProps = {
@@ -115,19 +116,23 @@ export function SimpleDatePicker({
           <div className="flex items-center justify-between mb-3">
             <button
               type="button"
+              aria-label="Mês anterior"
               onClick={() => changeMonth(-1)}
-              className="p-1 rounded-md hover:bg-slate-800 text-slate-200"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-slate-200 hover:bg-slate-800"
             >
-              </button>
+              <ChevronLeft className="h-4 w-4" />
+            </button>
             <div className="text-sm font-medium text-slate-100">
               {new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(monthCursor)}
             </div>
             <button
               type="button"
+              aria-label="Próximo mês"
               onClick={() => changeMonth(1)}
-              className="p-1 rounded-md hover:bg-slate-800 text-slate-200"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-slate-200 hover:bg-slate-800"
             >
-              </button>
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
           <div className="grid grid-cols-7 gap-1 text-[11px] text-center text-slate-400 mb-1">
             {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, index) => (
