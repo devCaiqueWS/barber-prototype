@@ -42,7 +42,7 @@ export default function ContatoPage() {
 
         <section className="mt-8 grid gap-0 md:grid-cols-3">
           {[
-            { title: "WhatsApp", text: "(11) 97547-1336" },
+            { title: "WhatsApp", text: "(11) 94149-2683" },
             { title: "Instagram", text: "@ogabrieldocorte" },
             { title: "Endereço", text: "R. Angelo Jane, 160 - Bussocaba, Osasco - SP" },
           ].map((item, index) => (

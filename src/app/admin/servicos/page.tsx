@@ -56,8 +56,8 @@ export default function AdminServices() {
       return
     }
 
-    const userRole = (session.user as { role?: string }).role
-    if (userRole !== 'admin') {
+    const userRole = ((session.user as { role?: string }).role || '').toString().toUpperCase()
+    if (userRole !== 'ADMIN' && userRole !== 'BARBER') {
       router.push('/')
       return
     }

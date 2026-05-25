@@ -398,9 +398,9 @@ export default function AdminPage() {
                   { id: 'appointments', label: 'Agendamentos' },
                   { id: 'calendar', label: 'Calendário' },
                   { id: 'subscriptions', label: 'Assinaturas' },
+                  { id: 'services', label: 'Serviços' },
                   ...(userRole === 'ADMIN' ? [
                     { id: 'barbers', label: 'Barbeiros' },
-                    { id: 'services', label: 'Serviços' },
                   ] : []),
                   { id: 'reports', label: 'Relatórios' },
                   ...(userRole === 'ADMIN' ? [
