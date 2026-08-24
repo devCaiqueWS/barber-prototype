@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
@@ -75,6 +76,20 @@ export async function POST(request: NextRequest) {
         { error: 'Checkout criado, mas nenhuma URL foi retornada' },
         { status: 502 },
       )
+    }
+
+    // Guarda o id do link no agendamento: é por ele que o webhook reconhece o
+    // pagamento quando a cobrança não propaga o externalReference.
+    const paymentLinkId = typeof data.id === 'string' ? data.id : null
+    if (paymentLinkId) {
+      try {
+        await prisma.appointment.update({
+          where: { id: appointmentId },
+          data: { asaasPaymentLinkId: paymentLinkId },
+        })
+      } catch (linkError) {
+        console.error('Falha ao vincular link de pagamento ao agendamento:', linkError)
+      }
     }
 
     return NextResponse.json({

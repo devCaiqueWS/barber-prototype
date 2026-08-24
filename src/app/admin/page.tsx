@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
 import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
+import ClientsManagement from "@/components/admin/ClientsManagement";
 import BarberCalendar from "@/components/admin/BarberCalendar";
 import SubscriptionsManagement from "@/components/admin/SubscriptionsManagement";
 import { formatDateKey } from "@/lib/date";
@@ -400,6 +401,7 @@ export default function AdminPage() {
                   { id: 'subscriptions', label: 'Assinaturas' },
                   { id: 'services', label: 'Serviços' },
                   ...(userRole === 'ADMIN' ? [
+                    { id: 'clients', label: 'Clientes' },
                     { id: 'barbers', label: 'Barbeiros' },
                   ] : []),
                   { id: 'reports', label: 'Relatórios' },
@@ -620,6 +622,11 @@ export default function AdminPage() {
         )}
         {activeTab === 'subscriptions' && (
           <SubscriptionsManagement />
+        )}
+
+        {/* Clients Tab */}
+        {activeTab === 'clients' && userRole === 'ADMIN' && (
+          <ClientsManagement />
         )}
 
         {/* Barbers Tab */}

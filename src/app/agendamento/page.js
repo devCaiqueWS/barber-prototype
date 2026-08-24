@@ -11,7 +11,9 @@ import { useSearchParams } from 'next/navigation'
 
 
 import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
-import { formatDateBR, formatDateKey, parseDateOnly } from '@/lib/date'
+import { formatDateBR, formatDateKey } from '@/lib/date'
+import { appointmentIcsFilename, buildAppointmentIcs } from '@/lib/ics'
+import ClientAuthForm from '@/components/client/ClientAuthForm'
 
 function BookingPageContent() {
 
@@ -37,6 +39,8 @@ function BookingPageContent() {
 
   const [lastAppointmentId, setLastAppointmentId] = useState('')
 
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false)
+
   const [clientData, setClientData] = useState({
 
     name: '',
@@ -53,6 +57,10 @@ function BookingPageContent() {
 
   })
 
+  // Conta do cliente logado (obrigatória para agendar)
+  const [authUser, setAuthUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
+
   const todayStr = formatDateKey(new Date())
 
   const hasPrefilledService = useRef(false)
@@ -67,7 +75,46 @@ function BookingPageContent() {
 
     loadBarbers()
 
+    checkSession()
+
   }, [])
+
+
+
+  // Verifica se o cliente já está logado e preenche os dados da conta
+  const checkSession = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      const data = await response.json()
+      if (data.user && data.user.role === 'CLIENT') {
+        applyAuthUser(data.user)
+      }
+    } catch (error) {
+      console.error('Erro ao verificar sessão:', error)
+    } finally {
+      setAuthChecked(true)
+    }
+  }
+
+  const applyAuthUser = (user) => {
+    setAuthUser(user)
+    setClientData((prev) => ({
+      ...prev,
+      name: user.name || '',
+      email: user.email || '',
+      whatsapp: prev.whatsapp || user.whatsapp || '',
+    }))
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.error('Erro ao sair:', error)
+    }
+    setAuthUser(null)
+    setClientData((prev) => ({ ...prev, name: '', email: '', whatsapp: '' }))
+  }
 
 
 
@@ -283,6 +330,16 @@ function BookingPageContent() {
 
       }
 
+      if (!authUser) {
+
+        alert('Faça login ou crie sua conta para agendar.')
+
+        setLoading(false)
+
+        return
+
+      }
+
 
 
       const response = await fetch('/api/appointments', {
@@ -305,12 +362,6 @@ function BookingPageContent() {
 
           time: selectedTime,
 
-          clientName: clientData.name,
-
-          clientEmail: clientData.email,
-
-          clientPhone: clientData.whatsapp,
-
           clientInstagram: clientData.instagram,
 
           clientWhatsapp: clientData.whatsapp,
@@ -329,9 +380,23 @@ function BookingPageContent() {
 
 
 
+      if (response.status === 401) {
+
+        setAuthUser(null)
+
+        alert(data.error || 'Sua sessão expirou. Faça login novamente para agendar.')
+
+        return
+
+      }
+
+
+
       if (data.success) {
 
         setLastAppointmentId(data.appointment?.id || '')
+
+        setConfirmationEmailSent(Boolean(data.emailSent))
 
         if (shouldPayOnline) {
 
@@ -431,6 +496,8 @@ function BookingPageContent() {
 
     setAvailableTimes([])
 
+    setConfirmationEmailSent(false)
+
   }
 
 
@@ -439,59 +506,35 @@ function BookingPageContent() {
 
     if (!selectedService || !selectedDate || !selectedTime) return
 
-    const [hourStr, minuteStr] = selectedTime.split(':')
-
-    const start = parseDateOnly(selectedDate)
-
-    if (!start || !Number.isFinite(start.getTime())) return
-
-    start.setHours(Number.parseInt(hourStr, 10) || 0, Number.parseInt(minuteStr, 10) || 0, 0, 0)
-
-    const durationMinutes = selectedService.duration || 30
-
-    const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
 
 
+    // Mesmo gerador usado no anexo do e-mail de confirmação
 
-    const pad = (n) => n.toString().padStart(2, '0')
+    const ics = buildAppointmentIcs({
 
-    const formatLocal = (d) =>
+      id: lastAppointmentId || `${selectedDate}-${selectedTime}`,
 
-      `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+      date: selectedDate,
 
+      startTime: selectedTime,
 
+      serviceName: selectedService.name,
 
-    const lines = [
+      serviceDuration: selectedService.duration || 30,
 
-      'BEGIN:VCALENDAR',
+      barberName: selectedBarber?.name,
 
-      'VERSION:2.0',
+      clientName: clientData.name,
 
-      'PRODID:-//Elemento//Agendamentos//PT-BR',
-
-      'BEGIN:VEVENT',
-
-      `UID:${lastAppointmentId || `${Date.now()}@barberpro`}`,
-
-      `SUMMARY:${selectedService.name} - Elemento Estúdio e Barbearia`,
-
-      `DESCRIPTION:Agendamento com ${selectedBarber?.name || 'barbeiro'}\\nCliente: ${clientData.name || ''}`,
-
-      `DTSTART:${formatLocal(start)}`,
-
-      `DTEND:${formatLocal(end)}`,
-
-      'LOCATION:Elemento Estúdio e Barbearia',
-
-      'END:VEVENT',
-
-      'END:VCALENDAR',
-
-    ]
+    })
 
 
 
-    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+    if (!ics) return
+
+
+
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
 
     const url = URL.createObjectURL(blob)
 
@@ -499,7 +542,7 @@ function BookingPageContent() {
 
     link.href = url
 
-    link.download = `elemento-${selectedDate}-${selectedTime}.ics`
+    link.download = appointmentIcsFilename({ date: selectedDate, startTime: selectedTime })
 
     document.body.appendChild(link)
 
@@ -813,13 +856,54 @@ function BookingPageContent() {
 
 
 
-          {/* Step 5: Dados do Cliente */}
+          {/* Step 5a: Login/Cadastro obrigatório */}
 
-          {step === 5 && (
+          {step === 5 && !authUser && (
 
             <div>
 
-              <h2 className="text-2xl font-bold mb-6 text-center">Seus Dados</h2>
+              <h2 className="text-2xl font-bold mb-4 text-center">Entre na sua conta</h2>
+
+              <p className="mb-8 text-center text-slate-400">
+                Para agendar é necessário ter uma conta. Entre ou crie a sua em segundos.
+              </p>
+
+              {authChecked ? (
+                <ClientAuthForm onSuccess={applyAuthUser} initialMode="login" />
+              ) : (
+                <p className="text-center text-slate-400">Carregando...</p>
+              )}
+
+              <div className="mt-6 text-center">
+
+                <button
+
+                  onClick={() => setStep(4)}
+
+                  aria-label="Voltar"
+                  className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
+
+                >
+
+                  <ArrowLeft className="h-4 w-4" />
+
+                </button>
+
+              </div>
+
+            </div>
+
+          )}
+
+
+
+          {/* Step 5b: Dados do Cliente (logado) */}
+
+          {step === 5 && authUser && (
+
+            <div>
+
+              <h2 className="text-2xl font-bold mb-6 text-center">Confirme seus Dados</h2>
 
               <div className="mb-6 text-center space-y-2">
 
@@ -837,45 +921,29 @@ function BookingPageContent() {
 
               <form onSubmit={handleClientDataSubmit} className="max-w-md mx-auto space-y-4">
 
-                <div>
+                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800/60 p-4">
 
-                  <label className="block text-sm font-medium mb-2">Nome</label>
+                  <div className="min-w-0">
 
-                  <input
+                    <p className="truncate font-semibold text-white">{authUser.name}</p>
 
-                    type="text"
+                    <p className="truncate text-sm text-slate-400">{authUser.email}</p>
 
-                    required
+                  </div>
 
-                    value={clientData.name}
+                  <button
 
-                    onChange={(e) => setClientData({ ...clientData, name: e.target.value })}
+                    type="button"
 
-                    className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                    onClick={handleLogout}
 
-                  />
+                    className="ml-3 shrink-0 text-xs font-semibold text-amber-500 hover:text-amber-400"
 
-                </div>
+                  >
 
+                    Trocar conta
 
-
-                <div>
-
-                  <label className="block text-sm font-medium mb-2">Email</label>
-
-                  <input
-
-                    type="email"
-
-                    required
-
-                    value={clientData.email}
-
-                    onChange={(e) => setClientData({ ...clientData, email: e.target.value })}
-
-                    className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
-
-                  />
+                  </button>
 
                 </div>
 
@@ -1156,7 +1224,11 @@ function BookingPageContent() {
 
                 <p className="text-slate-400 mb-6">
 
-                  Você receberá uma confirmação no email: {clientData.email}
+                  {confirmationEmailSent
+
+                    ? `Enviamos a confirmação com todos os detalhes para o email: ${clientData.email}`
+
+                    : `Guarde os dados acima. Se preferir, use o botão abaixo para salvar o agendamento na agenda do seu celular.`}
 
                 </p>
 
@@ -1208,13 +1280,25 @@ function BookingPageContent() {
 
                     onClick={resetBooking}
 
-                    className="inline-flex items-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                    className="inline-flex items-center bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
 
                   >
 
                     Fazer Novo Agendamento
 
                   </button>
+
+                  <Link
+
+                    href="/minha-conta"
+
+                    className="inline-flex items-center bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+
+                  >
+
+                    Ver Meus Agendamentos
+
+                  </Link>
 
                 </div>
 

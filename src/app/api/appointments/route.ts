@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { formatDateKey, parseDateOnly } from '@/lib/date'
-import bcrypt from 'bcryptjs'
+import { resolveSiteUrl } from '@/lib/business'
+import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
+import { getAuthUser } from '@/lib/client-auth'
 
 // Normaliza objeto Date para string HH:mm
 const toHHMM = (date: Date) => {
@@ -10,14 +12,20 @@ const toHHMM = (date: Date) => {
   return `${h}:${m}`
 }
 
-// POST - Criar novo agendamento (público)
+// POST - Criar novo agendamento (requer conta de cliente logada)
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthUser(request)
+
+    if (!authUser) {
+      return NextResponse.json(
+        { error: 'É necessário estar logado para agendar. Crie sua conta ou faça login.', needsAuth: true },
+        { status: 401 },
+      )
+    }
+
     const body = await request.json()
     const {
-      clientName,
-      clientEmail,
-      clientPhone,
       clientInstagram,
       clientWhatsapp,
       serviceId,
@@ -29,9 +37,6 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       payOnline,
     } = body as {
-      clientName?: string
-      clientEmail?: string
-      clientPhone?: string
       clientInstagram?: string
       clientWhatsapp?: string
       serviceId?: string
@@ -44,14 +49,19 @@ export async function POST(request: NextRequest) {
       payOnline?: boolean
     }
 
-    if (!clientName || !clientEmail || !clientWhatsapp || !serviceId || !barberId) {
+    // Identidade sempre vem da conta logada
+    const clientName = authUser.name || ''
+    const clientEmail = authUser.email
+    const whatsapp = clientWhatsapp || authUser.whatsapp || authUser.phone || ''
+
+    if (!clientName || !whatsapp || !serviceId || !barberId) {
       return NextResponse.json(
-        { error: 'Nome, e-mail, WhatsApp, serviço e barbeiro são obrigatórios.' },
+        { error: 'WhatsApp, serviço e barbeiro são obrigatórios.' },
         { status: 400 },
       )
     }
 
-    const contactPhone = clientPhone || clientWhatsapp
+    const contactPhone = whatsapp
     const instagram = clientInstagram?.trim()
     const appointmentNotes = [instagram ? `Instagram: ${instagram}` : null, notes]
       .filter(Boolean)
@@ -112,7 +122,7 @@ export async function POST(request: NextRequest) {
       where: {
         barberId,
         date: appointmentDateStr,
-        NOT: { status: 'cancelled' },
+        status: { notIn: ['cancelled', 'no_show'] },
       },
       include: {
         service: { select: { duration: true } },
@@ -169,28 +179,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Verificar se o cliente já existe ou criar
-    let client = await prisma.user.findUnique({
-      where: { email: clientEmail },
-    })
-
-    if (!client) {
-      const defaultPassword = await bcrypt.hash('123456', 10)
-
-      client = await prisma.user.create({
-        data: {
-          name: clientName,
-          email: clientEmail,
-          password: defaultPassword,
-          role: 'CLIENT',
-          phone: contactPhone,
-          whatsapp: clientWhatsapp,
-        },
-      })
-    } else if (client.name !== clientName) {
+    // Atualizar o contato da conta se o cliente informou um WhatsApp novo
+    if (whatsapp && whatsapp !== authUser.whatsapp) {
       await prisma.user.update({
-        where: { id: client.id },
-        data: { name: clientName },
+        where: { id: authUser.id },
+        data: { whatsapp, phone: contactPhone },
       })
     }
 
@@ -200,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     const appointment = await prisma.appointment.create({
       data: {
-        clientId: client.id,
+        clientId: authUser.id,
         barberId,
         serviceId,
         date: appointmentDateStr,
@@ -209,7 +202,7 @@ export async function POST(request: NextRequest) {
         clientName,
         clientEmail,
         clientPhone: contactPhone || '',
-        clientWhatsapp: clientWhatsapp || '',
+        clientWhatsapp: whatsapp || '',
         paymentMethod: normalizedPaymentMethod,
         payOnline: isPayOnline,
         status: isPayOnline ? 'pending' : 'confirmed',
@@ -238,12 +231,48 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Confirmação por e-mail com o arquivo .ics anexado.
+    // Uma falha aqui nunca invalida o agendamento já criado.
+    let emailSent = false
+    try {
+      const result = await sendAppointmentConfirmationEmail({
+        id: appointment.id,
+        clientName: appointment.clientName,
+        clientEmail: appointment.clientEmail,
+        date: appointment.date,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        status: appointment.status,
+        payOnline: appointment.payOnline,
+        paymentMethod: appointment.paymentMethod,
+        serviceName: appointment.service?.name,
+        servicePrice: appointment.service?.price,
+        serviceDuration: appointment.service?.duration,
+        barberName: appointment.barber?.name,
+        siteUrl: resolveSiteUrl(request),
+      })
+
+      emailSent = result.sent
+
+      if (!result.sent) {
+        console.warn(
+          `[appointments] Confirmação não enviada para ${appointment.id}:`,
+          result.skipped || result.error,
+        )
+      }
+    } catch (emailError) {
+      console.error('Erro ao enviar e-mail de confirmação:', emailError)
+    }
+
     return NextResponse.json(
       {
         success: true,
+        emailSent,
         appointment: {
           id: appointment.id,
           date: appointment.date,
+          startTime: appointment.startTime,
+          endTime: appointment.endTime,
           status: appointment.status,
           payOnline: appointment.payOnline,
           paymentMethod: appointment.paymentMethod,

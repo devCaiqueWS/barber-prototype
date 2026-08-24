@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import MenuMobile from "@/components/MenuMobile";
+import { User } from "lucide-react";
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,12 +58,28 @@ export default function Home() {
               Contato
             </Link>
           </nav>
-          <div className="hidden md:block">
+          <div className="hidden items-center gap-3 md:flex">
             <Button asChild>
               <Link href="/agendamento">Agendar agora</Link>
             </Button>
+            <Link
+              href="/minha-conta"
+              aria-label="Minha Conta"
+              title="Minha Conta"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-primary hover:text-primary"
+            >
+              <User className="h-5 w-5" />
+            </Link>
           </div>
-          <div className="md:hidden">
+          <div className="flex items-center gap-2 md:hidden">
+            <Link
+              href="/minha-conta"
+              aria-label="Minha Conta"
+              title="Minha Conta"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-primary hover:text-primary"
+            >
+              <User className="h-5 w-5" />
+            </Link>
             <MenuMobile open={menuOpen} setOpen={setMenuOpen} />
           </div>
         </div>

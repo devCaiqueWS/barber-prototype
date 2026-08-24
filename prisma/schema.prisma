@@ -29,6 +29,10 @@ model User {
   whatsapp      String? // Campo WhatsApp
   asaasCustomerId String? // ID do cliente no Asaas
   isActive      Boolean  @default(true)
+  // Conta criada pelo próprio cliente (obrigatória para agendar).
+  // Contas antigas auto-criadas ficam false até o cliente se cadastrar com o mesmo e-mail.
+  isRegistered  Boolean  @default(false)
+  registeredAt  DateTime?
   specialties   String[] // Para barbeiros - Array de especialidades
   workDays      String[] // Para barbeiros - Array de dias da semana
   workStartTime String? // Para barbeiros
@@ -81,6 +85,13 @@ model Appointment {
   serviceId      String
   createdAt      DateTime @default(now())
   source         String   @default("online") // origem do agendamento: 'online' | 'manual'
+
+  // Pagamento online via Asaas
+  asaasPaymentLinkId String? // id do link de pagamento gerado para este agendamento
+  asaasPaymentId     String? // id da cobrança que quitou o agendamento
+  paidAt             DateTime? // preenchido quando o webhook confirma o pagamento
+
+  @@index([asaasPaymentLinkId])
 }
 
 model Subscription {

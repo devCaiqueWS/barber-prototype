@@ -43,7 +43,7 @@ export default function BarberDashboard() {
     })
 
     useEffect(() => {
-        if (status === 'authenticated' && (session?.user as { role?: string })?.role === 'barber') {
+        if (status === 'authenticated' && ((session?.user as { role?: string })?.role || '').toUpperCase() === 'BARBER') {
             const loadAppointments = async () => {
                 // lógica para buscar agendamentos
             };
@@ -73,7 +73,7 @@ export default function BarberDashboard() {
         )
     }
 
-    if (status === 'unauthenticated' || (session?.user as { role?: string })?.role !== 'barber') {
+    if (status === 'unauthenticated' || ((session?.user as { role?: string })?.role || '').toUpperCase() !== 'BARBER') {
         return (
             <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center">
                 <div className="text-center text-white">

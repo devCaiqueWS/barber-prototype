@@ -12,7 +12,7 @@ interface Appointment {
   date: string
   startTime: string
   endTime: string
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
   client: { name: string; phone: string; address?: string }
   service: { name: string; price: number; duration: number }
   barber?: { name: string }
@@ -46,8 +46,8 @@ export default function AdminAppointments() {
       router.push('/login')
       return
     }
-    const role = (session.user as { role?: string }).role
-    if (role !== 'admin' && role !== 'barber') {
+    const role = ((session.user as { role?: string }).role || '').toString().toUpperCase()
+    if (role !== 'ADMIN' && role !== 'BARBER') {
       router.push('/')
       return
     }
@@ -57,8 +57,8 @@ export default function AdminAppointments() {
 
   const fetchAppointments = async () => {
     try {
-      const role = (session?.user as { role?: string })?.role
-      const endpoint = role === 'admin' ? '/api/admin/appointments' : '/api/barber/appointments'
+      const role = ((session?.user as { role?: string })?.role || '').toString().toUpperCase()
+      const endpoint = role === 'ADMIN' ? '/api/admin/appointments' : '/api/barber/appointments'
       const response = await fetch(endpoint)
       const data = await response.json()
       setAppointments(data.appointments || [])
@@ -227,6 +227,7 @@ export default function AdminAppointments() {
                 <option value="confirmed">Confirmado</option>
                 <option value="completed">Concluído</option>
                 <option value="cancelled">Cancelado</option>
+                <option value="no_show">Não compareceu</option>
               </select>
             </div>
 
@@ -316,7 +317,8 @@ export default function AdminAppointments() {
                     const dayStr = toDateKey(day)
                     const items = filteredAppointments.filter(
                       (appt) =>
-                        (appt.status || '').toLowerCase() !== 'cancelled' &&
+                        (statusFilter !== 'all' ||
+                          !['cancelled', 'no_show'].includes((appt.status || '').toLowerCase())) &&
                         toDateKey(appt.date) === dayStr &&
                         appt.startTime.startsWith(hour.toString().padStart(2, '0')),
                     )
@@ -427,6 +429,7 @@ export default function AdminAppointments() {
                       <option value="confirmed">Confirmado</option>
                       <option value="completed">Concluido</option>
                       <option value="cancelled">Cancelado</option>
+                      <option value="no_show">Não compareceu</option>
                     </select>
                   </div>
                   <div>

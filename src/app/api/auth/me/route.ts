@@ -28,22 +28,26 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         email: true,
-        role: true
+        role: true,
+        whatsapp: true,
+        phone: true,
+        isActive: true
       }
     })
 
-    if (!user) {
+    if (!user || !user.isActive) {
       console.log('User not found in database')
       return NextResponse.json({ user: null })
     }
 
     console.log('User found and returning:', { id: user.id, role: user.role })
-    return NextResponse.json({ 
+    return NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        whatsapp: user.whatsapp || user.phone || ''
       }
     })
   } catch (error) {

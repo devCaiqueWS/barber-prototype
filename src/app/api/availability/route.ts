@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       where: {
         barberId,
         date: dateStr,
-        NOT: { status: 'cancelled' }
+        status: { notIn: ['cancelled', 'no_show'] }
       },
       include: {
         service: {

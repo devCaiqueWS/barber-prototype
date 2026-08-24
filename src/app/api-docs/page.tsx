@@ -91,7 +91,7 @@ export default function ApiDocsPage() {
           API Docs
         </h1>
         <p className="text-slate-300 mb-4">
-          Documenta��ǜo OpenAPI em{" "}
+          Documentação OpenAPI em{" "}
           <code className="text-amber-400">/openapi.json</code>
         </p>
         {error && <div className="mb-4 text-red-400">{error}</div>}

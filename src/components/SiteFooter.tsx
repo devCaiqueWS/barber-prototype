@@ -19,6 +19,7 @@ export default function SiteFooter() {
             ["Agendamento", "/agendamento"],
             ["Sobre", "/sobre"],
             ["Contato", "/contato"],
+            ["Minha Conta", "/minha-conta"],
             ["Área Administrativa", "/admin"],
           ].map(([label, href]) => (
             <Link key={href} href={href} className="text-sm text-white/55 transition-colors hover:text-primary">

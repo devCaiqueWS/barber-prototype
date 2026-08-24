@@ -16,19 +16,34 @@ export async function POST(request: NextRequest) {
 
     // Buscar usuário
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: String(email).trim().toLowerCase() },
       select: {
         id: true,
         name: true,
         email: true,
         password: true,
-        role: true
+        role: true,
+        whatsapp: true,
+        isRegistered: true,
+        isActive: true
       }
     })
 
-    if (!user || !user.password) {
+    if (!user || !user.password || !user.isActive) {
       return NextResponse.json(
         { error: 'Credenciais inválidas' },
+        { status: 401 }
+      )
+    }
+
+    // Contas antigas auto-criadas no agendamento não valem mais:
+    // o cliente precisa criar a conta (cadastro reativa mantendo o histórico)
+    if (user.role === 'CLIENT' && !user.isRegistered) {
+      return NextResponse.json(
+        {
+          error: 'Sua conta ainda não foi ativada nesta nova versão. Crie sua conta com este e-mail para continuar.',
+          needsRegistration: true
+        },
         { status: 401 }
       )
     }
@@ -63,7 +78,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        whatsapp: user.whatsapp
       }
     })
 

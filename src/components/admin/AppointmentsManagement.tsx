@@ -11,7 +11,7 @@ interface Appointment {
   date: string
   startTime: string
   endTime: string
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
   client: {
     name: string
     phone: string
@@ -232,6 +232,7 @@ export default function AppointmentsManagement() {
               <option value="confirmed">Confirmado</option>
               <option value="completed">Concluído</option>
               <option value="cancelled">Cancelado</option>
+              <option value="no_show">Não compareceu</option>
             </select>
           </div>
 
@@ -320,7 +321,8 @@ export default function AppointmentsManagement() {
                   const dayStr = toDateKey(day)
                   const items = filteredAppointments.filter(
                     (appt) =>
-                      (appt.status || '').toLowerCase() !== 'cancelled' &&
+                      (statusFilter !== 'all' ||
+                        !['cancelled', 'no_show'].includes((appt.status || '').toLowerCase())) &&
                       toDateKey(appt.date) === dayStr &&
                       (appt.startTime || '').startsWith(hour.toString().padStart(2, '0')),
                   )
@@ -401,6 +403,7 @@ export default function AppointmentsManagement() {
                     <option value="confirmed">Confirmado</option>
                     <option value="completed">Concluido</option>
                     <option value="cancelled">Cancelado</option>
+                    <option value="no_show">Não compareceu</option>
                   </select>
                 </div>
                 <div>
