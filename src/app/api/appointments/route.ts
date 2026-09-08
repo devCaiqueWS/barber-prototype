@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { formatDateKey, parseDateOnly } from '@/lib/date'
 import bcrypt from 'bcryptjs'
+import { resolveSiteUrl } from '@/lib/business'
+import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
 
 // Normaliza objeto Date para string HH:mm
 const toHHMM = (date: Date) => {
@@ -238,12 +240,48 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Confirmação por e-mail com o arquivo .ics anexado.
+    // Uma falha aqui nunca invalida o agendamento já criado.
+    let emailSent = false
+    try {
+      const result = await sendAppointmentConfirmationEmail({
+        id: appointment.id,
+        clientName: appointment.clientName,
+        clientEmail: appointment.clientEmail,
+        date: appointment.date,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        status: appointment.status,
+        payOnline: appointment.payOnline,
+        paymentMethod: appointment.paymentMethod,
+        serviceName: appointment.service?.name,
+        servicePrice: appointment.service?.price,
+        serviceDuration: appointment.service?.duration,
+        barberName: appointment.barber?.name,
+        siteUrl: resolveSiteUrl(request),
+      })
+
+      emailSent = result.sent
+
+      if (!result.sent) {
+        console.warn(
+          `[appointments] Confirmação não enviada para ${appointment.id}:`,
+          result.skipped || result.error,
+        )
+      }
+    } catch (emailError) {
+      console.error('Erro ao enviar e-mail de confirmação:', emailError)
+    }
+
     return NextResponse.json(
       {
         success: true,
+        emailSent,
         appointment: {
           id: appointment.id,
           date: appointment.date,
+          startTime: appointment.startTime,
+          endTime: appointment.endTime,
           status: appointment.status,
           payOnline: appointment.payOnline,
           paymentMethod: appointment.paymentMethod,
