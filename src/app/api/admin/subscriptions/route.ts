@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { formatDateKey } from '@/lib/date'
-
-const ASAAS_API_KEY = process.env.ASAAS_API_KEY
-const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3'
+import { asaasRequest, AsaasError, isAsaasConfigured, onlyDigits } from '@/lib/asaas'
+import { requireStaff } from '@/lib/staff-auth'
 
 type SubscriptionBody = {
   barberId?: string
@@ -11,33 +10,35 @@ type SubscriptionBody = {
   clientName?: string
   clientEmail?: string
   clientWhatsapp?: string
+  cpf?: string
   amount?: number
   cycle?: string
+  provider?: string
 }
 
-const normalizeDigits = (value?: string | null) =>
-  value ? value.replace(/\D/g, '') : ''
+const CYCLES = new Set(['WEEKLY', 'BIWEEKLY', 'MONTHLY', 'BIMONTHLY', 'QUARTERLY', 'SEMIANNUALLY', 'YEARLY'])
 
-const pickUrl = (data: Record<string, unknown>): string | null => {
-  const candidates = [
-    data.paymentLink,
-    data.paymentLinkUrl,
-    data.invoiceUrl,
-    data.url,
-  ]
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.length > 0) {
-      return candidate
-    }
-  }
-  return null
+// Nomes antigos da tela → nomes aceitos pelo Asaas
+const normalizeCycle = (cycle?: string) => {
+  const upper = (cycle || 'MONTHLY').toUpperCase()
+  if (upper === 'SEMIANNUAL') return 'SEMIANNUALLY'
+  return CYCLES.has(upper) ? upper : 'MONTHLY'
 }
+
+const subscriptionInclude = {
+  barber: { select: { id: true, name: true } },
+  client: { select: { id: true, name: true, email: true, whatsapp: true, clientCode: true } },
+} as const
 
 export async function GET(request: NextRequest) {
+  const staff = await requireStaff()
+  if (!staff) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+
   try {
     const { searchParams } = new URL(request.url)
-    const barberId = searchParams.get('barberId')
     const status = searchParams.get('status')
+    // Barbeiro só enxerga as próprias assinaturas
+    const barberId = staff.role === 'BARBER' ? staff.id : searchParams.get('barberId')
 
     const where: Record<string, unknown> = {}
     if (barberId) where.barberId = barberId
@@ -45,10 +46,7 @@ export async function GET(request: NextRequest) {
 
     const subscriptions = await prisma.subscription.findMany({
       where,
-      include: {
-        barber: { select: { id: true, name: true } },
-        client: { select: { id: true, name: true, email: true, whatsapp: true } },
-      },
+      include: subscriptionInclude,
       orderBy: { createdAt: 'desc' },
     })
 
@@ -60,163 +58,169 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const staff = await requireStaff()
+  if (!staff) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+
   try {
     const body = (await request.json()) as SubscriptionBody
-    const {
-      barberId,
-      clientId,
-      clientName,
-      clientEmail,
-      clientWhatsapp,
-      amount,
-      cycle,
-    } = body
+    const provider = body.provider === 'manual' ? 'manual' : 'asaas'
+    const barberId = staff.role === 'BARBER' ? staff.id : body.barberId
+    const amountNumber = Number(body.amount)
+    const cycle = normalizeCycle(body.cycle)
 
-    const amountNumber = Number(amount)
     if (!barberId || !Number.isFinite(amountNumber) || amountNumber <= 0) {
-      return NextResponse.json(
-        { error: 'barberId e valor s\u00e3o obrigat\u00f3rios' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: 'Barbeiro e valor são obrigatórios' }, { status: 400 })
     }
 
-    let resolvedClientName = clientName?.trim() || ''
-    let resolvedEmail = clientEmail?.trim() || ''
-    let resolvedWhatsapp = clientWhatsapp?.trim() || ''
-    const resolvedClientId = clientId
-    let existingAsaasCustomerId = ''
-
-    if (clientId) {
-      const client = await prisma.user.findUnique({ where: { id: clientId } })
-      if (client) {
-        resolvedClientName = client.name || resolvedClientName
-        resolvedEmail = client.email || resolvedEmail
-        resolvedWhatsapp = client.whatsapp || resolvedWhatsapp
-        existingAsaasCustomerId = client.asaasCustomerId || ''
-      }
+    // Vincula à conta do cliente: pelo id escolhido, senão pelo e-mail ou WhatsApp.
+    // Sem conta ainda, a assinatura é vinculada quando o cliente se cadastrar com o mesmo e-mail.
+    const email = body.clientEmail?.trim().toLowerCase() || ''
+    const whatsappDigits = onlyDigits(body.clientWhatsapp)
+    let client = body.clientId ? await prisma.user.findUnique({ where: { id: body.clientId } }) : null
+    if (!client && email) {
+      client = await prisma.user.findUnique({ where: { email } })
     }
-
-    if (!resolvedClientName) {
-      return NextResponse.json(
-        { error: 'Nome do cliente obrigat\u00f3rio' },
-        { status: 400 },
-      )
-    }
-
-    if (!ASAAS_API_KEY) {
-      return NextResponse.json({ error: 'ASAAS_API_KEY n\u00e3o configurada' }, { status: 500 })
-    }
-
-    let asaasCustomerId = existingAsaasCustomerId
-
-    if (!asaasCustomerId) {
-      const customerPayload = {
-        name: resolvedClientName,
-        email: resolvedEmail || undefined,
-        mobilePhone: normalizeDigits(resolvedWhatsapp) || undefined,
-      }
-
-      const customerRes = await fetch(`${ASAAS_API_URL}/customers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          access_token: ASAAS_API_KEY,
-        },
-        body: JSON.stringify(customerPayload),
+    if (!client && whatsappDigits.length >= 10) {
+      const candidates = await prisma.user.findMany({
+        where: { role: 'CLIENT', OR: [{ whatsapp: { not: null } }, { phone: { not: null } }] },
+        select: { id: true, whatsapp: true, phone: true },
       })
+      const match = candidates.find(
+        (c) => onlyDigits(c.whatsapp) === whatsappDigits || onlyDigits(c.phone) === whatsappDigits,
+      )
+      if (match) client = await prisma.user.findUnique({ where: { id: match.id } })
+    }
+    if (client && client.role !== 'CLIENT') client = null
 
-      const customerText = await customerRes.text()
-      let customerData: Record<string, unknown> = {}
-      try {
-        customerData = customerText ? (JSON.parse(customerText) as Record<string, unknown>) : {}
-      } catch (err) {
-        customerData = { raw: customerText, parseError: (err as Error).message }
-      }
+    const clientName = client?.name || body.clientName?.trim() || ''
+    const clientEmail = client?.email || email || null
+    const clientWhatsapp = client?.whatsapp || client?.phone || body.clientWhatsapp?.trim() || null
+    const cpf = onlyDigits(body.cpf) || onlyDigits(client?.cpf)
 
-      if (!customerRes.ok) {
-        console.error('Falha ao criar cliente Asaas:', customerData)
+    if (!clientName) {
+      return NextResponse.json({ error: 'Nome do cliente obrigatório' }, { status: 400 })
+    }
+
+    if (client) {
+      const existing = await prisma.subscription.findFirst({
+        where: { clientId: client.id, status: { in: ['active', 'pending', 'overdue'] } },
+      })
+      if (existing) {
         return NextResponse.json(
-          { error: 'Falha ao criar cliente Asaas' },
-          { status: customerRes.status },
+          { error: 'Este cliente já tem uma assinatura em andamento. Cancele a atual antes de criar outra.' },
+          { status: 409 },
         )
       }
+    }
 
-      asaasCustomerId = typeof customerData.id === 'string' ? customerData.id : ''
+    if (client && cpf && cpf !== client.cpf) {
+      await prisma.user.update({ where: { id: client.id }, data: { cpf } })
+    }
+
+    // Assinatura manual: paga fora do Asaas (balcão), ativa na hora.
+    if (provider === 'manual') {
+      const subscription = await prisma.subscription.create({
+        data: {
+          barberId,
+          clientId: client?.id || null,
+          clientName,
+          clientEmail,
+          clientWhatsapp,
+          amount: amountNumber,
+          cycle,
+          status: 'active',
+          provider: 'manual',
+          lastPaymentAt: new Date(),
+        },
+        include: subscriptionInclude,
+      })
+      return NextResponse.json({ success: true, subscription })
+    }
+
+    if (!isAsaasConfigured()) {
+      return NextResponse.json({ error: 'ASAAS_API_KEY não configurada' }, { status: 503 })
+    }
+
+    if (cpf.length !== 11 && cpf.length !== 14) {
+      return NextResponse.json(
+        { error: 'Informe o CPF (ou CNPJ) do cliente: o Asaas exige para criar a assinatura.' },
+        { status: 400 },
+      )
+    }
+
+    let asaasCustomerId = client?.asaasCustomerId || ''
+    if (!asaasCustomerId) {
+      const customer = await asaasRequest<{ id?: string }>('/customers', {
+        method: 'POST',
+        body: {
+          name: clientName,
+          cpfCnpj: cpf,
+          email: clientEmail || undefined,
+          mobilePhone: onlyDigits(clientWhatsapp) || undefined,
+          externalReference: client?.id,
+          notificationDisabled: false,
+        },
+      })
+      asaasCustomerId = customer.id || ''
       if (!asaasCustomerId) {
-        return NextResponse.json(
-          { error: 'Cliente Asaas criado sem id' },
-          { status: 502 },
-        )
+        return NextResponse.json({ error: 'Asaas não retornou o cliente criado' }, { status: 502 })
       }
-
-      if (clientId) {
-        await prisma.user.update({
-          where: { id: clientId },
-          data: { asaasCustomerId },
-        })
+      if (client) {
+        await prisma.user.update({ where: { id: client.id }, data: { asaasCustomerId } })
       }
     }
 
-    const payload = {
-      customer: asaasCustomerId,
-      billingType: 'UNDEFINED',
-      value: amountNumber,
-      cycle: cycle || 'MONTHLY',
-      nextDueDate: formatDateKey(new Date()),
-    }
-
-    const response = await fetch(`${ASAAS_API_URL}/subscriptions`, {
+    const asaasSubscription = await asaasRequest<{ id?: string }>('/subscriptions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        access_token: ASAAS_API_KEY,
+      body: {
+        customer: asaasCustomerId,
+        billingType: 'UNDEFINED',
+        value: amountNumber,
+        cycle,
+        nextDueDate: formatDateKey(new Date()),
+        description: `Assinatura ${clientName}`,
+        externalReference: client?.id,
       },
-      body: JSON.stringify(payload),
     })
 
-    const text = await response.text()
-    let data: Record<string, unknown> = {}
-    try {
-      data = text ? (JSON.parse(text) as Record<string, unknown>) : {}
-    } catch (err) {
-      data = { raw: text, parseError: (err as Error).message }
+    // Link da primeira mensalidade, enviado ao cliente junto com a proposta
+    let proposalUrl: string | null = null
+    if (asaasSubscription.id) {
+      try {
+        const payments = await asaasRequest<{ data?: { invoiceUrl?: string }[] }>(
+          `/subscriptions/${asaasSubscription.id}/payments`,
+        )
+        proposalUrl = payments.data?.[0]?.invoiceUrl || null
+      } catch {
+        // sem link a proposta segue só com os termos
+      }
     }
 
-    if (!response.ok) {
-      console.error('Falha ao criar assinatura Asaas:', data)
-      return NextResponse.json(
-        { error: 'Falha ao criar assinatura Asaas' },
-        { status: response.status },
-      )
-    }
-
-    const subscriptionId = typeof data.id === 'string' ? data.id : null
-    const proposalUrl = pickUrl(data)
-    const status = typeof data.status === 'string' ? data.status : 'active'
-
+    // Só vira 'active' quando o webhook confirmar o primeiro pagamento
     const subscription = await prisma.subscription.create({
       data: {
         barberId,
-        clientId: resolvedClientId || null,
-        clientName: resolvedClientName,
-        clientEmail: resolvedEmail || null,
-        clientWhatsapp: resolvedWhatsapp || null,
+        clientId: client?.id || null,
+        clientName,
+        clientEmail,
+        clientWhatsapp,
         amount: amountNumber,
-        cycle: payload.cycle,
-        status,
+        cycle,
+        status: 'pending',
+        provider: 'asaas',
         asaasCustomerId,
-        asaasSubscriptionId: subscriptionId,
+        asaasSubscriptionId: asaasSubscription.id || null,
         proposalUrl,
       },
-      include: {
-        barber: { select: { id: true, name: true } },
-        client: { select: { id: true, name: true, email: true, whatsapp: true } },
-      },
+      include: subscriptionInclude,
     })
 
     return NextResponse.json({ success: true, subscription })
   } catch (error) {
     console.error('Erro ao criar assinatura:', error)
+    if (error instanceof AsaasError) {
+      return NextResponse.json({ error: `Asaas: ${error.message}` }, { status: 502 })
+    }
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 }

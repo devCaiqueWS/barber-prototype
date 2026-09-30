@@ -83,6 +83,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Assinatura criada no painel antes de o cliente ter conta: vincula pelo e-mail
+    await prisma.subscription.updateMany({
+      where: { clientId: null, clientEmail: { equals: normalizedEmail, mode: 'insensitive' } },
+      data: { clientId: user.id },
+    })
+
     const token = signAuthToken(user)
 
     const response = NextResponse.json(

@@ -13,6 +13,8 @@ type BarberOption = {
 
 type ClientOption = {
   clientId?: string | null
+  clientCode?: number | null
+  hasCpf?: boolean
   name: string
   email?: string | null
   whatsapp?: string | null
@@ -26,10 +28,29 @@ type SubscriptionItem = {
   amount: number
   cycle: string
   status: string
+  provider?: string
+  lastPaymentAt?: string | null
   proposalUrl?: string | null
   createdAt: string
   barber?: { id: string; name: string } | null
+  client?: { id: string; clientCode?: number | null } | null
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Aguardando 1º pagamento',
+  active: 'Ativa',
+  overdue: 'Em atraso',
+  cancelled: 'Cancelada',
+}
+
+const CYCLE_LABELS: Record<string, string> = {
+  MONTHLY: 'Mensal',
+  QUARTERLY: 'Trimestral',
+  SEMIANNUALLY: 'Semestral',
+  YEARLY: 'Anual',
+}
+
+const formatClientCode = (code?: number | null) => (code ? `#${String(code).padStart(6, '0')}` : '')
 
 const toWhatsappUrl = (whatsapp: string, message: string) => {
   const digits = whatsapp.replace(/\D/g, '')
@@ -85,6 +106,9 @@ export default function SubscriptionsManagement() {
   const [customClientEmail, setCustomClientEmail] = useState('')
   const [amount, setAmount] = useState('0')
   const [cycle, setCycle] = useState('MONTHLY')
+  const [cpf, setCpf] = useState('')
+  const [provider, setProvider] = useState<'asaas' | 'manual'>('asaas')
+  const [updatingId, setUpdatingId] = useState('')
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -189,6 +213,12 @@ export default function SubscriptionsManagement() {
       alert('Cliente sem WhatsApp valido')
       return
     }
+    const clientHasCpf = selectedClientId !== 'custom' && Boolean((selectedClient as ClientOption).hasCpf)
+    const cpfDigits = cpf.replace(/\D/g, '')
+    if (provider === 'asaas' && !clientHasCpf && cpfDigits.length !== 11 && cpfDigits.length !== 14) {
+      alert('Informe o CPF do cliente (o Asaas exige para cobrar a assinatura)')
+      return
+    }
 
     try {
       setCreating(true)
@@ -203,6 +233,8 @@ export default function SubscriptionsManagement() {
           clientWhatsapp: selectedClient.whatsapp,
           amount: amountNumber,
           cycle,
+          cpf: cpfDigits || undefined,
+          provider,
         }),
       })
 
@@ -214,6 +246,13 @@ export default function SubscriptionsManagement() {
 
       const subscription: SubscriptionItem = data.subscription
       await loadSubscriptions(selectedBarberId)
+      setCpf('')
+
+      // Assinatura manual já nasce ativa: não há proposta de pagamento para enviar
+      if (provider === 'manual') {
+        alert('Assinatura manual ativada.')
+        return
+      }
 
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const termsUrl = origin
@@ -240,8 +279,36 @@ export default function SubscriptionsManagement() {
   const statusClass = (status: string) => {
     const normalized = status.toLowerCase()
     if (normalized === 'active') return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/50'
-    if (normalized === 'cancelled') return 'bg-red-500/15 text-red-300 border-red-500/50'
+    if (normalized === 'cancelled' || normalized === 'overdue') return 'bg-red-500/15 text-red-300 border-red-500/50'
     return 'bg-amber-500/15 text-amber-300 border-amber-500/50'
+  }
+
+  const handleSubscriptionAction = async (item: SubscriptionItem, action: 'activate' | 'cancel') => {
+    const question =
+      action === 'activate'
+        ? `Ativar manualmente a assinatura de ${item.clientName}? Use quando o pagamento foi feito fora do Asaas.`
+        : `Cancelar a assinatura de ${item.clientName}?${item.provider === 'asaas' ? ' A cobrança recorrente no Asaas também será cancelada.' : ''}`
+    if (!confirm(question)) return
+
+    try {
+      setUpdatingId(item.id)
+      const response = await fetch(`/api/admin/subscriptions/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        alert(data?.error || 'Erro ao atualizar assinatura')
+        return
+      }
+      await loadSubscriptions(selectedBarberId)
+    } catch (error) {
+      console.error('Erro ao atualizar assinatura:', error)
+      alert('Erro ao atualizar assinatura')
+    } finally {
+      setUpdatingId('')
+    }
   }
 
   return (
@@ -291,7 +358,7 @@ export default function SubscriptionsManagement() {
               <option value="">Selecione</option>
               {clients.map((client, index) => (
                 <option key={`${client.clientId || client.email || index}`} value={`${index}`}>
-                  {client.name} {client.whatsapp ? `- ${client.whatsapp}` : ''}
+                  {client.clientCode ? `${formatClientCode(client.clientCode)} · ` : ''}{client.name} {client.whatsapp ? `- ${client.whatsapp}` : ''}
                 </option>
               ))}
               <option value="custom">Outro cliente</option>
@@ -345,21 +412,49 @@ export default function SubscriptionsManagement() {
             >
               <option value="MONTHLY">Mensal</option>
               <option value="QUARTERLY">Trimestral</option>
-              <option value="SEMIANNUAL">Semestral</option>
+              <option value="SEMIANNUALLY">Semestral</option>
               <option value="YEARLY">Anual</option>
             </select>
           </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Cobrança</label>
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value === 'manual' ? 'manual' : 'asaas')}
+              className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            >
+              <option value="asaas">Recorrente pelo Asaas (PIX/cartão/boleto)</option>
+              <option value="manual">Manual (paga no balcão, já ativa)</option>
+            </select>
+          </div>
+          {provider === 'asaas' && (
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">
+                CPF do cliente{' '}
+                {selectedClientId !== 'custom' && (selectedClient as ClientOption | null)?.hasCpf
+                  ? '(já cadastrado, opcional)'
+                  : '(obrigatório no Asaas)'}
+              </label>
+              <input
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+              />
+            </div>
+          )}
         </div>
         <div className="mt-4 flex justify-stretch sm:justify-end">
           <Button onClick={handleCreate} disabled={creating} className="w-full sm:w-auto">
-            {creating ? 'Criando...' : 'Enviar proposta'}
+            {creating ? 'Criando...' : provider === 'manual' ? 'Ativar assinatura' : 'Enviar proposta'}
           </Button>
         </div>
       </div>
 
       <div className="bg-slate-900 rounded-lg p-4 sm:p-6 border border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h3 className="text-lg font-semibold text-white">Assinaturas ativas e pendentes</h3>
+          <h3 className="text-lg font-semibold text-white">Assinaturas</h3>
           <Button variant="outline" onClick={() => loadSubscriptions(selectedBarberId)} className="w-full sm:w-auto">
             Atualizar
           </Button>
@@ -378,14 +473,21 @@ export default function SubscriptionsManagement() {
                   <th className="py-2 px-3 border-b border-slate-800">Valor</th>
                   <th className="py-2 px-3 border-b border-slate-800">Ciclo</th>
                   <th className="py-2 px-3 border-b border-slate-800">Status</th>
-                  <th className="py-2 px-3 border-b border-slate-800">Criado em</th>
+                  <th className="py-2 px-3 border-b border-slate-800">Último pagamento</th>
+                  <th className="py-2 px-3 border-b border-slate-800">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {subscriptions.map((item) => (
                   <tr key={item.id} className="text-slate-200">
                     <td className="py-2 px-3 border-b border-slate-800">
-                      <div className="font-medium">{item.clientName}</div>
+                      <div className="font-medium">
+                        {item.client?.clientCode ? `${formatClientCode(item.client.clientCode)} · ` : ''}
+                        {item.clientName}
+                      </div>
+                      {!item.client && (
+                        <div className="text-xs text-amber-400">Sem conta vinculada (vincula quando o cliente se cadastrar com o mesmo e-mail)</div>
+                      )}
                       {item.clientWhatsapp && (
                         <div className="text-xs text-slate-400">{item.clientWhatsapp}</div>
                       )}
@@ -397,15 +499,51 @@ export default function SubscriptionsManagement() {
                       R$ {Number(item.amount).toFixed(2).replace('.', ',')}
                     </td>
                     <td className="py-2 px-3 border-b border-slate-800">
-                      {item.cycle}
+                      {CYCLE_LABELS[item.cycle] || item.cycle}
+                      <div className="text-xs text-slate-500">{item.provider === 'manual' ? 'Manual' : 'Asaas'}</div>
                     </td>
                     <td className="py-2 px-3 border-b border-slate-800">
                       <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${statusClass(item.status)}`}>
-                        {item.status}
+                        {STATUS_LABELS[item.status] || item.status}
                       </span>
                     </td>
                     <td className="py-2 px-3 border-b border-slate-800">
-                      {formatDateBR(item.createdAt)}
+                      {item.lastPaymentAt ? formatDateBR(item.lastPaymentAt) : '-'}
+                      <div className="text-xs text-slate-500">Criada em {formatDateBR(item.createdAt)}</div>
+                    </td>
+                    <td className="py-2 px-3 border-b border-slate-800">
+                      <div className="flex flex-wrap gap-2">
+                        {item.status !== 'active' && item.status !== 'cancelled' && (
+                          <button
+                            type="button"
+                            disabled={updatingId === item.id}
+                            onClick={() => handleSubscriptionAction(item, 'activate')}
+                            className="rounded-md border border-emerald-500/50 px-2 py-1 text-xs text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-50"
+                          >
+                            Ativar
+                          </button>
+                        )}
+                        {item.status !== 'cancelled' && (
+                          <button
+                            type="button"
+                            disabled={updatingId === item.id}
+                            onClick={() => handleSubscriptionAction(item, 'cancel')}
+                            className="rounded-md border border-red-500/50 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                        {item.proposalUrl && item.status === 'pending' && (
+                          <a
+                            href={item.proposalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
+                          >
+                            Link de pagamento
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
