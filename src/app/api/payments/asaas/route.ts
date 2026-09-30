@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getAuthUser } from '@/lib/client-auth'
 import { resolveSiteUrl } from '@/lib/business'
 import { hasSlotConflict, paymentHoldDeadline, PAYMENT_HOLD_MINUTES } from '@/lib/appointment-status'
+import { appointmentStartsAt } from '@/lib/client-hub'
 import {
   AsaasError,
   ASAAS_CHECKOUT_MINUTES,
@@ -55,6 +56,10 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
+    if (appointmentStartsAt(appointment.date, appointment.startTime) <= now) {
+      return NextResponse.json({ error: 'O horário deste agendamento já passou.' }, { status: 409 })
+    }
+
     const holdActive =
       appointment.status === 'awaiting_payment' &&
       appointment.paymentExpiresAt != null &&
