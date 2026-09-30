@@ -78,7 +78,7 @@ export default function ClientsManagement() {
         (client.name || '').toLowerCase().includes(term) ||
         client.email.toLowerCase().includes(term) ||
         client.whatsapp.toLowerCase().includes(term) ||
-        (/^#?d+$/.test(term) && String(client.clientCode) === term.replace(/^#0*/, ''))
+        (/^#?\d+$/.test(term) && String(client.clientCode) === term.replace(/^#0*/, ''))
 
       const matchesFilter =
         filter === 'all' ||

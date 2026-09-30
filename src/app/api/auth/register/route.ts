@@ -83,11 +83,22 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Assinatura criada no painel antes de o cliente ter conta: vincula pelo e-mail
-    await prisma.subscription.updateMany({
-      where: { clientId: null, clientEmail: { equals: normalizedEmail, mode: 'insensitive' } },
-      data: { clientId: user.id },
-    })
+    // Assinatura criada no painel antes de o cliente ter conta. O e-mail não é
+    // verificado no cadastro, então só vincula quando o WhatsApp também confere
+    // com o registrado pela barbearia — evita alguém "herdar" a assinatura de outro.
+    const whatsappDigits = (user.whatsapp || '').replace(/\D/g, '')
+    if (whatsappDigits.length >= 10) {
+      const orphans = await prisma.subscription.findMany({
+        where: { clientId: null, clientEmail: { equals: normalizedEmail, mode: 'insensitive' } },
+        select: { id: true, clientWhatsapp: true },
+      })
+      const matching = orphans
+        .filter((s) => (s.clientWhatsapp || '').replace(/\D/g, '').endsWith(whatsappDigits.slice(-10)))
+        .map((s) => s.id)
+      if (matching.length > 0) {
+        await prisma.subscription.updateMany({ where: { id: { in: matching } }, data: { clientId: user.id } })
+      }
+    }
 
     const token = signAuthToken(user)
 

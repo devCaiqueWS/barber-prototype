@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { formatDateKey } from '@/lib/date'
 import { asaasRequest, AsaasError, isAsaasConfigured, onlyDigits } from '@/lib/asaas'
 import { requireStaff } from '@/lib/staff-auth'
+import { isValidCpfCnpj } from '@/lib/client-hub'
 
 type SubscriptionBody = {
   barberId?: string
@@ -85,17 +86,19 @@ export async function POST(request: NextRequest) {
         where: { role: 'CLIENT', OR: [{ whatsapp: { not: null } }, { phone: { not: null } }] },
         select: { id: true, whatsapp: true, phone: true },
       })
-      const match = candidates.find(
+      const matches = candidates.filter(
         (c) => onlyDigits(c.whatsapp) === whatsappDigits || onlyDigits(c.phone) === whatsappDigits,
       )
-      if (match) client = await prisma.user.findUnique({ where: { id: match.id } })
+      // Só vincula quando o número aponta para uma única conta; ambíguo fica sem vínculo
+      if (matches.length === 1) client = await prisma.user.findUnique({ where: { id: matches[0].id } })
     }
     if (client && client.role !== 'CLIENT') client = null
 
     const clientName = client?.name || body.clientName?.trim() || ''
     const clientEmail = client?.email || email || null
     const clientWhatsapp = client?.whatsapp || client?.phone || body.clientWhatsapp?.trim() || null
-    const cpf = onlyDigits(body.cpf) || onlyDigits(client?.cpf)
+    // O CPF que o próprio cliente cadastrou tem prioridade sobre o digitado no painel
+    const cpf = onlyDigits(client?.cpf) || onlyDigits(body.cpf)
 
     if (!clientName) {
       return NextResponse.json({ error: 'Nome do cliente obrigatório' }, { status: 400 })
@@ -113,7 +116,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (client && cpf && cpf !== client.cpf) {
+    // Completa o CPF da conta se ainda não houver; nunca sobrescreve o que o cliente cadastrou
+    if (client && cpf && !client.cpf) {
       await prisma.user.update({ where: { id: client.id }, data: { cpf } })
     }
 
@@ -141,7 +145,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ASAAS_API_KEY não configurada' }, { status: 503 })
     }
 
-    if (cpf.length !== 11 && cpf.length !== 14) {
+    if (!isValidCpfCnpj(cpf)) {
       return NextResponse.json(
         { error: 'Informe o CPF (ou CNPJ) do cliente: o Asaas exige para criar a assinatura.' },
         { status: 400 },
