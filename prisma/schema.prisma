@@ -21,6 +21,8 @@ enum Role {
 
 model User {
   id            String   @id @default(uuid())
+  // Código curto e sequencial exibido como #000123 (balcão, Hub, painel)
+  clientCode    Int      @unique @default(autoincrement())
   email         String   @unique
   name          String?
   password      String
@@ -28,7 +30,8 @@ model User {
   phone         String?
   whatsapp      String? // Campo WhatsApp
   asaasCustomerId String? // ID do cliente no Asaas
-  isActive      Boolean  @default(true)
+  cpf           String? // Somente dígitos; o Asaas exige CPF/CNPJ para criar assinatura
+  isActive     Boolean  @default(true)
   // Conta criada pelo próprio cliente (obrigatória para agendar).
   // Contas antigas auto-criadas ficam false até o cliente se cadastrar com o mesmo e-mail.
   isRegistered  Boolean  @default(false)
@@ -68,7 +71,9 @@ model Appointment {
   date           String // Data no formato YYYY-MM-DD
   startTime      String // Horário de início
   endTime        String // Horário de fim
-  status         String   @default("pending") // 'pending', 'confirmed', 'completed', 'cancelled'
+  // 'awaiting_payment', 'pending', 'confirmed', 'completed', 'cancelled', 'no_show',
+  // 'expired' (reserva não paga a tempo), 'payment_conflict' (pago após perder o horário)
+  status         String   @default("pending")
   clientName     String // Nome do cliente
   clientEmail    String // Email do cliente
   clientPhone    String // Telefone do cliente
@@ -90,8 +95,12 @@ model Appointment {
   asaasPaymentLinkId String? // id do link de pagamento gerado para este agendamento
   asaasPaymentId     String? // id da cobrança que quitou o agendamento
   paidAt             DateTime? // preenchido quando o webhook confirma o pagamento
+  asaasCheckoutId    String? // id do Asaas Checkout (fluxo atual)
+  paymentExpiresAt   DateTime? // fim da reserva do horário enquanto aguarda pagamento
+  amountPaid         Float? // valor confirmado pelo Asaas
 
   @@index([asaasPaymentLinkId])
+  @@index([asaasCheckoutId])
 }
 
 model Subscription {
@@ -105,12 +114,16 @@ model Subscription {
   clientWhatsapp   String?
   amount           Float
   cycle            String   @default("MONTHLY")
-  status           String   @default("pending") // pending, active, cancelled
+  status           String   @default("pending") // pending, active, overdue, cancelled
+  provider         String   @default("asaas") // 'asaas' | 'manual' (paga fora do Asaas)
+  lastPaymentAt    DateTime?
   asaasCustomerId  String?
   asaasSubscriptionId String?
   proposalUrl      String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@index([asaasSubscriptionId])
 }
 
 // Disponibilidade e bloqueios por barbeiro e data
