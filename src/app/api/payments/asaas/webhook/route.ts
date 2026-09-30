@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveSiteUrl } from '@/lib/business'
 import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
+import { hasSlotConflict } from '@/lib/appointment-status'
 
-// Webhook do Asaas para cobranças.
+// Webhook do Asaas (agendamentos e assinaturas).
 // Configuração: ASAAS_WEBHOOK_TOKEN (o mesmo token cadastrado no painel do Asaas).
 //
 // O Asaas entrega "at least once": o mesmo evento pode chegar mais de uma vez.
-// A idempotência aqui vem do campo paidAt — só o primeiro evento de pagamento
+// A idempotência vem do campo paidAt — só o primeiro evento de pagamento
 // confirma o agendamento e dispara o e-mail.
 //
 // Regra de resposta: devolver 2xx sempre que a mensagem foi entendida (mesmo
@@ -17,13 +18,19 @@ import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
 
 const PAID_EVENTS = new Set(['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'])
 
-const CANCEL_EVENTS = new Set([
-  'PAYMENT_OVERDUE',
-  'PAYMENT_DELETED',
+// Dinheiro devolvido: o agendamento deixa de valer.
+const REVERSAL_EVENTS = new Set([
   'PAYMENT_REFUNDED',
   'PAYMENT_CHARGEBACK_REQUESTED',
   'PAYMENT_REVERSED',
 ])
+
+// Cobrança que não vai mais ser paga.
+const UNPAID_EVENTS = new Set(['PAYMENT_OVERDUE', 'PAYMENT_DELETED'])
+
+const CHECKOUT_CLOSED_EVENTS = new Set(['CHECKOUT_EXPIRED', 'CHECKOUT_CANCELED'])
+
+const SUBSCRIPTION_ENDED_EVENTS = new Set(['SUBSCRIPTION_DELETED', 'SUBSCRIPTION_INACTIVATED'])
 
 type AsaasWebhookBody = {
   id?: string
@@ -32,11 +39,26 @@ type AsaasWebhookBody = {
     id?: string
     externalReference?: string | null
     paymentLink?: string | null
+    checkoutSession?: string | null
+    subscription?: string | null
     value?: number
     status?: string
     billingType?: string
   }
+  checkout?: { id?: string; status?: string }
+  subscription?: { id?: string; status?: string }
 }
+
+const ok = (payload: Record<string, unknown>) => NextResponse.json({ received: true, ...payload }, { status: 200 })
+
+const appointmentInclude = {
+  barber: { select: { name: true } },
+  service: { select: { name: true, price: true, duration: true } },
+} as const
+
+type AppointmentWithRelations = NonNullable<
+  Awaited<ReturnType<typeof prisma.appointment.findFirst<{ include: typeof appointmentInclude }>>>
+>
 
 export async function POST(request: NextRequest) {
   const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN
@@ -58,128 +80,266 @@ export async function POST(request: NextRequest) {
     body = (await request.json()) as AsaasWebhookBody
   } catch {
     // Corpo ilegível: reenviar não resolve.
-    return NextResponse.json({ received: true, ignored: 'corpo inválido' }, { status: 200 })
+    return ok({ ignored: 'corpo inválido' })
   }
 
   const event = body.event || ''
-  const payment = body.payment
-
-  if (!payment) {
-    return NextResponse.json({ received: true, ignored: 'sem objeto payment' }, { status: 200 })
-  }
-
-  const isPaid = PAID_EVENTS.has(event)
-  const isCancelled = CANCEL_EVENTS.has(event)
-
-  if (!isPaid && !isCancelled) {
-    // PAYMENT_CREATED, análises de risco, splits etc. não mudam o agendamento.
-    return NextResponse.json({ received: true, ignored: event }, { status: 200 })
-  }
 
   try {
-    // O link de pagamento é criado com externalReference = id do agendamento,
-    // mas nem toda cobrança propaga esse campo. Por isso casamos também pelo
-    // id do link, guardado no agendamento quando o checkout foi gerado.
-    const externalReference = payment.externalReference?.trim() || ''
-    const paymentLinkId = payment.paymentLink?.trim() || ''
-
-    const appointment = await prisma.appointment.findFirst({
-      where: {
-        OR: [
-          externalReference ? { id: externalReference } : undefined,
-          paymentLinkId ? { asaasPaymentLinkId: paymentLinkId } : undefined,
-        ].filter(Boolean) as { id: string }[] | { asaasPaymentLinkId: string }[],
-      },
-      include: {
-        barber: { select: { name: true } },
-        service: { select: { name: true, price: true, duration: true } },
-      },
-    })
-
-    if (!appointment) {
-      // Cobrança que não é de agendamento (assinatura, cobrança avulsa) ou id
-      // desconhecido. Reenviar não resolve — encerramos com 200.
-      console.warn(
-        `[asaas-webhook] ${event}: nenhum agendamento para externalReference="${externalReference}" paymentLink="${paymentLinkId}"`,
-      )
-      return NextResponse.json({ received: true, ignored: 'agendamento não encontrado' }, { status: 200 })
+    if (SUBSCRIPTION_ENDED_EVENTS.has(event)) {
+      return await handleSubscriptionEnded(event, body.subscription?.id)
     }
 
-    if (isCancelled) {
-      if (appointment.status === 'cancelled') {
-        return NextResponse.json({ received: true, alreadyCancelled: true }, { status: 200 })
-      }
+    if (event === 'CHECKOUT_PAID' || CHECKOUT_CLOSED_EVENTS.has(event)) {
+      return await handleCheckoutEvent(request, event, body.checkout?.id)
+    }
 
+    const payment = body.payment
+    if (!payment) return ok({ ignored: event || 'sem objeto payment' })
+
+    const isPaid = PAID_EVENTS.has(event)
+    const isReversal = REVERSAL_EVENTS.has(event)
+    const isUnpaid = UNPAID_EVENTS.has(event)
+
+    if (!isPaid && !isReversal && !isUnpaid) {
+      // PAYMENT_CREATED, análises de risco, splits etc. não mudam nada aqui.
+      return ok({ ignored: event })
+    }
+
+    // Mensalidade de assinatura
+    if (payment.subscription) {
+      return await handleSubscriptionPayment(event, payment.subscription, { isPaid, isUnpaid })
+    }
+
+    const appointment = await findAppointmentForPayment(payment)
+    if (!appointment) {
+      // Cobrança avulsa ou id desconhecido. Reenviar não resolve — encerramos com 200.
+      console.warn(
+        `[asaas-webhook] ${event}: nenhum agendamento para externalReference="${payment.externalReference || ''}" ` +
+          `checkout="${payment.checkoutSession || ''}" paymentLink="${payment.paymentLink || ''}"`,
+      )
+      return ok({ ignored: 'agendamento não encontrado' })
+    }
+
+    if (isReversal) {
+      if (appointment.status === 'cancelled') return ok({ appointmentId: appointment.id, alreadyCancelled: true })
       await prisma.appointment.update({
         where: { id: appointment.id },
-        data: {
-          status: 'cancelled',
-          asaasPaymentId: payment.id || appointment.asaasPaymentId,
-        },
+        data: { status: 'cancelled', asaasPaymentId: payment.id || appointment.asaasPaymentId },
       })
-
-      console.log(`[asaas-webhook] ${event}: agendamento ${appointment.id} cancelado.`)
-      return NextResponse.json({ received: true, appointmentId: appointment.id, status: 'cancelled' }, { status: 200 })
+      console.log(`[asaas-webhook] ${event}: agendamento ${appointment.id} cancelado (estorno).`)
+      return ok({ appointmentId: appointment.id, status: 'cancelled' })
     }
 
-    // Pagamento confirmado — idempotente: se já tem paidAt, nada a fazer.
-    if (appointment.paidAt) {
-      return NextResponse.json(
-        { received: true, appointmentId: appointment.id, alreadyPaid: true },
-        { status: 200 },
-      )
-    }
-
-    const updated = await prisma.appointment.update({
-      where: { id: appointment.id },
-      data: {
-        status: 'confirmed',
-        paidAt: new Date(),
-        asaasPaymentId: payment.id || null,
-      },
-    })
-
-    console.log(`[asaas-webhook] ${event}: agendamento ${appointment.id} confirmado.`)
-
-    // Agora sim o cliente recebe a confirmação com o arquivo de agenda.
-    // Uma falha de e-mail não pode fazer o Asaas reenviar o evento.
-    try {
-      const result = await sendAppointmentConfirmationEmail({
-        id: updated.id,
-        clientName: updated.clientName,
-        clientEmail: updated.clientEmail,
-        date: updated.date,
-        startTime: updated.startTime,
-        endTime: updated.endTime,
-        status: updated.status,
-        payOnline: updated.payOnline,
-        paymentMethod: updated.paymentMethod,
-        serviceName: appointment.service?.name,
-        servicePrice: appointment.service?.price,
-        serviceDuration: appointment.service?.duration,
-        barberName: appointment.barber?.name,
-        siteUrl: resolveSiteUrl(request),
-      })
-
-      if (!result.sent) {
-        console.warn(
-          `[asaas-webhook] Confirmação não enviada para ${updated.id}:`,
-          result.skipped || result.error,
-        )
+    if (isUnpaid) {
+      // Cobrança vencida/removida sem pagamento: a reserva deixa de valer — mas só
+      // depois do prazo, porque um "pagar agora" pode ter renovado a reserva com
+      // outro checkout enquanto esta cobrança antiga vencia.
+      const holdStillValid = appointment.paymentExpiresAt != null && appointment.paymentExpiresAt > new Date()
+      if (appointment.paidAt || appointment.status !== 'awaiting_payment' || holdStillValid) {
+        return ok({ appointmentId: appointment.id, ignored: 'agendamento não aguardava pagamento' })
       }
-    } catch (emailError) {
-      console.error('[asaas-webhook] Erro ao enviar e-mail de confirmação:', emailError)
+      await prisma.appointment.update({ where: { id: appointment.id }, data: { status: 'expired' } })
+      return ok({ appointmentId: appointment.id, status: 'expired' })
     }
 
-    return NextResponse.json(
-      { received: true, appointmentId: updated.id, status: 'confirmed' },
-      { status: 200 },
-    )
+    // Pagamento confirmado: confere se o valor cobre o serviço.
+    const price = appointment.service?.price ?? 0
+    const paidValue = typeof payment.value === 'number' ? payment.value : null
+    if (paidValue != null && paidValue + 0.009 < price) {
+      console.error(
+        `[asaas-webhook] ${event}: valor pago R$ ${paidValue} menor que o serviço R$ ${price} ` +
+          `(agendamento ${appointment.id}, cobrança ${payment.id}). Não confirmado.`,
+      )
+      return ok({ appointmentId: appointment.id, ignored: 'valor insuficiente' })
+    }
+
+    return await confirmAppointmentPayment(request, event, appointment, {
+      paymentId: payment.id || null,
+      amount: paidValue,
+    })
   } catch (error) {
     // Falha nossa (banco fora, por exemplo): 500 para o Asaas reenviar.
     console.error('[asaas-webhook] Erro ao processar evento:', error)
     return NextResponse.json({ error: 'Erro ao processar evento' }, { status: 500 })
   }
+}
+
+// O Checkout é criado com externalReference = id do agendamento, e o id do
+// checkout (ou do link de pagamento legado) fica salvo no agendamento.
+async function findAppointmentForPayment(payment: NonNullable<AsaasWebhookBody['payment']>) {
+  const externalReference = payment.externalReference?.trim() || ''
+  const checkoutId = payment.checkoutSession?.trim() || ''
+  const paymentLinkId = payment.paymentLink?.trim() || ''
+
+  const or = [
+    externalReference ? { id: externalReference } : null,
+    checkoutId ? { asaasCheckoutId: checkoutId } : null,
+    paymentLinkId ? { asaasPaymentLinkId: paymentLinkId } : null,
+  ].filter((clause): clause is NonNullable<typeof clause> => clause !== null)
+
+  if (or.length === 0) return null
+  return prisma.appointment.findFirst({ where: { OR: or }, include: appointmentInclude })
+}
+
+async function handleCheckoutEvent(request: NextRequest, event: string, checkoutId?: string) {
+  if (!checkoutId) return ok({ ignored: `${event} sem checkout.id` })
+
+  const appointment = await prisma.appointment.findFirst({
+    where: { asaasCheckoutId: checkoutId },
+    include: appointmentInclude,
+  })
+
+  if (!appointment) {
+    // Checkout antigo (substituído por um novo "pagar agora") ou de outra origem.
+    return ok({ ignored: 'checkout sem agendamento atual' })
+  }
+
+  if (event === 'CHECKOUT_PAID') {
+    return confirmAppointmentPayment(request, event, appointment, { paymentId: null, amount: null })
+  }
+
+  // Expirado/cancelado sem pagamento: libera a reserva.
+  if (appointment.status === 'awaiting_payment' && !appointment.paidAt) {
+    await prisma.appointment.update({ where: { id: appointment.id }, data: { status: 'expired' } })
+    return ok({ appointmentId: appointment.id, status: 'expired' })
+  }
+  return ok({ appointmentId: appointment.id, ignored: 'agendamento não aguardava pagamento' })
+}
+
+async function confirmAppointmentPayment(
+  request: NextRequest,
+  event: string,
+  appointment: AppointmentWithRelations,
+  payment: { paymentId: string | null; amount: number | null },
+) {
+  // Idempotente: CHECKOUT_PAID e PAYMENT_RECEIVED chegam para o mesmo pagamento.
+  if (appointment.paidAt) {
+    // Completa os dados da cobrança se o primeiro evento não os trazia.
+    if (payment.paymentId && !appointment.asaasPaymentId) {
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { asaasPaymentId: payment.paymentId, amountPaid: payment.amount ?? appointment.amountPaid },
+      })
+    }
+    return ok({ appointmentId: appointment.id, alreadyPaid: true })
+  }
+
+  // Pagou depois de a reserva vencer (ou de o agendamento ser cancelado):
+  // confirma se o horário continua livre; senão registra o conflito para o admin
+  // resolver (estorno manual) sem tomar o horário de outra pessoa.
+  const holdLost =
+    ['expired', 'cancelled'].includes(appointment.status) ||
+    (appointment.status === 'awaiting_payment' &&
+      appointment.paymentExpiresAt != null &&
+      appointment.paymentExpiresAt <= new Date())
+
+  let nextStatus = 'confirmed'
+  if (holdLost && appointment.barberId) {
+    const conflict = await hasSlotConflict({
+      barberId: appointment.barberId,
+      date: appointment.date,
+      startTime: appointment.startTime,
+      durationMinutes: appointment.service?.duration ?? 30,
+      excludeId: appointment.id,
+    })
+    if (conflict) nextStatus = 'payment_conflict'
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { id: appointment.id },
+    data: {
+      status: nextStatus,
+      paidAt: new Date(),
+      payOnline: true,
+      asaasPaymentId: payment.paymentId || appointment.asaasPaymentId,
+      amountPaid: payment.amount ?? appointment.service?.price ?? null,
+    },
+  })
+
+  if (nextStatus === 'payment_conflict') {
+    console.error(
+      `[asaas-webhook] ${event}: agendamento ${appointment.id} pago depois de perder o horário ` +
+        `${appointment.date} ${appointment.startTime}. Precisa de estorno ou remarcação manual.`,
+    )
+    return ok({ appointmentId: appointment.id, status: nextStatus })
+  }
+
+  console.log(`[asaas-webhook] ${event}: agendamento ${appointment.id} confirmado.`)
+
+  // Agora sim o cliente recebe a confirmação com o arquivo de agenda.
+  // Uma falha de e-mail não pode fazer o Asaas reenviar o evento.
+  try {
+    const result = await sendAppointmentConfirmationEmail({
+      id: updated.id,
+      clientName: updated.clientName,
+      clientEmail: updated.clientEmail,
+      date: updated.date,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      status: updated.status,
+      payOnline: updated.payOnline,
+      paymentMethod: updated.paymentMethod,
+      serviceName: appointment.service?.name,
+      servicePrice: appointment.service?.price,
+      serviceDuration: appointment.service?.duration,
+      barberName: appointment.barber?.name,
+      siteUrl: resolveSiteUrl(request),
+    })
+
+    if (!result.sent) {
+      console.warn(`[asaas-webhook] Confirmação não enviada para ${updated.id}:`, result.skipped || result.error)
+    }
+  } catch (emailError) {
+    console.error('[asaas-webhook] Erro ao enviar e-mail de confirmação:', emailError)
+  }
+
+  return ok({ appointmentId: updated.id, status: 'confirmed' })
+}
+
+async function handleSubscriptionPayment(
+  event: string,
+  asaasSubscriptionId: string,
+  flags: { isPaid: boolean; isUnpaid: boolean },
+) {
+  const subscription = await prisma.subscription.findFirst({ where: { asaasSubscriptionId } })
+  if (!subscription) {
+    console.warn(`[asaas-webhook] ${event}: assinatura ${asaasSubscriptionId} não encontrada.`)
+    return ok({ ignored: 'assinatura não encontrada' })
+  }
+
+  if (subscription.status === 'cancelled') {
+    return ok({ subscriptionId: subscription.id, ignored: 'assinatura cancelada' })
+  }
+
+  if (flags.isPaid) {
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { status: 'active', lastPaymentAt: new Date() },
+    })
+    console.log(`[asaas-webhook] ${event}: assinatura ${subscription.id} ativa.`)
+    return ok({ subscriptionId: subscription.id, status: 'active' })
+  }
+
+  if (flags.isUnpaid && event === 'PAYMENT_OVERDUE') {
+    await prisma.subscription.update({ where: { id: subscription.id }, data: { status: 'overdue' } })
+    console.log(`[asaas-webhook] ${event}: assinatura ${subscription.id} em atraso.`)
+    return ok({ subscriptionId: subscription.id, status: 'overdue' })
+  }
+
+  // Estorno de mensalidade ou cobrança removida: não muda o status sozinho.
+  return ok({ subscriptionId: subscription.id, ignored: event })
+}
+
+async function handleSubscriptionEnded(event: string, asaasSubscriptionId?: string) {
+  if (!asaasSubscriptionId) return ok({ ignored: `${event} sem subscription.id` })
+
+  const result = await prisma.subscription.updateMany({
+    where: { asaasSubscriptionId, status: { not: 'cancelled' } },
+    data: { status: 'cancelled' },
+  })
+  console.log(`[asaas-webhook] ${event}: ${result.count} assinatura(s) cancelada(s).`)
+  return ok({ cancelled: result.count })
 }
 
 // O painel do Asaas faz uma checagem de alcance da URL antes de salvar.
