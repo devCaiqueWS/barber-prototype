@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -167,7 +167,17 @@ export default function AdminAppointments() {
   const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
   const today = useMemo(() => startOfDay(new Date()), [])
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => startOfDay(addDays(calendarStart, i))), [calendarStart])
-  const hours = useMemo(() => Array.from({ length: 13 }, (_, i) => 8 + i), [])
+  const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), [])
+  const calendarScrollRef = useRef<HTMLDivElement>(null)
+  const noonRowRef = useRef<HTMLDivElement>(null)
+
+  // Grade cobre 00h–23h59; abre centralizada no 12h para rolar para cima ou para baixo
+  useEffect(() => {
+    const container = calendarScrollRef.current
+    const noonRow = noonRowRef.current
+    if (loading || !container || !noonRow) return
+    container.scrollTop = noonRow.offsetTop - (container.clientHeight - noonRow.offsetHeight) / 2
+  }, [loading])
 
   const toDateKey = (value: Date | string) => formatDateKey(value)
 
@@ -292,16 +302,16 @@ export default function AdminAppointments() {
                 </Button>
             </div>
           </div>
-          <div className="overflow-auto max-h-[70vh]">
+          <div ref={calendarScrollRef} className="relative overflow-auto max-h-[70vh]">
             <div className="grid min-w-[900px] md:min-w-[1100px]" style={{ gridTemplateColumns: '100px repeat(7, minmax(0, 1fr))' }}>
-              <div className="p-3 text-xs font-semibold uppercase text-slate-300 tracking-wide border border-slate-800 bg-slate-950/60 rounded-tl-xl">
+              <div className="sticky top-0 z-10 p-3 text-xs font-semibold uppercase text-slate-300 tracking-wide border border-slate-800 bg-slate-950 rounded-tl-xl">
                 Horário
               </div>
               {weekDays.map((day, idx) => (
                 <div
                   key={idx}
-                  className={`p-3 border border-slate-800 text-center text-sm font-semibold text-white bg-slate-950/70 ${
-                    isSameDay(day, today) ? 'bg-slate-800/60' : ''
+                  className={`sticky top-0 z-10 p-3 border border-slate-800 text-center text-sm font-semibold text-white ${
+                    isSameDay(day, today) ? 'bg-slate-800' : 'bg-slate-950'
                   } ${idx === weekDays.length - 1 ? 'rounded-tr-xl' : ''}`}
                 >
                   <div className="capitalize">{day.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
@@ -310,7 +320,7 @@ export default function AdminAppointments() {
               ))}
               {hours.map((hour) => (
                 <div key={`row-${hour}`} className="contents">
-                  <div className="p-3 text-sm text-slate-400 border border-slate-800 bg-slate-950/60">
+                  <div ref={hour === 12 ? noonRowRef : undefined} className="p-3 text-sm text-slate-400 border border-slate-800 bg-slate-950/60">
                     {hour.toString().padStart(2, '0')}:00
                   </div>
                   {weekDays.map((day, colIdx) => {
