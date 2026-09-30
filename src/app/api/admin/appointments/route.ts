@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { parseDateOnly } from '@/lib/date'
+import { requireStaff } from '@/lib/staff-auth'
+import { slotBlockingWhere } from '@/lib/appointment-status'
 
 interface AdminAppointmentBody {
   serviceId: string
@@ -15,6 +17,10 @@ interface AdminAppointmentBody {
 }
 
 export async function GET(request: Request) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -87,6 +93,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const body = (await request.json()) as AdminAppointmentBody
     const {
@@ -124,7 +134,7 @@ export async function POST(request: Request) {
 
     // Conflitos no mesmo dia para o barbeiro
     const existing = await prisma.appointment.findMany({
-      where: { barberId, date },
+      where: { barberId, date, ...slotBlockingWhere() },
       select: { startTime: true, service: { select: { duration: true } } }
     })
     const hasConflict = existing.some(appt => {

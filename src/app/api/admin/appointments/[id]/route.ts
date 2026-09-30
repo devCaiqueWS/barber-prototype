@@ -2,12 +2,38 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { parseDateOnly } from '@/lib/date'
+import { cancelCheckout } from '@/lib/asaas'
+import { requireStaff } from '@/lib/staff-auth'
 
 // Helper para extrair o ID da URL em rotas dinâmicas
 function getIdFromRequest(request: NextRequest): string | null {
   const segments = request.nextUrl.pathname.split('/').filter(Boolean)
   const last = segments[segments.length - 1]
   return last && last !== '[id]' ? last : null
+}
+
+// Equipe logada; barbeiro só acessa agendamentos da própria agenda.
+async function denyUnlessStaffFor(id: string) {
+  const staff = await requireStaff()
+  if (!staff) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  if (staff.role === 'BARBER') {
+    const appointment = await prisma.appointment.findUnique({ where: { id }, select: { barberId: true } })
+    if (appointment && appointment.barberId !== staff.id) {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+    }
+  }
+  return null
+}
+
+// Cancelado pelo painel enquanto aguardava pagamento: fecha o checkout para o
+// cliente não pagar por um horário que não existe mais.
+async function closeCheckoutIfCancelled(
+  before: { status: string; paidAt: Date | null; asaasCheckoutId: string | null },
+  afterStatus: string,
+) {
+  if (afterStatus === 'cancelled' && before.status === 'awaiting_payment' && !before.paidAt && before.asaasCheckoutId) {
+    await cancelCheckout(before.asaasCheckoutId)
+  }
 }
 
 // GET - Buscar agendamento por ID
@@ -20,6 +46,9 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       )
     }
+
+    const denied = await denyUnlessStaffFor(id)
+    if (denied) return denied
 
     const appointment = await prisma.appointment.findUnique({
       where: { id },
@@ -77,6 +106,9 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    const denied = await denyUnlessStaffFor(id)
+    if (denied) return denied
+
     const body = await request.json()
     const { status, notes, paymentMethod } = body as {
       status?: string
@@ -108,6 +140,8 @@ export async function PATCH(request: NextRequest) {
       },
     })
 
+    await closeCheckoutIfCancelled(existing, updated.status)
+
     return NextResponse.json({ success: true, appointment: updated })
   } catch (error) {
     console.error('Erro ao atualizar agendamento (PATCH/admin):', error)
@@ -128,6 +162,9 @@ export async function PUT(request: NextRequest) {
         { status: 400 },
       )
     }
+
+    const denied = await denyUnlessStaffFor(id)
+    if (denied) return denied
 
     const body = await request.json()
     const {
@@ -213,6 +250,8 @@ export async function PUT(request: NextRequest) {
       data,
     })
 
+    await closeCheckoutIfCancelled(existing, updated.status)
+
     return NextResponse.json({ success: true, appointment: updated })
   } catch (error) {
     console.error('Erro ao atualizar agendamento (PUT/admin):', error)
@@ -234,6 +273,9 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    const denied = await denyUnlessStaffFor(id)
+    if (denied) return denied
+
     const existing = await prisma.appointment.findUnique({ where: { id } })
     if (!existing) {
       return NextResponse.json(
@@ -242,6 +284,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    await closeCheckoutIfCancelled(existing, 'cancelled')
     await prisma.appointment.delete({ where: { id } })
 
     return NextResponse.json({ success: true })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireStaff } from '@/lib/staff-auth'
 
 // Helper function to convert Date to YYYY-MM-DD string
 function dateToString(date: Date): string {
@@ -8,6 +9,10 @@ function dateToString(date: Date): string {
 
 // GET - Gerar relatórios
 export async function GET(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')

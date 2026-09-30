@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { requireStaff } from '@/lib/staff-auth'
 
 function getIdFromRequest(request: NextRequest): string | null {
   const segments = request.nextUrl.pathname.split('/').filter(Boolean)
@@ -49,6 +50,10 @@ export async function GET(request: NextRequest) {
 
 // PUT - Atualizar serviço (público)
 export async function PUT(request: NextRequest) {
+  if (!(await requireStaff(['ADMIN']))) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const id = getIdFromRequest(request)
     if (!id) {
@@ -138,6 +143,10 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Deletar ou desativar serviço (público)
 export async function DELETE(request: NextRequest) {
+  if (!(await requireStaff(['ADMIN']))) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const id = getIdFromRequest(request)
     if (!id) {

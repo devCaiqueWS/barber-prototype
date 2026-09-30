@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { requireStaff } from '@/lib/staff-auth'
 
 // GET - Listar overrides de disponibilidade
 export async function GET(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const barberId = searchParams.get('barberId')
@@ -30,6 +35,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Bloquear/definir disponibilidade (merge por padrão)
 export async function POST(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { barberId, date, blockedSlots = [], isDayBlocked = false, availableSlots, mode = 'add' } = await request.json()
     if (!barberId || !date) {
@@ -66,6 +75,10 @@ export async function POST(request: NextRequest) {
 
 // DELETE - Desbloquear horário ou remover override do dia
 export async function DELETE(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const barberId = searchParams.get('barberId')

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireStaff } from '@/lib/staff-auth'
 
 // GET - Listar serviços (admin)
 export async function GET(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
@@ -42,6 +47,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Criar novo serviço (admin)
 export async function POST(request: NextRequest) {
+  if (!(await requireStaff(['ADMIN']))) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const body = await request.json()
     const {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { requireStaff } from '@/lib/staff-auth'
 
 type ExportRow = {
   NumeroAtendimento: string
@@ -15,6 +16,10 @@ type ExportRow = {
 }
 
 export async function GET(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const format = (searchParams.get('format') || 'xlsx').toLowerCase()

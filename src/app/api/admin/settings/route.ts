@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaff } from '@/lib/staff-auth'
 
 // Armazenamento em memória para as configurações
 // (válido enquanto o servidor estiver em execução)
@@ -6,6 +7,10 @@ let settingsCache: Record<string, unknown> | null = null
 
 // GET - Obter configurações do sistema
 export async function GET() {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     if (!settingsCache) {
       return NextResponse.json({ error: 'Configurações não encontradas' }, { status: 404 })
@@ -20,6 +25,10 @@ export async function GET() {
 
 // POST - Salvar/atualizar configurações do sistema
 export async function POST(request: NextRequest) {
+  if (!(await requireStaff(['ADMIN']))) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const body = await request.json()
 

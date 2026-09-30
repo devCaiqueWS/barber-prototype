@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireStaff } from '@/lib/staff-auth'
 
 // GET - Buscar serviços disponíveis (público)
 export async function GET() {
@@ -42,6 +43,10 @@ export async function GET() {
 
 // POST - Criar serviço (público / API externa)
 export async function POST(request: NextRequest) {
+  if (!(await requireStaff(['ADMIN']))) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const body = await request.json()
     const {

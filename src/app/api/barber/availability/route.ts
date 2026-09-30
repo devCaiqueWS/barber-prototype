@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireStaff } from '@/lib/staff-auth'
 
 // GET - Obter disponibilidade/bloqueios do barbeiro em um dia
 export async function GET(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const barberId = searchParams.get('barberId')
@@ -25,6 +30,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Definir/atualizar disponibilidade ou bloqueios de um dia (barbeiro/admin)
 export async function POST(request: NextRequest) {
+  if (!(await requireStaff())) {
+    return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+  }
+
   try {
     const body = await request.json()
     const { barberId, date, availableSlots, blockedSlots, isDayBlocked } = body as {
