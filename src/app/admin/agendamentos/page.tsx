@@ -7,12 +7,32 @@ import { Button } from '@/components/ui/button'
 import { formatDateKey } from '@/lib/date'
 import { ArrowLeft } from 'lucide-react'
 
+// Reserva aguardando pagamento em âmbar; pago sem horário (precisa de estorno) em vermelho
+const calendarCardTone = (status: string) => {
+  if (status === 'awaiting_payment') return 'border-amber-500/70 bg-amber-900/50 text-amber-50 hover:border-amber-400'
+  if (status === 'payment_conflict') return 'border-red-500/70 bg-red-900/50 text-red-50 hover:border-red-400'
+  return 'border-emerald-600/70 bg-emerald-900/60 text-emerald-50 hover:border-emerald-400 hover:bg-emerald-900/80'
+}
+
+const CALENDAR_STATUS_NOTES: Record<string, string> = {
+  awaiting_payment: 'Aguardando pagamento',
+  payment_conflict: 'Pago sem horário · estornar',
+}
+
 interface Appointment {
   id: string
   date: string
   startTime: string
   endTime: string
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
+  status:
+    | 'awaiting_payment'
+    | 'pending'
+    | 'confirmed'
+    | 'completed'
+    | 'cancelled'
+    | 'no_show'
+    | 'expired'
+    | 'payment_conflict'
   client: { name: string; phone: string; address?: string }
   service: { name: string; price: number; duration: number }
   barber?: { name: string }
@@ -238,6 +258,9 @@ export default function AdminAppointments() {
                 <option value="completed">Concluído</option>
                 <option value="cancelled">Cancelado</option>
                 <option value="no_show">Não compareceu</option>
+                <option value="awaiting_payment">Aguardando pagamento</option>
+                <option value="expired">Reserva expirada</option>
+                <option value="payment_conflict">Pago sem horário</option>
               </select>
             </div>
 
@@ -328,7 +351,7 @@ export default function AdminAppointments() {
                     const items = filteredAppointments.filter(
                       (appt) =>
                         (statusFilter !== 'all' ||
-                          !['cancelled', 'no_show'].includes((appt.status || '').toLowerCase())) &&
+                          !['cancelled', 'no_show', 'expired'].includes((appt.status || '').toLowerCase())) &&
                         toDateKey(appt.date) === dayStr &&
                         appt.startTime.startsWith(hour.toString().padStart(2, '0')),
                     )
@@ -347,9 +370,14 @@ export default function AdminAppointments() {
                               key={appt.id}
                               type="button"
                               onClick={() => openEdit(appt)}
-                              className="mb-2 w-full text-left rounded-lg border border-emerald-600/70 bg-emerald-900/60 text-emerald-50 p-3 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-900/80"
+                              className={`mb-2 w-full text-left rounded-lg border p-3 shadow-sm transition ${calendarCardTone(appt.status)}`}
                             >
                               <div className="text-sm font-semibold">{appt.client.name}</div>
+                              {CALENDAR_STATUS_NOTES[appt.status] && (
+                                <div className="text-[11px] font-semibold uppercase tracking-wide">
+                                  {CALENDAR_STATUS_NOTES[appt.status]}
+                                </div>
+                              )}
                               <div className="text-xs text-emerald-100">{appt.service.name}</div>
                               <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
                               <div className="text-xs text-emerald-200 flex items-center mt-1">
@@ -440,6 +468,9 @@ export default function AdminAppointments() {
                       <option value="completed">Concluido</option>
                       <option value="cancelled">Cancelado</option>
                       <option value="no_show">Não compareceu</option>
+                      <option value="awaiting_payment">Aguardando pagamento</option>
+                      <option value="expired">Reserva expirada</option>
+                      <option value="payment_conflict">Pago sem horário</option>
                     </select>
                   </div>
                   <div>

@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
 
     const email =
       clientEmail && String(clientEmail).trim().length > 0
-        ? String(clientEmail)
+        ? String(clientEmail).trim().toLowerCase()
         : `walkin+${Date.now()}@local`
 
     let client = await prisma.user.findUnique({ where: { email } })

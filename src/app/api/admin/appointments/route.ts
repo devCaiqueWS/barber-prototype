@@ -141,7 +141,7 @@ export async function POST(request: Request) {
 
     // Resolver cliente (permite walk-in sem email: gera placeholder)
     const email = clientEmail && String(clientEmail).trim().length > 0
-      ? String(clientEmail)
+      ? String(clientEmail).trim().toLowerCase()
       : `walkin+${Date.now()}@local`
 
     let client = await prisma.user.findUnique({ where: { email } })

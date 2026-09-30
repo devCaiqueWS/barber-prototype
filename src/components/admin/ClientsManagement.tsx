@@ -5,6 +5,7 @@ import { formatDateBR } from '@/lib/date'
 
 interface AdminClient {
   id: string
+  clientCode: number
   name: string | null
   email: string
   whatsapp: string
@@ -76,7 +77,8 @@ export default function ClientsManagement() {
         term.length === 0 ||
         (client.name || '').toLowerCase().includes(term) ||
         client.email.toLowerCase().includes(term) ||
-        client.whatsapp.toLowerCase().includes(term)
+        client.whatsapp.toLowerCase().includes(term) ||
+        (/^#?d+$/.test(term) && String(client.clientCode) === term.replace(/^#0*/, ''))
 
       const matchesFilter =
         filter === 'all' ||
@@ -143,7 +145,7 @@ export default function ClientsManagement() {
             <label className="block text-sm font-medium text-slate-300 mb-2">Buscar</label>
             <input
               type="text"
-              placeholder="Nome, e-mail ou WhatsApp..."
+              placeholder="Nome, e-mail, WhatsApp ou código (#123)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -197,7 +199,10 @@ export default function ClientsManagement() {
                 filteredClients.map((client) => (
                   <tr key={client.id} className="border-t border-slate-700 hover:bg-slate-700/50">
                     <td className="py-3 px-4">
-                      <p className="font-medium text-white">{client.name || 'Sem nome'}</p>
+                      <p className="font-medium text-white">
+                        {client.name || 'Sem nome'}{' '}
+                        <span className="font-mono text-xs text-slate-500">#{String(client.clientCode).padStart(6, '0')}</span>
+                      </p>
                       <p className="text-xs text-slate-400">{client.email}</p>
                       {client.whatsapp && (
                         <p className="text-xs text-slate-500">{client.whatsapp}</p>

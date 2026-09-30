@@ -29,6 +29,7 @@ export async function GET() {
       },
       select: {
         id: true,
+        clientCode: true,
         name: true,
         email: true,
         whatsapp: true,
@@ -105,6 +106,7 @@ export async function GET() {
 
       return {
         id: client.id,
+        clientCode: client.clientCode,
         name: client.name,
         email: client.email,
         whatsapp: client.whatsapp || client.phone || '',
