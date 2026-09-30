@@ -1,54 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
-import { prisma } from '@/lib/prisma'
+import { getAuthUser } from '@/lib/client-auth'
+import { getActiveSubscription } from '@/lib/subscription'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Auth ME called - checking cookies')
-    const token = request.cookies.get('auth-token')?.value
-    console.log('Token found:', !!token)
+    const user = await getAuthUser(request)
+    if (!user) return NextResponse.json({ user: null })
 
-    if (!token) {
-      console.log('No token found, returning null user')
-      return NextResponse.json({ user: null })
-    }
+    // Assinante ativo agenda sem pagamento online
+    const subscription = user.role === 'CLIENT' ? await getActiveSubscription(user.id) : null
 
-    // Verificar token
-    const decoded = jwt.verify(
-      token, 
-      process.env.JWT_SECRET || 'sua-chave-secreta-aqui'
-    ) as { userId: string }
-
-    console.log('Token decoded successfully, userId:', decoded.userId)
-
-    // Buscar usuário atual
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        whatsapp: true,
-        phone: true,
-        isActive: true
-      }
-    })
-
-    if (!user || !user.isActive) {
-      console.log('User not found in database')
-      return NextResponse.json({ user: null })
-    }
-
-    console.log('User found and returning:', { id: user.id, role: user.role })
     return NextResponse.json({
       user: {
         id: user.id,
+        clientCode: user.clientCode,
         name: user.name,
         email: user.email,
         role: user.role,
-        whatsapp: user.whatsapp || user.phone || ''
-      }
+        whatsapp: user.whatsapp || user.phone || '',
+        isSubscriber: Boolean(subscription),
+      },
     })
   } catch (error) {
     console.error('Erro ao verificar sessão:', error)

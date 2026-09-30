@@ -47,6 +47,38 @@ export const isHoldExpired = (
   appointment.paymentExpiresAt != null &&
   appointment.paymentExpiresAt <= now
 
+const toMinutes = (hhmm: string) => {
+  const [h, m] = (hhmm || '00:00').split(':').map((n) => Number.parseInt(n, 10))
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0)
+}
+
+// Há outro agendamento ocupando [startTime, startTime + duração) com este barbeiro nesse dia?
+export async function hasSlotConflict(params: {
+  barberId: string
+  date: string
+  startTime: string
+  durationMinutes: number
+  excludeId?: string
+}) {
+  const existing = await prisma.appointment.findMany({
+    where: {
+      barberId: params.barberId,
+      date: params.date,
+      ...(params.excludeId ? { id: { not: params.excludeId } } : {}),
+      ...slotBlockingWhere(),
+    },
+    select: { startTime: true, service: { select: { duration: true } } },
+  })
+
+  const start = toMinutes(params.startTime)
+  const end = start + params.durationMinutes
+  return existing.some((appt) => {
+    const apptStart = toMinutes(appt.startTime)
+    const apptEnd = apptStart + (appt.service?.duration ?? 30)
+    return start < apptEnd && end > apptStart
+  })
+}
+
 // Marca como 'expired' as reservas vencidas. É chamado nas leituras (disponibilidade,
 // Hub, criação de agendamento) em vez de um cron; o filtro acima já ignora as
 // vencidas, então isso só deixa o status legível no painel e no Hub.

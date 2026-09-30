@@ -50,6 +50,8 @@ export async function getAuthUser(request: NextRequest) {
         role: true,
         phone: true,
         whatsapp: true,
+        cpf: true,
+        clientCode: true,
         isRegistered: true,
         isActive: true,
       },

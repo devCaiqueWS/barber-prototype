@@ -296,189 +296,72 @@ function BookingPageContent() {
 
 
 
-  const isOnlinePaymentAvailable = () =>
-
-    clientData.paymentMethod === 'pix' ||
-
-    clientData.paymentMethod === 'cartao_credito' ||
-
-    clientData.paymentMethod === 'cartao_debito'
-
-
+  const bookingPaymentLabel = authUser?.isSubscriber ? 'Assinatura' : 'Online'
 
   const handleClientDataSubmit = async (e) => {
-
     e.preventDefault()
-
     setLoading(true)
 
-
-
-    const shouldPayOnline = isOnlinePaymentAvailable() && clientData.payOnline
-
-
-
     try {
-
       if (!selectedService || !selectedBarber || !selectedDate || !selectedTime) {
-
         alert('Selecione serviço, barbeiro, data e horário antes de confirmar.')
-
-        setLoading(false)
-
         return
-
       }
 
       if (!authUser) {
-
         alert('Faça login ou crie sua conta para agendar.')
-
-        setLoading(false)
-
         return
-
       }
 
-
-
       const response = await fetch('/api/appointments', {
-
         method: 'POST',
-
-        headers: {
-
-          'Content-Type': 'application/json',
-
-        },
-
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-
           serviceId: selectedService.id,
-
           barberId: selectedBarber.id,
-
           date: selectedDate,
-
           time: selectedTime,
-
           clientInstagram: clientData.instagram,
-
           clientWhatsapp: clientData.whatsapp,
-
-          paymentMethod: clientData.paymentMethod,
-
-          payOnline: shouldPayOnline,
-
         }),
-
       })
-
-
 
       const data = await response.json()
 
-
-
       if (response.status === 401) {
-
         setAuthUser(null)
-
         alert(data.error || 'Sua sessão expirou. Faça login novamente para agendar.')
-
         return
-
       }
 
-
-
-      if (data.success) {
-
-        setLastAppointmentId(data.appointment?.id || '')
-
-        setConfirmationEmailSent(Boolean(data.emailSent))
-
-        if (shouldPayOnline) {
-
-          try {
-
-            const checkoutRes = await fetch('/api/payments/asaas', {
-
-              method: 'POST',
-
-              headers: {
-
-                'Content-Type': 'application/json',
-
-              },
-
-              body: JSON.stringify({
-
-                appointmentId: data.appointment.id,
-
-                serviceName: selectedService.name,
-
-                amount: Number(selectedService.price) || 0,
-
-              }),
-
-            })
-
-
-
-            const checkoutData = await checkoutRes.json()
-
-
-
-            if (checkoutRes.ok && checkoutData.checkoutUrl) {
-
-              window.location.href = checkoutData.checkoutUrl
-
-              return
-
-            }
-
-
-
-            console.error('Checkout Asaas falhou:', checkoutData)
-
-            alert('Não foi possível iniciar o pagamento online agora. Seu agendamento foi criado e você pode pagar no local.')
-
-          } catch (err) {
-
-            console.error('Erro ao criar checkout Asaas:', err)
-
-            alert('Não foi possível iniciar o pagamento online agora. Seu agendamento foi criado e você pode pagar no local.')
-
-          }
-
+      if (!response.ok || !data.success) {
+        alert(data.error || 'Não foi possível concluir o agendamento.')
+        if (response.status === 409) {
+          // Horário ocupado: volta para a escolha de horário com a lista atualizada
+          setSelectedTime('')
+          void loadAvailableTimes(selectedBarber.id, selectedDate, getSlotDurationForService())
+          setStep(4)
         }
-
-
-
-        setStep(6) // Página de sucesso normal
-
-      } else {
-
-        alert('Erro ao criar agendamento: ' + (data.message || 'Erro desconhecido'))
-
+        return
       }
 
+      setLastAppointmentId(data.appointment?.id || '')
+
+      if (data.requiresPayment && data.checkoutUrl) {
+        // O horário já está reservado; a confirmação chega depois do pagamento
+        window.location.href = data.checkoutUrl
+        return
+      }
+
+      setConfirmationEmailSent(Boolean(data.emailSent))
+      setStep(6)
     } catch (error) {
-
       console.error('Erro ao criar agendamento:', error)
-
-      alert('Erro ao criar agendamento')
-
+      alert('Erro ao criar agendamento. Tente novamente.')
     } finally {
-
       setLoading(false)
-
     }
-
   }
-
-
 
   const resetBooking = () => {
 
@@ -1017,144 +900,39 @@ function BookingPageContent() {
 
 
 
-                <div>
-
-                  <label className="block text-sm font-medium mb-2">Forma de pgto</label>
-
-                  <select
-
-                    required
-
-                    value={clientData.paymentMethod}
-
-                    onChange={(e) => {
-
-                      setClientData({ ...clientData, paymentMethod: e.target.value, payOnline: false })
-
-                    }}
-
-                    className="w-full p-3 bg-slate-800 border border-slate-600 rounded-lg text-white"
-
-                  >
-
-                    <option value="">Selecione a forma de pagamento</option>
-
-                    <option value="dinheiro">Dinheiro</option>
-
-                    <option value="cartao_credito">Cartão de Crédito</option>
-
-                    <option value="cartao_debito">Cartão de Débito</option>
-
-                    <option value="pix">PIX</option>
-
-                  </select>
-
-                </div>
-
-
-
-                {/* Opção de Pagamento Online */}
-
-                {(clientData.paymentMethod === 'pix' ||
-
-                  clientData.paymentMethod === 'cartao_credito' ||
-
-                  clientData.paymentMethod === 'cartao_debito') && (
-
-                    <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-
-                      <div className="flex items-center space-x-3">
-
-                        <input
-
-                          type="checkbox"
-
-                          id="payOnline"
-
-                          checked={clientData.payOnline}
-
-                          onChange={(e) => setClientData({ ...clientData, payOnline: e.target.checked })}
-
-                          className="w-4 h-4 text-amber-600 bg-slate-800 border-slate-600 rounded focus:ring-amber-500"
-
-                        />
-
-                        <label htmlFor="payOnline" className="text-white font-medium">
-
-                          Quero pagar online agora
-
-                        </label>
-
-                      </div>
-
-                      <p className="text-slate-400 text-sm mt-2 ml-7">
-
-                        {clientData.paymentMethod === 'pix'
-
-                          ? 'Pague com PIX de forma rápida e segura'
-
-                          : 'Pague com cartão de forma segura pelo site'
-
-                        }
-
-                      </p>
-
-                      {clientData.payOnline && (
-
-                        <div className="mt-3 ml-7">
-
-                          <div className="flex items-center space-x-2 text-green-400">
-
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-
-                            </svg>
-
-                            <span className="text-sm">Pagamento será processado após confirmação</span>
-
-                          </div>
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-                  )}
+                {/* Pagamento: assinante não paga; os demais pagam online para confirmar */}
+                {authUser?.isSubscriber ? (
+                  <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
+                    <p className="text-sm font-semibold text-green-300">Você é assinante</p>
+                    <p className="mt-1 text-sm text-slate-300">Este agendamento é confirmado na hora, sem cobrança.</p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-slate-600 bg-slate-800/70 p-4">
+                    <p className="text-sm font-semibold text-white">
+                      Pagamento online {selectedService?.price ? `· R$ ${selectedService.price}` : ''}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-300">
+                      Pague com PIX ou cartão para confirmar. Seu horário fica reservado por 20 minutos enquanto você conclui o pagamento.
+                    </p>
+                  </div>
+                )}
 
                 <div className="rounded-xl border border-primary/40 bg-primary/10 p-4">
-
                   <p className="text-amber-300 text-sm font-medium">
-
                     Aviso: chegue com 15 min de antecedência. Tolerância de 5 min de atraso (sujeito à ocupação da cadeira).
-
                   </p>
-
                 </div>
 
-
-
                 <button
-
                   type="submit"
-
                   disabled={loading}
-
-                  className={`w-full font-bold py-3 px-6 rounded-lg transition-colors ${clientData.payOnline
-
-                    ? 'bg-green-600 hover:bg-green-700 disabled:bg-slate-600'
-
-                    : 'bg-primary hover:bg-[#c21111] disabled:bg-slate-600'
-
-                    } text-white`}
-
+                  className="w-full font-bold py-3 px-6 rounded-lg transition-colors bg-primary hover:bg-[#c21111] disabled:bg-slate-600 text-white"
                 >
-
-                  {loading ? 'Processando...' :
-
-                    clientData.payOnline ? 'Agendar e Pagar Online' : 'Confirmar Agendamento'}
-
+                  {loading
+                    ? 'Processando...'
+                    : authUser?.isSubscriber
+                      ? 'Confirmar Agendamento'
+                      : 'Reservar e ir para o pagamento'}
                 </button>
 
               </form>
@@ -1208,17 +986,7 @@ function BookingPageContent() {
 
                   <p><strong>WhatsApp:</strong> {clientData.whatsapp}</p>
 
-                  <p><strong>Forma de Pagamento:</strong> {
-
-                    clientData.paymentMethod === 'dinheiro' ? 'Dinheiro' :
-
-                      clientData.paymentMethod === 'cartao_credito' ? 'Cartão de Crédito' :
-
-                        clientData.paymentMethod === 'cartao_debito' ? 'Cartão de Débito' :
-
-                          clientData.paymentMethod === 'pix' ? 'PIX' : clientData.paymentMethod
-
-                  }</p>
+                  <p><strong>Pagamento:</strong> {bookingPaymentLabel}</p>
 
                 </div>
 
@@ -1226,7 +994,7 @@ function BookingPageContent() {
 
                   {confirmationEmailSent
 
-                    ? `Enviamos a confirmação com todos os detalhes para o email: ${clientData.email}`
+                    ? `Enviamos a confirmação com todos os detalhes para o email: ${authUser?.email || ''}`
 
                     : `Guarde os dados acima. Se preferir, use o botão abaixo para salvar o agendamento na agenda do seu celular.`}
 

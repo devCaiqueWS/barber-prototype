@@ -4,6 +4,9 @@ import { formatDateKey, parseDateOnly } from '@/lib/date'
 import { resolveSiteUrl } from '@/lib/business'
 import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
 import { getAuthUser } from '@/lib/client-auth'
+import { hasSlotConflict, paymentHoldDeadline } from '@/lib/appointment-status'
+import { AsaasError, createAppointmentCheckout, isAsaasConfigured } from '@/lib/asaas'
+import { getActiveSubscription } from '@/lib/subscription'
 
 // Normaliza objeto Date para string HH:mm
 const toHHMM = (date: Date) => {
@@ -34,8 +37,6 @@ export async function POST(request: NextRequest) {
       time,
       dateTime,
       notes,
-      paymentMethod,
-      payOnline,
     } = body as {
       clientInstagram?: string
       clientWhatsapp?: string
@@ -45,8 +46,6 @@ export async function POST(request: NextRequest) {
       time?: string
       dateTime?: string
       notes?: string
-      paymentMethod?: string
-      payOnline?: boolean
     }
 
     // Identidade sempre vem da conta logada
@@ -118,26 +117,11 @@ export async function POST(request: NextRequest) {
     const endTime = toHHMM(endDT)
 
     // Verificar conflitos de horário com base na duração real dos serviços
-    const existingAppointments = await prisma.appointment.findMany({
-      where: {
-        barberId,
-        date: appointmentDateStr,
-        status: { notIn: ['cancelled', 'no_show'] },
-      },
-      include: {
-        service: { select: { duration: true } },
-      },
-    })
-
-    const hasConflict = existingAppointments.some((appt) => {
-      const [ah, am] = (appt.startTime || '00:00')
-        .split(':')
-        .map((n) => Number.parseInt(n, 10))
-      const apptStart = parseDateOnly(appointmentDateStr) || new Date(appointmentDateStr)
-      apptStart.setHours(ah, am, 0, 0)
-      const apptDur = appt.service?.duration ?? 30
-      const apptEnd = new Date(apptStart.getTime() + apptDur * 60 * 1000)
-      return startDT < apptEnd && endDT > apptStart
+    const hasConflict = await hasSlotConflict({
+      barberId,
+      date: appointmentDateStr,
+      startTime,
+      durationMinutes,
     })
 
     if (hasConflict) {
@@ -187,9 +171,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const normalizedPaymentMethod =
-      paymentMethod && paymentMethod.length > 0 ? paymentMethod : 'Dinheiro'
-    const isPayOnline = Boolean(payOnline)
+    // Assinante ativo agenda sem pagar; os demais pagam online antes de confirmar.
+    const subscription = await getActiveSubscription(authUser.id)
+    const requiresPayment = !subscription && service.price > 0
+
+    if (requiresPayment && !isAsaasConfigured()) {
+      console.error('[appointments] ASAAS_API_KEY ausente — agendamento pago não pode ser criado.')
+      return NextResponse.json(
+        { error: 'Pagamento online indisponível no momento. Fale com a gente pelo WhatsApp para agendar.' },
+        { status: 503 },
+      )
+    }
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -203,9 +195,10 @@ export async function POST(request: NextRequest) {
         clientEmail,
         clientPhone: contactPhone || '',
         clientWhatsapp: whatsapp || '',
-        paymentMethod: normalizedPaymentMethod,
-        payOnline: isPayOnline,
-        status: isPayOnline ? 'pending' : 'confirmed',
+        paymentMethod: requiresPayment ? 'online' : subscription ? 'assinatura' : 'gratuito',
+        payOnline: requiresPayment,
+        status: requiresPayment ? 'awaiting_payment' : 'confirmed',
+        paymentExpiresAt: requiresPayment ? paymentHoldDeadline() : null,
         notes: appointmentNotes || undefined,
         source: 'online',
       },
@@ -231,6 +224,60 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const siteUrl = resolveSiteUrl(request)
+
+    if (requiresPayment) {
+      // Horário reservado; a confirmação (e o e-mail) chega pelo webhook do Asaas.
+      try {
+        const checkout = await createAppointmentCheckout({
+          appointmentId: appointment.id,
+          serviceName: service.name,
+          amount: service.price,
+          siteUrl,
+          customer: {
+            name: clientName,
+            email: clientEmail,
+            phone: whatsapp,
+            cpf: authUser.cpf,
+          },
+        })
+
+        await prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { asaasCheckoutId: checkout.id },
+        })
+
+        return NextResponse.json(
+          {
+            success: true,
+            requiresPayment: true,
+            checkoutUrl: checkout.url,
+            paymentExpiresAt: appointment.paymentExpiresAt,
+            appointment: {
+              id: appointment.id,
+              date: appointment.date,
+              startTime: appointment.startTime,
+              endTime: appointment.endTime,
+              status: appointment.status,
+              service: appointment.service,
+              barber: appointment.barber,
+            },
+            message: 'Horário reservado. Conclua o pagamento para confirmar.',
+          },
+          { status: 201 },
+        )
+      } catch (checkoutError) {
+        // Sem checkout não há como pagar: libera o horário na hora.
+        console.error('[appointments] Falha ao criar checkout Asaas:', checkoutError)
+        await prisma.appointment.delete({ where: { id: appointment.id } }).catch(() => undefined)
+        const detail = checkoutError instanceof AsaasError ? ` (${checkoutError.message})` : ''
+        return NextResponse.json(
+          { error: `Não foi possível iniciar o pagamento${detail}. Tente novamente em instantes.` },
+          { status: 502 },
+        )
+      }
+    }
+
     // Confirmação por e-mail com o arquivo .ics anexado.
     // Uma falha aqui nunca invalida o agendamento já criado.
     let emailSent = false
@@ -249,7 +296,7 @@ export async function POST(request: NextRequest) {
         servicePrice: appointment.service?.price,
         serviceDuration: appointment.service?.duration,
         barberName: appointment.barber?.name,
-        siteUrl: resolveSiteUrl(request),
+        siteUrl,
       })
 
       emailSent = result.sent
@@ -267,6 +314,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
+        requiresPayment: false,
         emailSent,
         appointment: {
           id: appointment.id,

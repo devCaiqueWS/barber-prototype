@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { formatDateKey, parseDateOnly } from '@/lib/date'
+import { expireStaleHolds, slotBlockingWhere } from '@/lib/appointment-status'
 
 // GET - Buscar horários disponíveis
 export async function GET(request: NextRequest) {
@@ -22,18 +23,19 @@ export async function GET(request: NextRequest) {
     const selectedDate = parseDateOnly(date)
     if (!selectedDate) {
       return NextResponse.json(
-        { error: 'Data invÇ­lida' },
+        { error: 'Data inválida' },
         { status: 400 }
       )
     }
 
     // Buscar agendamentos existentes do barbeiro na data
     const dateStr = formatDateKey(selectedDate)
+    await expireStaleHolds({ barberId, date: dateStr })
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         barberId,
         date: dateStr,
-        status: { notIn: ['cancelled', 'no_show'] }
+        ...slotBlockingWhere(),
       },
       include: {
         service: {
