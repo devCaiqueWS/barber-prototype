@@ -52,15 +52,21 @@ const toMinutes = (hhmm: string) => {
   return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0)
 }
 
+type Db = Prisma.TransactionClient | typeof prisma
+
 // Há outro agendamento ocupando [startTime, startTime + duração) com este barbeiro nesse dia?
-export async function hasSlotConflict(params: {
-  barberId: string
-  date: string
-  startTime: string
-  durationMinutes: number
-  excludeId?: string
-}) {
-  const existing = await prisma.appointment.findMany({
+// Dentro de withSlotLock, passe o tx para a checagem enxergar a mesma transação.
+export async function hasSlotConflict(
+  params: {
+    barberId: string
+    date: string
+    startTime: string
+    durationMinutes: number
+    excludeId?: string
+  },
+  db: Db = prisma,
+) {
+  const existing = await db.appointment.findMany({
     where: {
       barberId: params.barberId,
       date: params.date,
@@ -76,6 +82,21 @@ export async function hasSlotConflict(params: {
     const apptStart = toMinutes(appt.startTime)
     const apptEnd = apptStart + (appt.service?.duration ?? 30)
     return start < apptEnd && end > apptStart
+  })
+}
+
+// Serializa quem mexe na agenda de um barbeiro num dia: checar conflito e gravar
+// a reserva acontecem sob a mesma trava, então duas reservas simultâneas do mesmo
+// horário não passam juntas. A trava some sozinha no fim da transação.
+export async function withSlotLock<T>(
+  barberId: string,
+  date: string,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  return prisma.$transaction(async (tx) => {
+    const key = `agenda:${barberId}:${date}`
+    await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${key}))) AS l`
+    return fn(tx)
   })
 }
 

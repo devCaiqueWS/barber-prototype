@@ -8,6 +8,15 @@ export const CLIENT_CANCEL_MIN_HOURS = 2
 export const appointmentStartsAt = (date: string, startTime: string) =>
   new Date(`${date}T${(startTime || '00:00').slice(0, 5)}:00-03:00`)
 
+// Data de hoje (YYYY-MM-DD) em São Paulo, independente do fuso do servidor
+export const todayKeySaoPaulo = (now = new Date()) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+
 export const formatClientCode = (code?: number | null) =>
   code ? `#${String(code).padStart(6, '0')}` : ''
 

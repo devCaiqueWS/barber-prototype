@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { cancelCheckout } from '@/lib/asaas'
 
 function getIdFromRequest(request: NextRequest): string | null {
   const segments = request.nextUrl.pathname.split('/').filter(Boolean)
@@ -125,6 +126,15 @@ export async function PATCH(request: NextRequest) {
         ...(typeof paymentMethod === 'string' ? { paymentMethod } : {}),
       },
     })
+
+    if (
+      updated.status === 'cancelled' &&
+      existing.status === 'awaiting_payment' &&
+      !existing.paidAt &&
+      existing.asaasCheckoutId
+    ) {
+      await cancelCheckout(existing.asaasCheckoutId)
+    }
 
     return NextResponse.json({ success: true, appointment: updated })
   } catch (error) {

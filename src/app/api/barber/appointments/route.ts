@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parseDateOnly } from '@/lib/date'
+import { slotBlockingWhere } from '@/lib/appointment-status'
 
 // Helper para validar sessão do barbeiro
 async function getBarberSession() {
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
       .padStart(2, '0')}`
 
     const existing = await prisma.appointment.findMany({
-      where: { barberId: auth.barberId, date },
+      where: { barberId: auth.barberId, date, ...slotBlockingWhere() },
       select: {
         startTime: true,
         service: { select: { duration: true } },

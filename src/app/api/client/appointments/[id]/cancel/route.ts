@@ -27,13 +27,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: reason }, { status: 409 })
     }
 
-    await prisma.appointment.update({
-      where: { id: appointment.id },
+    const result = await prisma.appointment.updateMany({
+      where: { id: appointment.id, paidAt: null, status: appointment.status },
       data: {
         status: 'cancelled',
         notes: [appointment.notes, `Cancelado pelo cliente em ${new Date().toISOString()}`].filter(Boolean).join('\n'),
       },
     })
+
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: 'Este agendamento acabou de ser atualizado. Recarregue a página.' },
+        { status: 409 },
+      )
+    }
 
     if (appointment.status === 'awaiting_payment' && appointment.asaasCheckoutId) {
       await cancelCheckout(appointment.asaasCheckoutId)

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveSiteUrl } from '@/lib/business'
 import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
-import { hasSlotConflict } from '@/lib/appointment-status'
+import { asaasRequest, isAsaasConfigured } from '@/lib/asaas'
+import type { Prisma } from '@prisma/client'
+import { hasSlotConflict, withSlotLock } from '@/lib/appointment-status'
 
 // Webhook do Asaas (agendamentos e assinaturas).
 // Configuração: ASAAS_WEBHOOK_TOKEN (o mesmo token cadastrado no painel do Asaas).
@@ -215,55 +217,68 @@ async function confirmAppointmentPayment(
 ) {
   // Idempotente: CHECKOUT_PAID e PAYMENT_RECEIVED chegam para o mesmo pagamento.
   if (appointment.paidAt) {
-    // Completa os dados da cobrança se o primeiro evento não os trazia.
-    if (payment.paymentId && !appointment.asaasPaymentId) {
-      await prisma.appointment.update({
-        where: { id: appointment.id },
-        data: { asaasPaymentId: payment.paymentId, amountPaid: payment.amount ?? appointment.amountPaid },
-      })
-    }
-    return ok({ appointmentId: appointment.id, alreadyPaid: true })
+    return recordRepeatedPayment(event, appointment, payment)
   }
 
-  // Pagou depois de a reserva vencer (ou de o agendamento ser cancelado):
-  // confirma se o horário continua livre; senão registra o conflito para o admin
-  // resolver (estorno manual) sem tomar o horário de outra pessoa.
+  // Pagou depois de a reserva vencer: confirma se o horário continua livre; senão
+  // registra o conflito para o admin resolver (estorno manual) sem tomar o horário
+  // de outra pessoa. Agendamento cancelado nunca volta a valer sozinho.
   const holdLost =
-    ['expired', 'cancelled'].includes(appointment.status) ||
+    appointment.status === 'expired' ||
     (appointment.status === 'awaiting_payment' &&
       appointment.paymentExpiresAt != null &&
       appointment.paymentExpiresAt <= new Date())
 
-  let nextStatus = 'confirmed'
-  if (holdLost && appointment.barberId) {
-    const conflict = await hasSlotConflict({
-      barberId: appointment.barberId,
-      date: appointment.date,
-      startTime: appointment.startTime,
-      durationMinutes: appointment.service?.duration ?? 30,
-      excludeId: appointment.id,
+  const settle = async (tx: Prisma.TransactionClient) => {
+    let status = 'confirmed'
+    if (appointment.status === 'cancelled') {
+      status = 'payment_conflict'
+    } else if (holdLost && appointment.barberId) {
+      const conflict = await hasSlotConflict(
+        {
+          barberId: appointment.barberId,
+          date: appointment.date,
+          startTime: appointment.startTime,
+          durationMinutes: appointment.service?.duration ?? 30,
+          excludeId: appointment.id,
+        },
+        tx,
+      )
+      if (conflict) status = 'payment_conflict'
+    }
+
+    // Só o primeiro evento grava o pagamento (paidAt ainda nulo); os repetidos,
+    // mesmo simultâneos, não passam deste ponto nem reenviam o e-mail.
+    const result = await tx.appointment.updateMany({
+      where: { id: appointment.id, paidAt: null },
+      data: {
+        status,
+        paidAt: new Date(),
+        payOnline: true,
+        asaasPaymentId: payment.paymentId || appointment.asaasPaymentId,
+        amountPaid: payment.amount ?? appointment.service?.price ?? null,
+      },
     })
-    if (conflict) nextStatus = 'payment_conflict'
+    return result.count === 1 ? status : null
   }
 
-  const updated = await prisma.appointment.update({
-    where: { id: appointment.id },
-    data: {
-      status: nextStatus,
-      paidAt: new Date(),
-      payOnline: true,
-      asaasPaymentId: payment.paymentId || appointment.asaasPaymentId,
-      amountPaid: payment.amount ?? appointment.service?.price ?? null,
-    },
-  })
+  const nextStatus = appointment.barberId
+    ? await withSlotLock(appointment.barberId, appointment.date, settle)
+    : await prisma.$transaction(settle)
+
+  if (!nextStatus) {
+    return ok({ appointmentId: appointment.id, alreadyPaid: true })
+  }
 
   if (nextStatus === 'payment_conflict') {
     console.error(
-      `[asaas-webhook] ${event}: agendamento ${appointment.id} pago depois de perder o horário ` +
-        `${appointment.date} ${appointment.startTime}. Precisa de estorno ou remarcação manual.`,
+      `[asaas-webhook] ${event}: agendamento ${appointment.id} pago sem horário válido ` +
+        `(${appointment.status}, ${appointment.date} ${appointment.startTime}). Precisa de estorno ou remarcação manual.`,
     )
     return ok({ appointmentId: appointment.id, status: nextStatus })
   }
+
+  const updated = await prisma.appointment.findUniqueOrThrow({ where: { id: appointment.id } })
 
   console.log(`[asaas-webhook] ${event}: agendamento ${appointment.id} confirmado.`)
 
@@ -297,6 +312,31 @@ async function confirmAppointmentPayment(
   return ok({ appointmentId: updated.id, status: 'confirmed' })
 }
 
+// Evento de um pagamento já registrado. Mesmo id de cobrança (ou CHECKOUT_PAID sem
+// id) é repetição; um id diferente significa que o cliente pagou duas vezes.
+async function recordRepeatedPayment(
+  event: string,
+  appointment: AppointmentWithRelations,
+  payment: { paymentId: string | null; amount: number | null },
+) {
+  if (payment.paymentId && !appointment.asaasPaymentId) {
+    // Completa os dados da cobrança se o primeiro evento (CHECKOUT_PAID) não os trazia.
+    await prisma.appointment.updateMany({
+      where: { id: appointment.id, asaasPaymentId: null },
+      data: { asaasPaymentId: payment.paymentId, amountPaid: payment.amount ?? appointment.amountPaid },
+    })
+  } else if (payment.paymentId && appointment.asaasPaymentId && payment.paymentId !== appointment.asaasPaymentId) {
+    console.error(
+      `[asaas-webhook] ${event}: agendamento ${appointment.id} recebeu um segundo pagamento ` +
+        `(${payment.paymentId}; o primeiro foi ${appointment.asaasPaymentId}). Estornar a cobrança duplicada no Asaas.`,
+    )
+  }
+  return ok({ appointmentId: appointment.id, alreadyPaid: true })
+}
+
+// Mensalidades podem chegar fora de ordem (no cartão, PAYMENT_RECEIVED de um mês
+// chega perto do PAYMENT_OVERDUE do mês seguinte). Em vez de confiar na ordem, o
+// status é recalculado perguntando ao Asaas se há mensalidade vencida em aberto.
 async function handleSubscriptionPayment(
   event: string,
   asaasSubscriptionId: string,
@@ -312,23 +352,32 @@ async function handleSubscriptionPayment(
     return ok({ subscriptionId: subscription.id, ignored: 'assinatura cancelada' })
   }
 
-  if (flags.isPaid) {
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: { status: 'active', lastPaymentAt: new Date() },
-    })
-    console.log(`[asaas-webhook] ${event}: assinatura ${subscription.id} ativa.`)
-    return ok({ subscriptionId: subscription.id, status: 'active' })
+  if (!flags.isPaid && event !== 'PAYMENT_OVERDUE') {
+    // Estorno de mensalidade ou cobrança removida: não muda o status sozinho.
+    return ok({ subscriptionId: subscription.id, ignored: event })
   }
 
-  if (flags.isUnpaid && event === 'PAYMENT_OVERDUE') {
-    await prisma.subscription.update({ where: { id: subscription.id }, data: { status: 'overdue' } })
-    console.log(`[asaas-webhook] ${event}: assinatura ${subscription.id} em atraso.`)
-    return ok({ subscriptionId: subscription.id, status: 'overdue' })
+  let hasOverdue: boolean
+  if (isAsaasConfigured()) {
+    // Falha aqui propaga (500) para o Asaas reenviar o evento mais tarde.
+    const overdue = await asaasRequest<{ totalCount?: number; data?: unknown[] }>(
+      `/payments?subscription=${encodeURIComponent(asaasSubscriptionId)}&status=OVERDUE&limit=1`,
+    )
+    hasOverdue = (overdue.totalCount ?? overdue.data?.length ?? 0) > 0
+  } else {
+    hasOverdue = event === 'PAYMENT_OVERDUE'
   }
 
-  // Estorno de mensalidade ou cobrança removida: não muda o status sozinho.
-  return ok({ subscriptionId: subscription.id, ignored: event })
+  let status = subscription.status
+  if (hasOverdue) status = 'overdue'
+  else if (flags.isPaid || subscription.status === 'overdue') status = 'active'
+
+  await prisma.subscription.update({
+    where: { id: subscription.id },
+    data: { status, ...(flags.isPaid ? { lastPaymentAt: new Date() } : {}) },
+  })
+  console.log(`[asaas-webhook] ${event}: assinatura ${subscription.id} → ${status}.`)
+  return ok({ subscriptionId: subscription.id, status })
 }
 
 async function handleSubscriptionEnded(event: string, asaasSubscriptionId?: string) {

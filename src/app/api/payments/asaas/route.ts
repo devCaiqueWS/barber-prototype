@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser } from '@/lib/client-auth'
 import { resolveSiteUrl } from '@/lib/business'
-import { hasSlotConflict, paymentHoldDeadline, PAYMENT_HOLD_MINUTES } from '@/lib/appointment-status'
+import { hasSlotConflict, paymentHoldDeadline, PAYMENT_HOLD_MINUTES, withSlotLock } from '@/lib/appointment-status'
 import { appointmentStartsAt } from '@/lib/client-hub'
 import {
   AsaasError,
   ASAAS_CHECKOUT_MINUTES,
+  cancelCheckout,
   checkoutUrlFromId,
   createAppointmentCheckout,
   isAsaasConfigured,
@@ -79,51 +80,97 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Reserva vencida: só renova se ninguém pegou o horário nesse meio-tempo.
-    if (!holdActive) {
-      if (!appointment.barberId) {
-        return NextResponse.json({ error: 'Agendamento sem barbeiro definido.' }, { status: 409 })
-      }
-      const conflict = await hasSlotConflict({
-        barberId: appointment.barberId,
-        date: appointment.date,
-        startTime: appointment.startTime,
-        durationMinutes: appointment.service?.duration ?? 30,
-        excludeId: appointment.id,
-      })
+    if (!appointment.barberId) {
+      return NextResponse.json({ error: 'Agendamento sem barbeiro definido.' }, { status: 409 })
+    }
+    const barberId = appointment.barberId
+    const previousCheckoutId = appointment.asaasCheckoutId
+    const pendingStatuses = ['awaiting_payment', 'expired']
+
+    // Renova a reserva sob a trava da agenda, e só se o agendamento não mudou desde
+    // a leitura (o webhook pode ter confirmado um pagamento nesse meio-tempo).
+    const claim = await withSlotLock(barberId, appointment.date, async (tx) => {
+      const conflict = await hasSlotConflict(
+        {
+          barberId,
+          date: appointment.date,
+          startTime: appointment.startTime,
+          durationMinutes: appointment.service?.duration ?? 30,
+          excludeId: appointment.id,
+        },
+        tx,
+      )
       if (conflict) {
-        await prisma.appointment.update({ where: { id: appointment.id }, data: { status: 'expired' } })
-        return NextResponse.json(
-          { error: 'Esse horário foi ocupado por outra pessoa. Faça um novo agendamento.' },
-          { status: 409 },
-        )
+        await tx.appointment.updateMany({
+          where: { id: appointment.id, paidAt: null, status: { in: pendingStatuses } },
+          data: { status: 'expired' },
+        })
+        return 'taken' as const
       }
+      const renewed = await tx.appointment.updateMany({
+        where: { id: appointment.id, paidAt: null, status: { in: pendingStatuses } },
+        data: { status: 'awaiting_payment', paymentExpiresAt: paymentHoldDeadline(), payOnline: true },
+      })
+      return renewed.count === 1 ? ('ok' as const) : ('changed' as const)
+    })
+
+    if (claim === 'taken') {
+      return NextResponse.json(
+        { error: 'Esse horário foi ocupado por outra pessoa. Faça um novo agendamento.' },
+        { status: 409 },
+      )
+    }
+    if (claim === 'changed') {
+      return NextResponse.json(
+        { error: 'Este agendamento acabou de ser atualizado. Recarregue a página.' },
+        { status: 409 },
+      )
     }
 
-    const checkout = await createAppointmentCheckout({
-      appointmentId: appointment.id,
-      serviceName: appointment.service?.name || 'Agendamento',
-      amount: appointment.service?.price ?? 0,
-      siteUrl: resolveSiteUrl(request),
-      customer: {
-        name: authUser.name,
-        email: authUser.email,
-        phone: authUser.whatsapp || authUser.phone,
-        cpf: authUser.cpf,
-      },
-    })
+    let checkout: { id: string; url: string }
+    try {
+      checkout = await createAppointmentCheckout({
+        appointmentId: appointment.id,
+        serviceName: appointment.service?.name || 'Agendamento',
+        amount: appointment.service?.price ?? 0,
+        siteUrl: resolveSiteUrl(request),
+        customer: {
+          name: authUser.name,
+          email: authUser.email,
+          phone: authUser.whatsapp || authUser.phone,
+          cpf: authUser.cpf,
+        },
+      })
+    } catch (checkoutError) {
+      // Sem checkout não há como pagar: devolve o horário
+      await prisma.appointment.updateMany({
+        where: { id: appointment.id, paidAt: null, status: 'awaiting_payment' },
+        data: { status: 'expired' },
+      })
+      throw checkoutError
+    }
 
-    const updated = await prisma.appointment.update({
+    const saved = await prisma.appointment.updateMany({
+      where: { id: appointment.id, paidAt: null },
+      data: { asaasCheckoutId: checkout.id },
+    })
+    if (saved.count === 0) {
+      // O checkout anterior foi pago enquanto este era criado
+      await cancelCheckout(checkout.id)
+      return NextResponse.json({ error: 'Este agendamento já está pago.' }, { status: 409 })
+    }
+
+    // Fecha o link antigo depois de gravar o novo, para o cliente não pagar duas vezes
+    if (previousCheckoutId && previousCheckoutId !== checkout.id) {
+      await cancelCheckout(previousCheckoutId)
+    }
+
+    const current = await prisma.appointment.findUnique({
       where: { id: appointment.id },
-      data: {
-        status: 'awaiting_payment',
-        asaasCheckoutId: checkout.id,
-        paymentExpiresAt: paymentHoldDeadline(now),
-        payOnline: true,
-      },
+      select: { paymentExpiresAt: true },
     })
 
-    return NextResponse.json({ checkoutUrl: checkout.url, paymentExpiresAt: updated.paymentExpiresAt })
+    return NextResponse.json({ checkoutUrl: checkout.url, paymentExpiresAt: current?.paymentExpiresAt ?? null })
   } catch (error) {
     console.error('[payments] Erro ao gerar checkout:', error)
     const detail = error instanceof AsaasError ? ` (${error.message})` : ''

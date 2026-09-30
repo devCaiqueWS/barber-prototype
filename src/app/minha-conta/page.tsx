@@ -201,7 +201,11 @@ function ProfileForm({ overview, onSaved }: { overview: Overview; onSaved: () =>
       const response = await fetch('/api/client/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, whatsapp, ...(cpf ? { cpf } : {}) }),
+        body: JSON.stringify({
+          name,
+          ...(whatsapp.trim() ? { whatsapp } : {}),
+          ...(cpf ? { cpf } : {}),
+        }),
       })
       const data = await response.json()
       if (!response.ok) {

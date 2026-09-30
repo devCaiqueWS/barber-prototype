@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser } from '@/lib/client-auth'
-import { formatDateKey } from '@/lib/date'
 import { expireStaleHolds, FINISHED_STATUSES } from '@/lib/appointment-status'
 import { getDisplaySubscription } from '@/lib/subscription'
-import { clientCanCancel } from '@/lib/client-hub'
+import { clientCanCancel, todayKeySaoPaulo } from '@/lib/client-hub'
 
 // GET - Visão geral da conta do cliente (Hub)
 export async function GET(request: NextRequest) {
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest) {
     await expireStaleHolds({ clientId: authUser.id })
 
     const now = new Date()
-    const todayStr = formatDateKey(now)
+    const todayStr = todayKeySaoPaulo(now)
 
     const appointments = await prisma.appointment.findMany({
       where: { clientId: authUser.id },

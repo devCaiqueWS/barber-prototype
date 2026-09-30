@@ -4,7 +4,7 @@ import { formatDateKey, parseDateOnly } from '@/lib/date'
 import { resolveSiteUrl } from '@/lib/business'
 import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
 import { getAuthUser } from '@/lib/client-auth'
-import { hasSlotConflict, paymentHoldDeadline } from '@/lib/appointment-status'
+import { hasSlotConflict, paymentHoldDeadline, withSlotLock } from '@/lib/appointment-status'
 import { AsaasError, createAppointmentCheckout, isAsaasConfigured } from '@/lib/asaas'
 import { getActiveSubscription } from '@/lib/subscription'
 
@@ -183,46 +183,60 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const appointment = await prisma.appointment.create({
-      data: {
-        clientId: authUser.id,
-        barberId,
-        serviceId,
-        date: appointmentDateStr,
-        startTime,
-        endTime,
-        clientName,
-        clientEmail,
-        clientPhone: contactPhone || '',
-        clientWhatsapp: whatsapp || '',
-        paymentMethod: requiresPayment ? 'online' : subscription ? 'assinatura' : 'gratuito',
-        payOnline: requiresPayment,
-        status: requiresPayment ? 'awaiting_payment' : 'confirmed',
-        paymentExpiresAt: requiresPayment ? paymentHoldDeadline() : null,
-        notes: appointmentNotes || undefined,
-        source: 'online',
-      },
-      include: {
-        client: {
-          select: {
-            name: true,
-            email: true,
+    // Checagem final e reserva sob a trava da agenda do barbeiro nesse dia:
+    // duas pessoas não conseguem reservar o mesmo horário ao mesmo tempo.
+    const appointment = await withSlotLock(barberId, appointmentDateStr, async (tx) => {
+      const takenMeanwhile = await hasSlotConflict(
+        { barberId, date: appointmentDateStr, startTime, durationMinutes },
+        tx,
+      )
+      if (takenMeanwhile) return null
+
+      return tx.appointment.create({
+        data: {
+          clientId: authUser.id,
+          barberId,
+          serviceId,
+          date: appointmentDateStr,
+          startTime,
+          endTime,
+          clientName,
+          clientEmail,
+          clientPhone: contactPhone || '',
+          clientWhatsapp: whatsapp || '',
+          paymentMethod: requiresPayment ? 'online' : subscription ? 'assinatura' : 'gratuito',
+          payOnline: requiresPayment,
+          status: requiresPayment ? 'awaiting_payment' : 'confirmed',
+          paymentExpiresAt: requiresPayment ? paymentHoldDeadline() : null,
+          notes: appointmentNotes || undefined,
+          source: 'online',
+        },
+        include: {
+          client: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          barber: {
+            select: {
+              name: true,
+            },
+          },
+          service: {
+            select: {
+              name: true,
+              price: true,
+              duration: true,
+            },
           },
         },
-        barber: {
-          select: {
-            name: true,
-          },
-        },
-        service: {
-          select: {
-            name: true,
-            price: true,
-            duration: true,
-          },
-        },
-      },
+      })
     })
+
+    if (!appointment) {
+      return NextResponse.json({ error: 'Horário não está mais disponível.' }, { status: 409 })
+    }
 
     const siteUrl = resolveSiteUrl(request)
 
