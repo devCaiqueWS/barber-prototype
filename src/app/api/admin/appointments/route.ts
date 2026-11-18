@@ -64,6 +64,7 @@ export async function GET(request: Request) {
             price: true,
           },
         },
+        products: { select: { name: true, unitPrice: true, quantity: true } },
       },
       orderBy: [
         { date: 'asc' },

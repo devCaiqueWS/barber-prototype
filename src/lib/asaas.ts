@@ -78,15 +78,18 @@ const checkoutUrlFor = (data: { id?: string; link?: string }) => {
 
 export interface AppointmentCheckoutInput {
   appointmentId: string
-  serviceName: string
-  amount: number
+  /** Linhas cobradas: o serviço (quando não coberto por assinatura) e os produtos. */
+  items: Array<{ name: string; unitPrice: number; quantity: number }>
   siteUrl: string
   customer: { name?: string | null; email?: string | null; phone?: string | null; cpf?: string | null }
 }
 
 // Cria um Asaas Checkout (PIX ou cartão, sem boleto) para um agendamento.
-// O valor vem sempre do serviço no banco — nunca do navegador.
+// Os valores vêm sempre do banco (serviço e produtos gravados no agendamento) — nunca do navegador.
 export async function createAppointmentCheckout(input: AppointmentCheckoutInput) {
+  const items = input.items.filter((item) => item.unitPrice > 0 && item.quantity > 0)
+  if (items.length === 0) throw new AsaasError('Checkout sem itens a cobrar', 400)
+
   const back = (result: string) =>
     `${input.siteUrl}/minha-conta?pagamento=${result}&agendamento=${encodeURIComponent(input.appointmentId)}`
 
@@ -105,16 +108,14 @@ export async function createAppointmentCheckout(input: AppointmentCheckoutInput)
         cancelUrl: back('cancelado'),
         expiredUrl: back('expirado'),
       },
-      items: [
-        {
-          name: input.serviceName.slice(0, 30),
-          description: `${BUSINESS.shortName} — agendamento ${input.appointmentId.slice(0, 8)}`.slice(0, 150),
-          quantity: 1,
-          value: Number(input.amount.toFixed(2)),
-          externalReference: input.appointmentId,
-          imageBase64: CHECKOUT_ITEM_IMAGE_BASE64,
-        },
-      ],
+      items: items.map((item) => ({
+        name: item.name.slice(0, 30),
+        description: `${BUSINESS.shortName} — agendamento ${input.appointmentId.slice(0, 8)}`.slice(0, 150),
+        quantity: item.quantity,
+        value: Number(item.unitPrice.toFixed(2)),
+        externalReference: input.appointmentId,
+        imageBase64: CHECKOUT_ITEM_IMAGE_BASE64,
+      })),
       customerData: {
         name: input.customer.name || undefined,
         email: input.customer.email || undefined,

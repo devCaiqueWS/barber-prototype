@@ -5,6 +5,7 @@ import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
 import { asaasRequest, isAsaasConfigured } from '@/lib/asaas'
 import type { Prisma } from '@prisma/client'
 import { hasSlotConflict, withSlotLock } from '@/lib/appointment-status'
+import { appointmentAmountDue } from '@/lib/appointment-total'
 
 // Webhook do Asaas (agendamentos e assinaturas).
 // Configuração: ASAAS_WEBHOOK_TOKEN (o mesmo token cadastrado no painel do Asaas).
@@ -56,6 +57,7 @@ const ok = (payload: Record<string, unknown>) => NextResponse.json({ received: t
 const appointmentInclude = {
   barber: { select: { name: true } },
   service: { select: { name: true, price: true, duration: true } },
+  products: { select: { name: true, unitPrice: true, quantity: true } },
 } as const
 
 type AppointmentWithRelations = NonNullable<
@@ -145,12 +147,12 @@ export async function POST(request: NextRequest) {
       return ok({ appointmentId: appointment.id, status: 'expired' })
     }
 
-    // Pagamento confirmado: confere se o valor cobre o serviço.
-    const price = appointment.service?.price ?? 0
+    // Pagamento confirmado: confere se o valor cobre o total (serviço + produtos).
+    const price = appointmentAmountDue(appointment)
     const paidValue = typeof payment.value === 'number' ? payment.value : null
     if (paidValue != null && paidValue + 0.009 < price) {
       console.error(
-        `[asaas-webhook] ${event}: valor pago R$ ${paidValue} menor que o serviço R$ ${price} ` +
+        `[asaas-webhook] ${event}: valor pago R$ ${paidValue} menor que o total R$ ${price} ` +
           `(agendamento ${appointment.id}, cobrança ${payment.id}). Não confirmado.`,
       )
       return ok({ appointmentId: appointment.id, ignored: 'valor insuficiente' })
@@ -256,7 +258,7 @@ async function confirmAppointmentPayment(
         paidAt: new Date(),
         payOnline: true,
         asaasPaymentId: payment.paymentId || appointment.asaasPaymentId,
-        amountPaid: payment.amount ?? appointment.service?.price ?? null,
+        amountPaid: payment.amount ?? appointmentAmountDue(appointment),
       },
     })
     return result.count === 1 ? status : null
@@ -299,6 +301,7 @@ async function confirmAppointmentPayment(
       servicePrice: appointment.service?.price,
       serviceDuration: appointment.service?.duration,
       barberName: appointment.barber?.name,
+      products: appointment.products,
       siteUrl: resolveSiteUrl(request),
     })
 

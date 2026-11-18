@@ -23,6 +23,8 @@ export type AppointmentEmailInput = {
   servicePrice?: number | null
   serviceDuration?: number | null
   barberName?: string | null
+  /** Produtos incluídos no agendamento */
+  products?: Array<{ name: string; unitPrice: number; quantity: number }> | null
   /** URL base absoluta do site, ex.: https://elemento.com.br */
   siteUrl: string
 }
@@ -53,6 +55,7 @@ export async function sendAppointmentConfirmationEmail(
     barberName: appointment.barberName,
     paymentMethod: appointment.paymentMethod,
     payOnline: appointment.payOnline,
+    products: appointment.products,
     icsUrl,
   }
 

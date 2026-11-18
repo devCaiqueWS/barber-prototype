@@ -21,6 +21,8 @@ interface ClientAppointment {
   canCancel: boolean
   service: { name: string; price: number; duration: number } | null
   barber: { name: string } | null
+  products?: Array<{ name: string; unitPrice: number; quantity: number }>
+  amountDue?: number
 }
 
 interface Overview {
@@ -142,14 +144,19 @@ function AppointmentCard({
             {formatDateBR(appointment.date)} às {appointment.startTime}
             {appointment.barber?.name ? ` · ${appointment.barber.name}` : ''}
           </p>
+          {appointment.products && appointment.products.length > 0 && (
+            <p className="text-sm text-slate-300">
+              Produtos: {appointment.products.map((item) => `${item.quantity}x ${item.name}`).join(', ')}
+            </p>
+          )}
           {appointment.paymentMethod === 'assinatura' && (
-            <p className="text-xs text-amber-300">Incluído na assinatura</p>
+            <p className="text-xs text-amber-300">Serviço incluído na assinatura</p>
           )}
           {appointment.paidAt && <p className="text-xs text-green-400">Pago online</p>}
         </div>
         <div className="flex items-center gap-3">
-          {appointment.service?.price != null && appointment.paymentMethod !== 'assinatura' && (
-            <span className="text-sm font-semibold text-green-400">{formatBRL(appointment.service.price)}</span>
+          {(appointment.amountDue ?? 0) > 0 && (
+            <span className="text-sm font-semibold text-green-400">{formatBRL(appointment.amountDue)}</span>
           )}
           <StatusBadge status={appointment.status} />
         </div>

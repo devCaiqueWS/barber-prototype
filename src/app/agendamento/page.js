@@ -37,6 +37,10 @@ function BookingPageContent() {
 
   const [availableTimes, setAvailableTimes] = useState([])
 
+  // Produtos ativos e quantidades escolhidas ({ [productId]: quantidade })
+  const [products, setProducts] = useState([])
+  const [cart, setCart] = useState({})
+
   const [lastAppointmentId, setLastAppointmentId] = useState('')
 
   const [confirmationEmailSent, setConfirmationEmailSent] = useState(false)
@@ -74,6 +78,8 @@ function BookingPageContent() {
     loadServices()
 
     loadBarbers()
+
+    loadProducts()
 
     checkSession()
 
@@ -147,6 +153,45 @@ function BookingPageContent() {
   }
 
 
+
+  const loadProducts = async () => {
+    try {
+      const response = await fetch('/api/products')
+      const data = await response.json()
+      setProducts(data.success ? data.products : [])
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error)
+      setProducts([])
+    }
+  }
+
+  const MAX_PRODUCT_QUANTITY = 10
+
+  const changeQuantity = (productId, delta) => {
+    setCart((prev) => {
+      const next = Math.min(MAX_PRODUCT_QUANTITY, Math.max(0, (prev[productId] || 0) + delta))
+      const updated = { ...prev }
+      if (next === 0) delete updated[productId]
+      else updated[productId] = next
+      return updated
+    })
+  }
+
+  const formatBRL = (value) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value) || 0)
+
+  // Itens escolhidos, com os dados do cadastro (o servidor recalcula tudo ao reservar)
+  const cartItems = products
+    .filter((product) => cart[product.id] > 0)
+    .map((product) => ({ ...product, quantity: cart[product.id] }))
+
+  const productsTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  // Passo 5 (produtos) só existe quando há produto ativo
+  const hasProductsStep = products.length > 0
+  const STEP_CONFIRM = 6
+  const STEP_SUCCESS = 7
+  const stepBeforeConfirm = hasProductsStep ? 5 : 4
 
   const loadBarbers = async () => {
 
@@ -290,13 +335,16 @@ function BookingPageContent() {
 
     setSelectedTime(time)
 
-    setStep(5)
+    setStep(hasProductsStep ? 5 : STEP_CONFIRM)
 
   }
 
 
 
   const bookingPaymentLabel = authUser?.isSubscriber ? 'Assinatura' : 'Online'
+
+  // Estimativa para a tela; o valor cobrado é sempre recalculado no servidor
+  const amountDue = (authUser?.isSubscriber ? 0 : Number(selectedService?.price) || 0) + productsTotal
 
   const handleClientDataSubmit = async (e) => {
     e.preventDefault()
@@ -323,6 +371,7 @@ function BookingPageContent() {
           time: selectedTime,
           clientInstagram: clientData.instagram,
           clientWhatsapp: clientData.whatsapp,
+          products: cartItems.map((item) => ({ productId: item.id, quantity: item.quantity })),
         }),
       })
 
@@ -336,7 +385,12 @@ function BookingPageContent() {
 
       if (!response.ok || !data.success) {
         alert(data.error || 'Não foi possível concluir o agendamento.')
-        if (response.status === 409) {
+        if (response.status === 409 && data.productsUnavailable) {
+          // Produto desativado enquanto o cliente escolhia: recarrega a lista
+          setCart({})
+          void loadProducts()
+          setStep(5)
+        } else if (response.status === 409) {
           // Horário ocupado: volta para a escolha de horário com a lista atualizada
           setSelectedTime('')
           void loadAvailableTimes(selectedBarber.id, selectedDate, getSlotDurationForService())
@@ -354,7 +408,7 @@ function BookingPageContent() {
       }
 
       setConfirmationEmailSent(Boolean(data.emailSent))
-      setStep(6)
+      setStep(STEP_SUCCESS)
     } catch (error) {
       console.error('Erro ao criar agendamento:', error)
       alert('Erro ao criar agendamento. Tente novamente.')
@@ -378,6 +432,8 @@ function BookingPageContent() {
     setClientData({ name: '', email: '', instagram: '', whatsapp: '', paymentMethod: '', payOnline: false })
 
     setAvailableTimes([])
+
+    setCart({})
 
     setConfirmationEmailSent(false)
 
@@ -472,13 +528,13 @@ function BookingPageContent() {
 
           <div className="flex justify-center flex-wrap gap-3 mb-8">
 
-            {[1, 2, 3, 4, 5].map((num) => (
+            {(hasProductsStep ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]).map((num) => (
 
               <div
 
                 key={num}
 
-                className={`w-9 h-9 rounded-full flex items-center justify-center ${step >= num ? 'bg-amber-500' : 'bg-slate-600'
+                className={`w-9 h-9 rounded-full flex items-center justify-center ${(hasProductsStep || step < STEP_CONFIRM ? step : step - 1) >= num ? 'bg-amber-500' : 'bg-slate-600'
 
                   }`}
 
@@ -739,9 +795,95 @@ function BookingPageContent() {
 
 
 
-          {/* Step 5a: Login/Cadastro obrigatório */}
+          {/* Step 5: Produtos (opcional) */}
 
-          {step === 5 && !authUser && (
+          {step === 5 && (
+
+            <div>
+
+              <h2 className="text-white text-2xl font-bold mb-2 text-center">Quer levar algum produto?</h2>
+
+              <p className="mb-6 text-center text-slate-400">
+                Opcional. O que você escolher entra no mesmo pagamento e fica separado para o dia do seu horário.
+              </p>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+
+                {products.map((product) => {
+                  const quantity = cart[product.id] || 0
+                  return (
+                    <div
+                      key={product.id}
+                      className={`premium-card rounded-2xl p-5 transition ${quantity > 0 ? 'border-primary/60' : ''}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-lg font-semibold text-amber-500">{product.name}</h3>
+                        <span className="shrink-0 font-bold text-green-400">{formatBRL(product.price)}</span>
+                      </div>
+
+                      {product.description && <p className="mt-1 text-sm text-slate-400">{product.description}</p>}
+
+                      <div className="mt-4 flex items-center justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => changeQuantity(product.id, -1)}
+                          disabled={quantity === 0}
+                          aria-label={`Remover ${product.name}`}
+                          className="h-9 w-9 rounded-full border border-white/20 text-lg font-bold text-white hover:border-primary disabled:opacity-30"
+                        >
+                          −
+                        </button>
+                        <span className="w-6 text-center font-semibold" aria-live="polite">{quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => changeQuantity(product.id, 1)}
+                          disabled={quantity >= MAX_PRODUCT_QUANTITY}
+                          aria-label={`Adicionar ${product.name}`}
+                          className="h-9 w-9 rounded-full border border-white/20 text-lg font-bold text-white hover:border-primary disabled:opacity-30"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+
+              </div>
+
+              <div className="mx-auto mt-6 max-w-md space-y-3">
+                {cartItems.length > 0 && (
+                  <p className="text-center text-sm text-slate-300">
+                    Produtos: <span className="font-semibold text-green-400">{formatBRL(productsTotal)}</span>
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setStep(STEP_CONFIRM)}
+                  className="w-full rounded-lg bg-primary px-6 py-3 font-bold text-white transition-colors hover:bg-[#c21111]"
+                >
+                  {cartItems.length > 0 ? 'Continuar' : 'Continuar sem produtos'}
+                </button>
+              </div>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setStep(4)}
+                  aria-label="Voltar"
+                  className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              </div>
+
+            </div>
+
+          )}
+
+
+
+          {/* Step 6a: Login/Cadastro obrigatório */}
+
+          {step === STEP_CONFIRM && !authUser && (
 
             <div>
 
@@ -761,7 +903,7 @@ function BookingPageContent() {
 
                 <button
 
-                  onClick={() => setStep(4)}
+                  onClick={() => setStep(stepBeforeConfirm)}
 
                   aria-label="Voltar"
                   className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
@@ -780,9 +922,9 @@ function BookingPageContent() {
 
 
 
-          {/* Step 5b: Dados do Cliente (logado) */}
+          {/* Step 6b: Dados do Cliente (logado) */}
 
-          {step === 5 && authUser && (
+          {step === STEP_CONFIRM && authUser && (
 
             <div>
 
@@ -797,6 +939,15 @@ function BookingPageContent() {
                 <p className="text-slate-400">Data: <span className="text-amber-500">{selectedDate}</span></p>
 
                 <p className="text-slate-400">Horário: <span className="text-amber-500">{selectedTime}</span></p>
+
+                {cartItems.length > 0 && (
+                  <p className="text-slate-400">
+                    Produtos:{' '}
+                    <span className="text-amber-500">
+                      {cartItems.map((item) => `${item.quantity}x ${item.name}`).join(', ')}
+                    </span>
+                  </p>
+                )}
 
               </div>
 
@@ -900,20 +1051,32 @@ function BookingPageContent() {
 
 
 
-                {/* Pagamento: assinante não paga; os demais pagam online para confirmar */}
-                {authUser?.isSubscriber ? (
-                  <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
-                    <p className="text-sm font-semibold text-green-300">Você é assinante</p>
-                    <p className="mt-1 text-sm text-slate-300">Este agendamento é confirmado na hora, sem cobrança.</p>
-                  </div>
-                ) : (
+                {/* Pagamento: assinante não paga o serviço; produtos são sempre pagos online */}
+                {amountDue > 0 ? (
                   <div className="rounded-xl border border-slate-600 bg-slate-800/70 p-4">
-                    <p className="text-sm font-semibold text-white">
-                      Pagamento online {selectedService?.price ? `· R$ ${selectedService.price}` : ''}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <p className="text-sm font-semibold text-white">Pagamento online · {formatBRL(amountDue)}</p>
+                    <ul className="mt-2 space-y-1 text-sm text-slate-300">
+                      <li className="flex justify-between gap-3">
+                        <span>{selectedService?.name}</span>
+                        <span>{authUser?.isSubscriber ? 'Assinatura' : formatBRL(selectedService?.price)}</span>
+                      </li>
+                      {cartItems.map((item) => (
+                        <li key={item.id} className="flex justify-between gap-3">
+                          <span>{item.quantity}x {item.name}</span>
+                          <span>{formatBRL(item.price * item.quantity)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 text-sm text-slate-300">
                       Pague com PIX ou cartão para confirmar. Seu horário fica reservado por 20 minutos enquanto você conclui o pagamento.
                     </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
+                    <p className="text-sm font-semibold text-green-300">
+                      {authUser?.isSubscriber ? 'Você é assinante' : 'Sem cobrança'}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-300">Este agendamento é confirmado na hora, sem cobrança.</p>
                   </div>
                 )}
 
@@ -930,9 +1093,9 @@ function BookingPageContent() {
                 >
                   {loading
                     ? 'Processando...'
-                    : authUser?.isSubscriber
-                      ? 'Confirmar Agendamento'
-                      : 'Reservar e ir para o pagamento'}
+                    : amountDue > 0
+                      ? 'Reservar e ir para o pagamento'
+                      : 'Confirmar Agendamento'}
                 </button>
 
               </form>
@@ -943,7 +1106,7 @@ function BookingPageContent() {
 
                 <button
 
-                  onClick={() => setStep(4)}
+                  onClick={() => setStep(stepBeforeConfirm)}
 
                   aria-label="Voltar"
                   className="inline-flex h-10 w-10 items-center justify-center text-slate-400 hover:text-white"
@@ -964,7 +1127,7 @@ function BookingPageContent() {
 
           {/* Step 6: Sucesso */}
 
-          {step === 6 && (
+          {step === STEP_SUCCESS && (
 
             <div className="text-center">
 

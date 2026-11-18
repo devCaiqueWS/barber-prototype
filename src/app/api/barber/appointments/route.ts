@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
             duration: true,
           },
         },
+        products: { select: { name: true, unitPrice: true, quantity: true } },
       },
       orderBy: {
         date: 'asc',

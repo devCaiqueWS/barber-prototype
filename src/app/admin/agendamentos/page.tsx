@@ -36,6 +36,7 @@ interface Appointment {
   client: { name: string; phone: string; address?: string }
   service: { name: string; price: number; duration: number }
   barber?: { name: string }
+  products?: Array<{ name: string; unitPrice: number; quantity: number }>
   paymentMethod: string
   notes?: string
   createdAt: string
@@ -379,6 +380,9 @@ export default function AdminAppointments() {
                                 </div>
                               )}
                               <div className="text-xs text-emerald-100">{appt.service.name}</div>
+                              {appt.products && appt.products.length > 0 && (
+                                <div className="text-xs text-amber-200">+ {(appt.products || []).map((item) => `${item.quantity}x ${item.name}`).join(', ')}</div>
+                              )}
                               <div className="text-xs text-emerald-200">Barbeiro: {appt.barber?.name || '—'}</div>
                               <div className="text-xs text-emerald-200 flex items-center mt-1">
                                 {appt.startTime} - {appt.endTime}
@@ -432,6 +436,9 @@ export default function AdminAppointments() {
                 <p className="text-sm text-slate-400">
                   {editingAppointment.client.name} - {editingAppointment.service.name}
                 </p>
+                {editingAppointment.products && editingAppointment.products.length > 0 && (
+                  <p className="mt-1 text-sm text-amber-300">Produtos: {(editingAppointment.products || []).map((item) => `${item.quantity}x ${item.name}`).join(', ')}</p>
+                )}
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -20,6 +20,7 @@ interface Appointment {
         price: number
         duration: number
     }
+    products?: Array<{ name: string; unitPrice: number; quantity: number }>
     clientWhatsapp?: string
 }
 
@@ -233,6 +234,9 @@ export default function BarberDashboard() {
                                                     <p className="text-slate-400">Serviço</p>
                                                     <p className="font-medium">{appointment.service.name}</p>
                                                     <p className="text-amber-400">{formatCurrency(appointment.service.price)}</p>
+                                                    {appointment.products && appointment.products.length > 0 && (
+                                                        <p className="text-amber-200">Produtos: {appointment.products.map((item) => `${item.quantity}x ${item.name}`).join(', ')}</p>
+                                                    )}
                                                 </div>
 
                                                 <div>

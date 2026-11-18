@@ -7,6 +7,7 @@ import { getAuthUser } from '@/lib/client-auth'
 import { hasSlotConflict, paymentHoldDeadline, withSlotLock } from '@/lib/appointment-status'
 import { AsaasError, createAppointmentCheckout, isAsaasConfigured } from '@/lib/asaas'
 import { getActiveSubscription } from '@/lib/subscription'
+import { appointmentAmountDue, checkoutItemsFor, parseProductRequest } from '@/lib/appointment-total'
 
 // Normaliza objeto Date para string HH:mm
 const toHHMM = (date: Date) => {
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       time,
       dateTime,
       notes,
+      products: requestedProductsRaw,
     } = body as {
       clientInstagram?: string
       clientWhatsapp?: string
@@ -46,6 +48,7 @@ export async function POST(request: NextRequest) {
       time?: string
       dateTime?: string
       notes?: string
+      products?: unknown
     }
 
     // Identidade sempre vem da conta logada
@@ -111,6 +114,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Produtos incluídos: o navegador manda só id e quantidade; nome e preço vêm do cadastro.
+    const requestedProducts = parseProductRequest(requestedProductsRaw)
+    if (!requestedProducts) {
+      return NextResponse.json({ error: 'Lista de produtos inválida.' }, { status: 400 })
+    }
+
+    const catalog = requestedProducts.length
+      ? await prisma.product.findMany({
+          where: { id: { in: requestedProducts.map((p) => p.productId) }, isActive: true },
+          select: { id: true, name: true, price: true },
+        })
+      : []
+
+    if (catalog.length !== requestedProducts.length) {
+      return NextResponse.json(
+        {
+          error: 'Um dos produtos escolhidos não está mais disponível. Revise os produtos e tente de novo.',
+          productsUnavailable: true,
+        },
+        { status: 409 },
+      )
+    }
+
+    const productItems = requestedProducts.map((requested) => {
+      const product = catalog.find((p) => p.id === requested.productId)!
+      return { productId: product.id, name: product.name, unitPrice: product.price, quantity: requested.quantity }
+    })
+
     const durationMinutes = service.duration || 30
     const startDT = new Date(appointmentDateTime)
     const endDT = new Date(startDT.getTime() + durationMinutes * 60 * 1000)
@@ -171,9 +202,16 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Assinante ativo agenda sem pagar; os demais pagam online antes de confirmar.
+    // Assinante ativo não paga o serviço; os demais pagam online antes de confirmar.
+    // Produtos são sempre pagos online, inclusive por assinante.
     const subscription = await getActiveSubscription(authUser.id)
-    const requiresPayment = !subscription && service.price > 0
+    const paymentMethod = subscription
+      ? 'assinatura'
+      : service.price > 0 || productItems.length > 0
+        ? 'online'
+        : 'gratuito'
+    const amountDue = appointmentAmountDue({ paymentMethod, service, products: productItems })
+    const requiresPayment = amountDue > 0
 
     if (requiresPayment && !isAsaasConfigured()) {
       console.error('[appointments] ASAAS_API_KEY ausente — agendamento pago não pode ser criado.')
@@ -204,12 +242,13 @@ export async function POST(request: NextRequest) {
           clientEmail,
           clientPhone: contactPhone || '',
           clientWhatsapp: whatsapp || '',
-          paymentMethod: requiresPayment ? 'online' : subscription ? 'assinatura' : 'gratuito',
+          paymentMethod,
           payOnline: requiresPayment,
           status: requiresPayment ? 'awaiting_payment' : 'confirmed',
           paymentExpiresAt: requiresPayment ? paymentHoldDeadline() : null,
           notes: appointmentNotes || undefined,
           source: 'online',
+          products: productItems.length ? { create: productItems } : undefined,
         },
         include: {
           client: {
@@ -230,6 +269,9 @@ export async function POST(request: NextRequest) {
               duration: true,
             },
           },
+          products: {
+            select: { name: true, unitPrice: true, quantity: true },
+          },
         },
       })
     })
@@ -245,8 +287,7 @@ export async function POST(request: NextRequest) {
       try {
         const checkout = await createAppointmentCheckout({
           appointmentId: appointment.id,
-          serviceName: service.name,
-          amount: service.price,
+          items: checkoutItemsFor(appointment),
           siteUrl,
           customer: {
             name: clientName,
@@ -265,6 +306,7 @@ export async function POST(request: NextRequest) {
           {
             success: true,
             requiresPayment: true,
+            amountDue,
             checkoutUrl: checkout.url,
             paymentExpiresAt: appointment.paymentExpiresAt,
             appointment: {
@@ -275,6 +317,7 @@ export async function POST(request: NextRequest) {
               status: appointment.status,
               service: appointment.service,
               barber: appointment.barber,
+              products: appointment.products,
             },
             message: 'Horário reservado. Conclua o pagamento para confirmar.',
           },
@@ -310,6 +353,7 @@ export async function POST(request: NextRequest) {
         servicePrice: appointment.service?.price,
         serviceDuration: appointment.service?.duration,
         barberName: appointment.barber?.name,
+        products: appointment.products,
         siteUrl,
       })
 
@@ -341,6 +385,7 @@ export async function POST(request: NextRequest) {
           client: appointment.client,
           barber: appointment.barber,
           service: appointment.service,
+          products: appointment.products,
         },
         message: 'Agendamento criado com sucesso!',
       },

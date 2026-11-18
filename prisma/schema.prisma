@@ -99,8 +99,39 @@ model Appointment {
   paymentExpiresAt   DateTime? // fim da reserva do horário enquanto aguarda pagamento
   amountPaid         Float? // valor confirmado pelo Asaas
 
+  // Produtos comprados junto com o agendamento
+  products AppointmentProduct[]
+
   @@index([asaasPaymentLinkId])
   @@index([asaasCheckoutId])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  appointmentItems AppointmentProduct[]
+}
+
+// Produto incluído em um agendamento. Nome e preço são copiados na hora da
+// compra: mudar o cadastro depois não altera o que já foi vendido.
+model AppointmentProduct {
+  id            String      @id @default(uuid())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId String
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     String
+  name          String
+  unitPrice     Float
+  quantity      Int         @default(1)
+
+  @@index([appointmentId])
+  @@index([productId])
 }
 
 model Subscription {

@@ -12,10 +12,11 @@ import {
   createAppointmentCheckout,
   isAsaasConfigured,
 } from '@/lib/asaas'
+import { appointmentAmountDue, checkoutItemsFor } from '@/lib/appointment-total'
 
 // POST - "Pagar agora" de um agendamento do cliente logado.
-// Reaproveita o checkout ativo ou cria outro; o valor é sempre o preço do serviço
-// no banco. Uma reserva vencida é renovada se o horário ainda estiver livre.
+// Reaproveita o checkout ativo ou cria outro; o valor é sempre o do banco: preço do
+// serviço (se não coberto por assinatura) + produtos gravados no agendamento. Uma reserva vencida é renovada se o horário ainda estiver livre.
 export async function POST(request: NextRequest) {
   const authUser = await getAuthUser(request)
   if (!authUser) {
@@ -41,7 +42,10 @@ export async function POST(request: NextRequest) {
   try {
     const appointment = await prisma.appointment.findFirst({
       where: { id: appointmentId, clientId: authUser.id },
-      include: { service: { select: { name: true, price: true, duration: true } } },
+      include: {
+        service: { select: { name: true, price: true, duration: true } },
+        products: { select: { name: true, unitPrice: true, quantity: true } },
+      },
     })
 
     if (!appointment) {
@@ -54,6 +58,10 @@ export async function POST(request: NextRequest) {
 
     if (!['awaiting_payment', 'expired'].includes(appointment.status)) {
       return NextResponse.json({ error: 'Este agendamento não aguarda pagamento.' }, { status: 409 })
+    }
+
+    if (appointmentAmountDue(appointment) <= 0) {
+      return NextResponse.json({ error: 'Este agendamento não tem valor a pagar.' }, { status: 409 })
     }
 
     const now = new Date()
@@ -131,8 +139,7 @@ export async function POST(request: NextRequest) {
     try {
       checkout = await createAppointmentCheckout({
         appointmentId: appointment.id,
-        serviceName: appointment.service?.name || 'Agendamento',
-        amount: appointment.service?.price ?? 0,
+        items: checkoutItemsFor(appointment),
         siteUrl: resolveSiteUrl(request),
         customer: {
           name: authUser.name,

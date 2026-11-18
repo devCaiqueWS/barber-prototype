@@ -1,5 +1,6 @@
 import { BRAND_COLORS, BUSINESS, formatBRL, whatsappLink } from '../business'
 import { formatDateBR, parseDateOnly } from '../date'
+import { appointmentAmountDue, isServiceCoveredBySubscription } from '../appointment-total'
 
 export type AppointmentEmailData = {
   id: string
@@ -16,11 +17,15 @@ export type AppointmentEmailData = {
   barberName?: string | null
   paymentMethod?: string | null
   payOnline?: boolean
+  products?: Array<{ name: string; unitPrice: number; quantity: number }> | null
   /** Link absoluto para baixar o arquivo .ics */
   icsUrl: string
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
+  assinatura: 'Assinatura',
+  online: 'Online',
+  gratuito: 'Sem cobrança',
   dinheiro: 'Dinheiro',
   pix: 'PIX',
   cartao_credito: 'Cartão de crédito',
@@ -54,7 +59,24 @@ const buildRows = (data: AppointmentEmailData): Row[] => {
   const weekday = formatWeekday(data.date)
   const dateLabel = weekday ? `${weekday}, ${formatDateBR(data.date)}` : formatDateBR(data.date)
   const timeLabel = data.endTime ? `${data.startTime} às ${data.endTime}` : data.startTime
-  const price = formatBRL(data.servicePrice ?? null)
+  const products = data.products || []
+  const covered = isServiceCoveredBySubscription(data)
+  // Com produtos (ou assinatura), o valor mostrado é o total realmente cobrado.
+  const total = appointmentAmountDue({
+    paymentMethod: data.paymentMethod,
+    service: { price: data.servicePrice },
+    products,
+  })
+  const price =
+    products.length > 0 || covered
+      ? total > 0
+        ? formatBRL(total)
+        : ''
+      : formatBRL(data.servicePrice ?? null)
+  const productsLabel = products
+    .map((item) => `${item.quantity}x ${item.name} (${formatBRL(item.unitPrice * item.quantity)})`)
+    .join(', ')
+  const paymentLabel = formatPaymentMethod(data.paymentMethod)
 
   return [
     { label: 'Serviço', value: data.serviceName || 'Atendimento' },
@@ -64,12 +86,19 @@ const buildRows = (data: AppointmentEmailData): Row[] => {
       label: 'Horário',
       value: data.serviceDuration ? `${timeLabel} (${data.serviceDuration} min)` : timeLabel,
     },
-    ...(price ? [{ label: 'Valor', value: price }] : []),
+    ...(productsLabel ? [{ label: 'Produtos', value: productsLabel }] : []),
+    ...(price ? [{ label: products.length > 0 ? 'Total' : 'Valor', value: price }] : []),
     {
       label: 'Pagamento',
-      value: data.payOnline
-        ? `${formatPaymentMethod(data.paymentMethod)} — online`
-        : `${formatPaymentMethod(data.paymentMethod)} — no local`,
+      value: covered
+        ? products.length > 0
+          ? 'Serviço pela assinatura — produtos pagos online'
+          : 'Incluído na assinatura'
+        : data.payOnline
+          ? paymentLabel === 'Online'
+            ? 'Online'
+            : `${paymentLabel} — online`
+          : `${paymentLabel} — no local`,
     },
     { label: 'Endereço', value: BUSINESS.address },
   ]

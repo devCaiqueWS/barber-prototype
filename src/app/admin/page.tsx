@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
+import ProductsManagement from "@/components/admin/ProductsManagement";
 import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
 import ClientsManagement from "@/components/admin/ClientsManagement";
 import BarberCalendar from "@/components/admin/BarberCalendar";
@@ -400,6 +401,7 @@ export default function AdminPage() {
                   { id: 'calendar', label: 'Calendário' },
                   { id: 'subscriptions', label: 'Assinaturas' },
                   { id: 'services', label: 'Serviços' },
+                  { id: 'products', label: 'Produtos' },
                   ...(userRole === 'ADMIN' ? [
                     { id: 'clients', label: 'Clientes' },
                     { id: 'barbers', label: 'Barbeiros' },
@@ -637,6 +639,11 @@ export default function AdminPage() {
         {/* Services Tab */}
         {activeTab === 'services' && (
           <ServicesManagement />
+        )}
+
+        {/* Products Tab */}
+        {activeTab === 'products' && (
+          <ProductsManagement canEdit={userRole === 'ADMIN'} />
         )}
 
         {/* Reports Tab */}

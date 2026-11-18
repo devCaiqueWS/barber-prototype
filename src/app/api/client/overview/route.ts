@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/client-auth'
 import { expireStaleHolds, FINISHED_STATUSES } from '@/lib/appointment-status'
 import { getDisplaySubscription } from '@/lib/subscription'
 import { clientCanCancel, todayKeySaoPaulo } from '@/lib/client-hub'
+import { appointmentAmountDue } from '@/lib/appointment-total'
 
 // GET - Visão geral da conta do cliente (Hub)
 export async function GET(request: NextRequest) {
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
       include: {
         service: { select: { name: true, price: true, duration: true } },
         barber: { select: { name: true } },
+        products: { select: { name: true, unitPrice: true, quantity: true } },
       },
     })
 
@@ -57,6 +59,8 @@ export async function GET(request: NextRequest) {
       canCancel: clientCanCancel(a, now),
       service: a.service,
       barber: a.barber,
+      products: a.products,
+      amountDue: appointmentAmountDue(a),
     })
 
     return NextResponse.json({
