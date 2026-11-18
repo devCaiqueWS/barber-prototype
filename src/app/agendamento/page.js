@@ -14,6 +14,7 @@ import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
 import { formatDateBR, formatDateKey } from '@/lib/date'
 import { appointmentIcsFilename, buildAppointmentIcs } from '@/lib/ics'
 import ClientAuthForm from '@/components/client/ClientAuthForm'
+import { ONLINE_PAYMENT_REQUIRED } from '@/lib/payment-config'
 
 function BookingPageContent() {
 
@@ -397,7 +398,11 @@ function BookingPageContent() {
 
 
 
-  const bookingPaymentLabel = authUser?.isSubscriber ? 'Assinatura' : 'Online'
+  const bookingPaymentLabel = authUser?.isSubscriber
+    ? 'Assinatura'
+    : ONLINE_PAYMENT_REQUIRED
+      ? 'Online'
+      : 'Na barbearia'
 
   // Estimativa para a tela; o valor cobrado é sempre recalculado no servidor
   const amountDue =
@@ -1167,10 +1172,12 @@ function BookingPageContent() {
 
 
 
-                {/* Pagamento: assinante não paga o serviço; produtos são sempre pagos online */}
+                {/* Pagamento: assinante não paga o serviço; o resto é pago online ou na barbearia */}
                 {amountDue > 0 ? (
                   <div className="rounded-xl border border-slate-600 bg-slate-800/70 p-4">
-                    <p className="text-sm font-semibold text-white">Pagamento online · {formatBRL(amountDue)}</p>
+                    <p className="text-sm font-semibold text-white">
+                      {ONLINE_PAYMENT_REQUIRED ? 'Pagamento online' : 'Pagamento na barbearia'} · {formatBRL(amountDue)}
+                    </p>
                     <ul className="mt-2 space-y-1 text-sm text-slate-300">
                       <li className="flex justify-between gap-3">
                         <span>{selectedService?.name}</span>
@@ -1190,7 +1197,9 @@ function BookingPageContent() {
                       ))}
                     </ul>
                     <p className="mt-3 text-sm text-slate-300">
-                      Pague com PIX ou cartão para confirmar. Seu horário fica reservado por 20 minutos enquanto você conclui o pagamento.
+                      {ONLINE_PAYMENT_REQUIRED
+                        ? 'Pague com PIX ou cartão para confirmar. Seu horário fica reservado por 20 minutos enquanto você conclui o pagamento.'
+                        : 'Você paga na barbearia, no dia do atendimento. O agendamento é confirmado na hora.'}
                     </p>
                   </div>
                 ) : (
@@ -1215,7 +1224,7 @@ function BookingPageContent() {
                 >
                   {loading
                     ? 'Processando...'
-                    : amountDue > 0
+                    : ONLINE_PAYMENT_REQUIRED && amountDue > 0
                       ? 'Reservar e ir para o pagamento'
                       : 'Confirmar Agendamento'}
                 </button>

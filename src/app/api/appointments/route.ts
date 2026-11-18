@@ -7,6 +7,7 @@ import { getAuthUser } from '@/lib/client-auth'
 import { hasSlotConflict, paymentHoldDeadline, toMinutes, withSlotLock } from '@/lib/appointment-status'
 import { AsaasError, createAppointmentCheckout, isAsaasConfigured } from '@/lib/asaas'
 import { getActiveSubscription } from '@/lib/subscription'
+import { ONLINE_PAYMENT_REQUIRED } from '@/lib/payment-config'
 import { extraServicesGap } from '@/lib/extra-services'
 import {
   appointmentAmountDue,
@@ -285,21 +286,26 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Assinante ativo não paga o serviço; os demais pagam online antes de confirmar.
-    // Produtos são sempre pagos online, inclusive por assinante.
+    // Assinante ativo não paga os serviços. Com o pagamento online ligado, o resto
+    // (serviços de quem não é assinante e produtos) é pago online antes de confirmar;
+    // desligado, o agendamento é confirmado na hora e o cliente paga na barbearia.
     const subscription = await getActiveSubscription(authUser.id)
+    const hasCharge =
+      service.price > 0 || productItems.length > 0 || extraItems.some((extra) => extra.price > 0)
     const paymentMethod = subscription
       ? 'assinatura'
-      : service.price > 0 || productItems.length > 0 || extraItems.some((extra) => extra.price > 0)
-        ? 'online'
-        : 'gratuito'
+      : !hasCharge
+        ? 'gratuito'
+        : ONLINE_PAYMENT_REQUIRED
+          ? 'online'
+          : 'no_local'
     const amountDue = appointmentAmountDue({
       paymentMethod,
       service,
       extraServices: extraItems,
       products: productItems,
     })
-    const requiresPayment = amountDue > 0
+    const requiresPayment = ONLINE_PAYMENT_REQUIRED && amountDue > 0
 
     if (requiresPayment && !isAsaasConfigured()) {
       console.error('[appointments] ASAAS_API_KEY ausente — agendamento pago não pode ser criado.')

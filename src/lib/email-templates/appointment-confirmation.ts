@@ -26,6 +26,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   assinatura: 'Assinatura',
   online: 'Online',
   gratuito: 'Sem cobrança',
+  no_local: 'Na barbearia',
   dinheiro: 'Dinheiro',
   pix: 'PIX',
   cartao_credito: 'Cartão de crédito',
@@ -92,13 +93,15 @@ const buildRows = (data: AppointmentEmailData): Row[] => {
       label: 'Pagamento',
       value: covered
         ? products.length > 0
-          ? 'Serviço pela assinatura — produtos pagos online'
+          ? `Serviço pela assinatura — produtos pagos ${data.payOnline ? 'online' : 'na barbearia'}`
           : 'Incluído na assinatura'
         : data.payOnline
           ? paymentLabel === 'Online'
             ? 'Online'
             : `${paymentLabel} — online`
-          : `${paymentLabel} — no local`,
+          : paymentLabel === 'Na barbearia'
+            ? 'Na barbearia'
+            : `${paymentLabel} — no local`,
     },
     { label: 'Endereço', value: BUSINESS.address },
   ]
