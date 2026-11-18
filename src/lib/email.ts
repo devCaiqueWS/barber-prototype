@@ -1,5 +1,5 @@
 // Envio de e-mails via API HTTP da Resend (sem SDK — apenas fetch).
-// Configuração: RESEND_API_KEY (obrigatória) e EMAIL_FROM (opcional).
+// Configuração: RESEND_API_KEY (obrigatória), EMAIL_FROM e EMAIL_REPLY_TO (opcionais).
 
 import { BUSINESS } from './business'
 
@@ -73,7 +73,8 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   }
 
   if (input.text) payload.text = input.text
-  if (input.replyTo) payload.reply_to = input.replyTo
+  const replyTo = input.replyTo || process.env.EMAIL_REPLY_TO
+  if (replyTo && isDeliverableEmail(replyTo)) payload.reply_to = replyTo
   if (input.attachments?.length) {
     payload.attachments = input.attachments.map((attachment) => ({
       filename: attachment.filename,
