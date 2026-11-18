@@ -20,9 +20,9 @@ function getIdFromRequest(request: NextRequest): string | null {
   return last && last !== '[id]' ? last : null
 }
 
-// PUT - Atualizar produto (admin)
+// PUT - Atualizar produto (admin ou barbeiro)
 export async function PUT(request: NextRequest) {
-  if (!(await requireStaff(['ADMIN']))) {
+  if (!(await requireStaff())) {
     return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
   }
 
@@ -75,9 +75,9 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Excluir produto; se já foi vendido, apenas desativa (admin)
+// DELETE - Excluir produto; se já foi vendido, apenas desativa (admin ou barbeiro)
 export async function DELETE(request: NextRequest) {
-  if (!(await requireStaff(['ADMIN']))) {
+  if (!(await requireStaff())) {
     return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
   }
 

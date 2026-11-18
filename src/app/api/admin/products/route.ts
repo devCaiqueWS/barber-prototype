@@ -28,9 +28,9 @@ export async function GET() {
   }
 }
 
-// POST - Criar produto (admin)
+// POST - Criar produto (admin ou barbeiro)
 export async function POST(request: NextRequest) {
-  if (!(await requireStaff(['ADMIN']))) {
+  if (!(await requireStaff())) {
     return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
   }
 

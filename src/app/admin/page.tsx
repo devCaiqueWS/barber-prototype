@@ -643,7 +643,7 @@ export default function AdminPage() {
 
         {/* Products Tab */}
         {activeTab === 'products' && (
-          <ProductsManagement canEdit={userRole === 'ADMIN'} />
+          <ProductsManagement />
         )}
 
         {/* Reports Tab */}

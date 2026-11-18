@@ -69,7 +69,7 @@ produtos, continua confirmado na hora, sem cobrança.
 
 - `GET /api/products`: produtos ativos (público).
 - `/api/admin/products` e `/api/admin/products/[id]`: mesmo contrato e mesmas
-  permissões de serviços (equipe lê, ADMIN altera). Excluir um produto já
+  de serviços, mas admin e barbeiro podem criar, editar e excluir. Excluir um produto já
   vendido apenas o desativa.
 - `POST /api/appointments` aceita `products: [{ productId, quantity }]`.
   Valida que cada produto existe e está ativo, quantidade inteira de 1 a 10.
@@ -81,7 +81,7 @@ produtos, continua confirmado na hora, sem cobrança.
 
 - Aba "Produtos" no painel (`/admin`), ao lado de "Serviços", com o componente
   `ProductsManagement` espelhando `ServicesManagement` (sem o campo duração).
-  Barbeiro vê a lista; só ADMIN altera.
+  Admin e barbeiro podem criar, editar e excluir.
 - Agenda do painel, tela de edição e página do barbeiro mostram os produtos de
   cada agendamento.
 
