@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
     // Assinatura criada no painel antes de o cliente ter conta. O e-mail não é
     // verificado no cadastro, então só vincula quando o WhatsApp também confere
     // com o registrado pela barbearia — evita alguém "herdar" a assinatura de outro.
-    const whatsappDigits = (user.whatsapp || '').replace(/\D/g, '')
+    // Vale apenas o WhatsApp digitado neste cadastro: o número já salvo em uma conta
+    // antiga reivindicada conferiria sempre e não prova nada sobre quem está cadastrando.
+    const whatsappDigits = (whatsapp || '').replace(/\D/g, '')
     if (whatsappDigits.length >= 10) {
       const orphans = await prisma.subscription.findMany({
         where: { clientId: null, clientEmail: { equals: normalizedEmail, mode: 'insensitive' } },
