@@ -5,7 +5,7 @@ const DEFAULT_WORK_END = '20:00'
 
 // Minutos livres logo depois do serviço principal, onde cabem serviços adicionais.
 // O tempo livre termina no que vier primeiro: o próximo agendamento do barbeiro,
-// um horário bloqueado por ele ou o fim do expediente.
+// um horário bloqueado ou não aberto por ele, ou o fim do expediente.
 export async function extraServicesGap(params: {
   barberId: string
   date: string
@@ -27,7 +27,7 @@ export async function extraServicesGap(params: {
     }),
     prisma.barberAvailability.findUnique({
       where: { barberId_date: { barberId: params.barberId, date: params.date } },
-      select: { isDayBlocked: true, blockedSlots: true },
+      select: { isDayBlocked: true, blockedSlots: true, availableSlots: true },
     }),
     prisma.user.findUnique({ where: { id: params.barberId }, select: { workEndTime: true } }),
   ])
@@ -35,6 +35,23 @@ export async function extraServicesGap(params: {
   if (override?.isDayBlocked) return 0
 
   let limit = toMinutes(barber?.workEndTime || DEFAULT_WORK_END)
+
+  // Dia com horários definidos manualmente: vale o último horário aberto, e um
+  // horário de 30 em 30 min que o barbeiro deixou de fora (almoço, por exemplo)
+  // conta como ocupado.
+  const openSlots = (override?.availableSlots || []).map((slot) => toMinutes(slot.trim()))
+  if (openSlots.length > 0) {
+    const open = new Set(openSlots)
+    const first = Math.min(...openSlots)
+    const last = Math.max(...openSlots)
+    limit = Math.max(limit, last)
+    for (let t = first; t < last; t += 30) {
+      if (!open.has(t) && t >= mainEnd) {
+        limit = Math.min(limit, t)
+        break
+      }
+    }
+  }
 
   for (const appointment of appointments) {
     const start = toMinutes(appointment.startTime)

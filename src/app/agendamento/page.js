@@ -198,6 +198,13 @@ function BookingPageContent() {
   const extrasTotal = selectedExtras.reduce((sum, service) => sum + (Number(service.price) || 0), 0)
   const remainingExtraMinutes = extraGapMinutes - extrasMinutes
 
+  const formatMinutes = (minutes) => {
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    if (h === 0) return `${m} min`
+    return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`
+  }
+
   const toggleExtra = (service) => {
     setSelectedExtraIds((prev) => {
       if (prev.includes(service.id)) return prev.filter((id) => id !== service.id)
@@ -872,8 +879,8 @@ function BookingPageContent() {
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-white">Mais serviços no mesmo horário</h3>
                   <p className="mb-4 text-sm text-slate-400">
-                    Feitos logo depois de {selectedService?.name}. Há {extraGapMinutes} min livres na agenda
-                    {selectedExtras.length > 0 ? ` (restam ${remainingExtraMinutes} min)` : ''}.
+                    Feitos logo depois de {selectedService?.name}. Há {formatMinutes(extraGapMinutes)} livres na agenda
+                    {selectedExtras.length > 0 ? ` (restam ${formatMinutes(remainingExtraMinutes)})` : ''}.
                   </p>
 
                   <div className="grid sm:grid-cols-2 gap-4">
