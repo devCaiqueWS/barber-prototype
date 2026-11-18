@@ -22,6 +22,7 @@ interface ClientAppointment {
   service: { name: string; price: number; duration: number } | null
   barber: { name: string } | null
   products?: Array<{ name: string; unitPrice: number; quantity: number }>
+  extraServices?: Array<{ name: string; price: number; duration: number }>
   amountDue?: number
 }
 
@@ -139,7 +140,9 @@ function AppointmentCard({
     <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-semibold text-white">{appointment.service?.name || 'Serviço'}</p>
+          <p className="font-semibold text-white">
+            {[appointment.service?.name || 'Serviço', ...(appointment.extraServices || []).map((extra) => extra.name)].join(' + ')}
+          </p>
           <p className="text-sm text-slate-400">
             {formatDateBR(appointment.date)} às {appointment.startTime}
             {appointment.barber?.name ? ` · ${appointment.barber.name}` : ''}

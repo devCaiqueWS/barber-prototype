@@ -66,6 +66,7 @@ model Service {
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   appointments Appointment[]
+  appointmentExtras AppointmentService[]
 }
 
 model Appointment {
@@ -104,6 +105,9 @@ model Appointment {
   // Produtos comprados junto com o agendamento
   products AppointmentProduct[]
 
+  // Serviços adicionais feitos no mesmo horário, logo após o serviço principal
+  extraServices AppointmentService[]
+
   @@index([asaasPaymentLinkId])
   @@index([asaasCheckoutId])
 }
@@ -134,6 +138,22 @@ model AppointmentProduct {
 
   @@index([appointmentId])
   @@index([productId])
+}
+
+// Serviço adicional de um agendamento. Nome, preço e duração são copiados na hora
+// da reserva; a duração entra no tempo ocupado na agenda.
+model AppointmentService {
+  id            String      @id @default(uuid())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId String
+  service       Service     @relation(fields: [serviceId], references: [id])
+  serviceId     String
+  name          String
+  price         Float
+  duration      Int // minutes
+
+  @@index([appointmentId])
+  @@index([serviceId])
 }
 
 model Subscription {

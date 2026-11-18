@@ -47,7 +47,22 @@ export const isHoldExpired = (
   appointment.paymentExpiresAt != null &&
   appointment.paymentExpiresAt <= now
 
-const toMinutes = (hhmm: string) => {
+// Campos necessários para saber quanto tempo um agendamento ocupa na agenda.
+export const OCCUPANCY_SELECT = {
+  startTime: true,
+  service: { select: { duration: true } },
+  extraServices: { select: { duration: true } },
+} as const
+
+// Minutos ocupados: serviço principal + serviços adicionais.
+export const occupiedMinutes = (appointment: {
+  service?: { duration?: number | null } | null
+  extraServices?: Array<{ duration: number }> | null
+}) =>
+  (appointment.service?.duration ?? 30) +
+  (appointment.extraServices || []).reduce((sum, extra) => sum + extra.duration, 0)
+
+export const toMinutes = (hhmm: string) => {
   const [h, m] = (hhmm || '00:00').split(':').map((n) => Number.parseInt(n, 10))
   return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0)
 }
@@ -73,14 +88,14 @@ export async function hasSlotConflict(
       ...(params.excludeId ? { id: { not: params.excludeId } } : {}),
       ...slotBlockingWhere(),
     },
-    select: { startTime: true, service: { select: { duration: true } } },
+    select: OCCUPANCY_SELECT,
   })
 
   const start = toMinutes(params.startTime)
   const end = start + params.durationMinutes
   return existing.some((appt) => {
     const apptStart = toMinutes(appt.startTime)
-    const apptEnd = apptStart + (appt.service?.duration ?? 30)
+    const apptEnd = apptStart + occupiedMinutes(appt)
     return start < apptEnd && end > apptStart
   })
 }

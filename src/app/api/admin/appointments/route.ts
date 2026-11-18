@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { parseDateOnly } from '@/lib/date'
 import { requireStaff } from '@/lib/staff-auth'
-import { slotBlockingWhere } from '@/lib/appointment-status'
+import { slotBlockingWhere, OCCUPANCY_SELECT, occupiedMinutes } from '@/lib/appointment-status'
 
 interface AdminAppointmentBody {
   serviceId: string
@@ -65,6 +65,7 @@ export async function GET(request: Request) {
           },
         },
         products: { select: { name: true, unitPrice: true, quantity: true } },
+        extraServices: { select: { name: true, price: true, duration: true } },
       },
       orderBy: [
         { date: 'asc' },
@@ -136,13 +137,13 @@ export async function POST(request: Request) {
     // Conflitos no mesmo dia para o barbeiro
     const existing = await prisma.appointment.findMany({
       where: { barberId, date, ...slotBlockingWhere() },
-      select: { startTime: true, service: { select: { duration: true } } }
+      select: OCCUPANCY_SELECT
     })
     const hasConflict = existing.some(appt => {
       const [ah, am] = (appt.startTime || '00:00').split(':').map(n => parseInt(n,10))
       const apptStart = new Date(baseDate)
       apptStart.setHours(ah, am, 0, 0)
-      const apptDur = appt.service?.duration ?? 30
+      const apptDur = occupiedMinutes(appt)
       const apptEnd = new Date(apptStart.getTime() + apptDur * 60 * 1000)
       return (startDT < apptEnd && endDT > apptStart)
     })

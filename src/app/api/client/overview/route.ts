@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         service: { select: { name: true, price: true, duration: true } },
         barber: { select: { name: true } },
         products: { select: { name: true, unitPrice: true, quantity: true } },
+        extraServices: { select: { name: true, price: true, duration: true } },
       },
     })
 
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
       service: a.service,
       barber: a.barber,
       products: a.products,
+      extraServices: a.extraServices,
       amountDue: appointmentAmountDue(a),
     })
 

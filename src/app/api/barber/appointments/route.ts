@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parseDateOnly } from '@/lib/date'
-import { slotBlockingWhere } from '@/lib/appointment-status'
+import { slotBlockingWhere, OCCUPANCY_SELECT, occupiedMinutes } from '@/lib/appointment-status'
 
 // Helper para validar sessão do barbeiro
 async function getBarberSession() {
@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
           },
         },
         products: { select: { name: true, unitPrice: true, quantity: true } },
+        extraServices: { select: { name: true, price: true, duration: true } },
       },
       orderBy: {
         date: 'asc',
@@ -144,10 +145,7 @@ export async function POST(request: NextRequest) {
 
     const existing = await prisma.appointment.findMany({
       where: { barberId: auth.barberId, date, ...slotBlockingWhere() },
-      select: {
-        startTime: true,
-        service: { select: { duration: true } },
-      },
+      select: OCCUPANCY_SELECT,
     })
 
     const hasConflict = existing.some((appt) => {
@@ -156,7 +154,7 @@ export async function POST(request: NextRequest) {
         .map((n) => parseInt(n, 10))
       const apptStart = new Date(baseDate)
       apptStart.setHours(ah, am, 0, 0)
-      const apptDur = appt.service?.duration ?? 30
+      const apptDur = occupiedMinutes(appt)
       const apptEnd = new Date(apptStart.getTime() + apptDur * 60 * 1000)
       return startDT < apptEnd && endDT > apptStart
     })

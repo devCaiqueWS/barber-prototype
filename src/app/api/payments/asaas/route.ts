@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser } from '@/lib/client-auth'
 import { resolveSiteUrl } from '@/lib/business'
-import { hasSlotConflict, paymentHoldDeadline, PAYMENT_HOLD_MINUTES, withSlotLock } from '@/lib/appointment-status'
+import {
+  hasSlotConflict,
+  occupiedMinutes,
+  paymentHoldDeadline,
+  PAYMENT_HOLD_MINUTES,
+  withSlotLock,
+} from '@/lib/appointment-status'
 import { appointmentStartsAt } from '@/lib/client-hub'
 import {
   AsaasError,
@@ -45,6 +51,7 @@ export async function POST(request: NextRequest) {
       include: {
         service: { select: { name: true, price: true, duration: true } },
         products: { select: { name: true, unitPrice: true, quantity: true } },
+        extraServices: { select: { name: true, price: true, duration: true } },
       },
     })
 
@@ -103,7 +110,7 @@ export async function POST(request: NextRequest) {
           barberId,
           date: appointment.date,
           startTime: appointment.startTime,
-          durationMinutes: appointment.service?.duration ?? 30,
+          durationMinutes: occupiedMinutes(appointment),
           excludeId: appointment.id,
         },
         tx,

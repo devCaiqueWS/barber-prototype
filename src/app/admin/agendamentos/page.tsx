@@ -37,6 +37,7 @@ interface Appointment {
   service: { name: string; price: number; duration: number }
   barber?: { name: string }
   products?: Array<{ name: string; unitPrice: number; quantity: number }>
+  extraServices?: Array<{ name: string; price: number; duration: number }>
   paymentMethod: string
   notes?: string
   createdAt: string
@@ -379,7 +380,7 @@ export default function AdminAppointments() {
                                   {CALENDAR_STATUS_NOTES[appt.status]}
                                 </div>
                               )}
-                              <div className="text-xs text-emerald-100">{appt.service.name}</div>
+                              <div className="text-xs text-emerald-100">{appt.service.name}{(appt.extraServices || []).map((extra) => ` + ${extra.name}`).join('')}</div>
                               {appt.products && appt.products.length > 0 && (
                                 <div className="text-xs text-amber-200">+ {(appt.products || []).map((item) => `${item.quantity}x ${item.name}`).join(', ')}</div>
                               )}
@@ -434,7 +435,7 @@ export default function AdminAppointments() {
               <div className="mb-4">
                 <h2 className="text-xl font-semibold text-white">Editar agendamento</h2>
                 <p className="text-sm text-slate-400">
-                  {editingAppointment.client.name} - {editingAppointment.service.name}
+                  {editingAppointment.client.name} - {editingAppointment.service.name}{(editingAppointment.extraServices || []).map((extra) => ` + ${extra.name}`).join('')}
                 </p>
                 {editingAppointment.products && editingAppointment.products.length > 0 && (
                   <p className="mt-1 text-sm text-amber-300">Produtos: {(editingAppointment.products || []).map((item) => `${item.quantity}x ${item.name}`).join(', ')}</p>

@@ -4,8 +4,8 @@ import { resolveSiteUrl } from '@/lib/business'
 import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
 import { asaasRequest, isAsaasConfigured } from '@/lib/asaas'
 import type { Prisma } from '@prisma/client'
-import { hasSlotConflict, withSlotLock } from '@/lib/appointment-status'
-import { appointmentAmountDue } from '@/lib/appointment-total'
+import { hasSlotConflict, occupiedMinutes, withSlotLock } from '@/lib/appointment-status'
+import { appointmentAmountDue, servicesSummary } from '@/lib/appointment-total'
 
 // Webhook do Asaas (agendamentos e assinaturas).
 // Configuração: ASAAS_WEBHOOK_TOKEN (o mesmo token cadastrado no painel do Asaas).
@@ -58,6 +58,7 @@ const appointmentInclude = {
   barber: { select: { name: true } },
   service: { select: { name: true, price: true, duration: true } },
   products: { select: { name: true, unitPrice: true, quantity: true } },
+  extraServices: { select: { name: true, price: true, duration: true } },
 } as const
 
 type AppointmentWithRelations = NonNullable<
@@ -241,7 +242,7 @@ async function confirmAppointmentPayment(
           barberId: appointment.barberId,
           date: appointment.date,
           startTime: appointment.startTime,
-          durationMinutes: appointment.service?.duration ?? 30,
+          durationMinutes: occupiedMinutes(appointment),
           excludeId: appointment.id,
         },
         tx,
@@ -297,9 +298,9 @@ async function confirmAppointmentPayment(
       status: updated.status,
       payOnline: updated.payOnline,
       paymentMethod: updated.paymentMethod,
-      serviceName: appointment.service?.name,
-      servicePrice: appointment.service?.price,
-      serviceDuration: appointment.service?.duration,
+      serviceName: servicesSummary(appointment).name,
+      servicePrice: servicesSummary(appointment).price,
+      serviceDuration: servicesSummary(appointment).duration,
       barberName: appointment.barber?.name,
       products: appointment.products,
       siteUrl: resolveSiteUrl(request),

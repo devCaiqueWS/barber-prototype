@@ -9,6 +9,7 @@ export type AppointmentItem = { name: string; unitPrice: number; quantity: numbe
 type Totalable = {
   paymentMethod?: string | null
   service?: { price?: number | null } | null
+  extraServices?: Array<{ price: number }> | null
   products?: Array<{ unitPrice: number; quantity: number }> | null
 }
 
@@ -17,13 +18,20 @@ const round2 = (value: number) => Math.round(value * 100) / 100
 export const productsTotal = (products?: Totalable['products']) =>
   round2((products || []).reduce((sum, item) => sum + item.unitPrice * item.quantity, 0))
 
-// Agendamento de assinante: o serviço já está pago pela assinatura.
+// Preço de tabela de todos os serviços do agendamento (principal + adicionais).
+export const servicesPrice = (appointment: Totalable) =>
+  round2(
+    (appointment.service?.price ?? 0) +
+      (appointment.extraServices || []).reduce((sum, extra) => sum + extra.price, 0),
+  )
+
+// Agendamento de assinante: os serviços já estão pagos pela assinatura.
 export const isServiceCoveredBySubscription = (appointment: { paymentMethod?: string | null }) =>
   appointment.paymentMethod === 'assinatura'
 
-// Parte do serviço que entra na cobrança (zero para assinante).
+// Parte dos serviços que entra na cobrança (zero para assinante).
 export const serviceAmountDue = (appointment: Totalable) =>
-  isServiceCoveredBySubscription(appointment) ? 0 : round2(appointment.service?.price ?? 0)
+  isServiceCoveredBySubscription(appointment) ? 0 : servicesPrice(appointment)
 
 // Total a cobrar online por este agendamento.
 export const appointmentAmountDue = (appointment: Totalable) =>
@@ -54,15 +62,50 @@ export function parseProductRequest(input: unknown): Array<{ productId: string; 
 export function checkoutItemsFor(appointment: {
   paymentMethod?: string | null
   service?: { name?: string | null; price?: number | null } | null
+  extraServices?: Array<{ name: string; price: number }> | null
   products?: Array<{ name: string; unitPrice: number; quantity: number }> | null
 }): AppointmentItem[] {
   const items: AppointmentItem[] = []
-  const servicePrice = serviceAmountDue(appointment)
-  if (servicePrice > 0) {
-    items.push({ name: appointment.service?.name || 'Agendamento', unitPrice: servicePrice, quantity: 1 })
+  if (!isServiceCoveredBySubscription(appointment)) {
+    const mainPrice = round2(appointment.service?.price ?? 0)
+    if (mainPrice > 0) {
+      items.push({ name: appointment.service?.name || 'Agendamento', unitPrice: mainPrice, quantity: 1 })
+    }
+    for (const extra of appointment.extraServices || []) {
+      items.push({ name: extra.name, unitPrice: extra.price, quantity: 1 })
+    }
   }
   for (const product of appointment.products || []) {
     items.push({ name: product.name, unitPrice: product.unitPrice, quantity: product.quantity })
   }
   return items
+}
+
+// Resumo dos serviços para e-mail e telas: nomes juntos, preço e duração somados.
+export function servicesSummary(appointment: {
+  service?: { name?: string | null; price?: number | null; duration?: number | null } | null
+  extraServices?: Array<{ name: string; price: number; duration: number }> | null
+}) {
+  const extras = appointment.extraServices || []
+  const mainName = appointment.service?.name || ''
+  return {
+    name: [mainName, ...extras.map((extra) => extra.name)].filter(Boolean).join(' + '),
+    price: servicesPrice(appointment),
+    duration: (appointment.service?.duration ?? 0) + extras.reduce((sum, extra) => sum + extra.duration, 0),
+  }
+}
+
+// Ids de serviços adicionais vindos do navegador: lista de strings, sem repetição.
+export const MAX_EXTRA_SERVICES = 5
+
+export function parseExtraServiceIds(input: unknown, mainServiceId: string): string[] | null {
+  if (input == null) return []
+  if (!Array.isArray(input)) return null
+  const ids: string[] = []
+  for (const raw of input) {
+    const id = typeof raw === 'string' ? raw.trim() : ''
+    if (!id || id === mainServiceId || ids.includes(id)) return null
+    ids.push(id)
+  }
+  return ids.length > MAX_EXTRA_SERVICES ? null : ids
 }

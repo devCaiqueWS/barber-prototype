@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
           },
         },
         products: { select: { name: true, unitPrice: true, quantity: true } },
+        extraServices: { select: { name: true, price: true, duration: true } },
       },
     })
 
@@ -228,7 +229,12 @@ export async function PUT(request: NextRequest) {
             select: { duration: true },
           })
         : null
-      const durationMinutes = service?.duration ?? 30
+      const extras = await prisma.appointmentService.findMany({
+        where: { appointmentId: id },
+        select: { duration: true },
+      })
+      const durationMinutes =
+        (service?.duration ?? 30) + extras.reduce((sum, extra) => sum + extra.duration, 0)
       const endDT = new Date(baseDate.getTime() + durationMinutes * 60 * 1000)
       const endHours = endDT.getHours().toString().padStart(2, '0')
       const endMinutes = endDT.getMinutes().toString().padStart(2, '0')

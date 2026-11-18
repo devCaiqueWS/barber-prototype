@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { formatDateKey, parseDateOnly } from '@/lib/date'
-import { expireStaleHolds, slotBlockingWhere } from '@/lib/appointment-status'
+import { expireStaleHolds, occupiedMinutes, OCCUPANCY_SELECT, slotBlockingWhere } from '@/lib/appointment-status'
 
 // GET - Buscar horários disponíveis
 export async function GET(request: NextRequest) {
@@ -37,13 +37,7 @@ export async function GET(request: NextRequest) {
         date: dateStr,
         ...slotBlockingWhere(),
       },
-      include: {
-        service: {
-          select: {
-            duration: true
-          }
-        }
-      }
+      select: OCCUPANCY_SELECT,
     })
 
     // Buscar configuracoes do barbeiro
@@ -123,7 +117,7 @@ export async function GET(request: NextRequest) {
         const [ah, am] = (appt.startTime || '00:00').split(':').map(n => parseInt(n,10))
         const apptStart = new Date(selectedDate)
         apptStart.setHours(ah, am, 0, 0)
-        const apptDuration = appt.service?.duration ?? 30
+        const apptDuration = occupiedMinutes(appt)
         const apptEnd = new Date(apptStart.getTime() + apptDuration * 60 * 1000)
         return (
           (slotTime >= apptStart && slotTime < apptEnd) ||

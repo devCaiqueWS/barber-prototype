@@ -41,6 +41,11 @@ function BookingPageContent() {
   const [products, setProducts] = useState([])
   const [cart, setCart] = useState({})
 
+  // Serviços adicionais que cabem depois do principal no horário escolhido
+  const [extraOptions, setExtraOptions] = useState([])
+  const [extraGapMinutes, setExtraGapMinutes] = useState(0)
+  const [selectedExtraIds, setSelectedExtraIds] = useState([])
+
   const [lastAppointmentId, setLastAppointmentId] = useState('')
 
   const [confirmationEmailSent, setConfirmationEmailSent] = useState(false)
@@ -187,8 +192,50 @@ function BookingPageContent() {
 
   const productsTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
-  // Passo 5 (produtos) só existe quando há produto ativo
-  const hasProductsStep = products.length > 0
+  // Adicionais escolhidos e quanto tempo livre ainda sobra para outros
+  const selectedExtras = extraOptions.filter((service) => selectedExtraIds.includes(service.id))
+  const extrasMinutes = selectedExtras.reduce((sum, service) => sum + (Number(service.duration) || 0), 0)
+  const extrasTotal = selectedExtras.reduce((sum, service) => sum + (Number(service.price) || 0), 0)
+  const remainingExtraMinutes = extraGapMinutes - extrasMinutes
+
+  const toggleExtra = (service) => {
+    setSelectedExtraIds((prev) => {
+      if (prev.includes(service.id)) return prev.filter((id) => id !== service.id)
+      return service.duration <= remainingExtraMinutes ? [...prev, service.id] : prev
+    })
+  }
+
+  const allServiceNames = [selectedService?.name, ...selectedExtras.map((service) => service.name)]
+    .filter(Boolean)
+    .join(' + ')
+  const totalDuration = (Number(selectedService?.duration) || 30) + extrasMinutes
+
+  // Busca os serviços que cabem depois do principal; devolve a lista para decidir o próximo passo
+  const loadExtraOptions = async (time) => {
+    setSelectedExtraIds([])
+    try {
+      const params = new URLSearchParams({
+        barberId: selectedBarber.id,
+        date: selectedDate,
+        time,
+        serviceId: selectedService.id,
+      })
+      const response = await fetch(`/api/availability/extras?${params.toString()}`)
+      const data = await response.json()
+      const options = data.success ? data.services : []
+      setExtraOptions(options)
+      setExtraGapMinutes(data.success ? data.gapMinutes : 0)
+      return options
+    } catch (error) {
+      console.error('Erro ao carregar serviços adicionais:', error)
+      setExtraOptions([])
+      setExtraGapMinutes(0)
+      return []
+    }
+  }
+
+  // Passo 5 (adicionais) só existe quando há produto ativo ou serviço que caiba no horário
+  const hasProductsStep = products.length > 0 || extraOptions.length > 0
   const STEP_CONFIRM = 6
   const STEP_SUCCESS = 7
   const stepBeforeConfirm = hasProductsStep ? 5 : 4
@@ -331,11 +378,13 @@ function BookingPageContent() {
 
 
 
-  const handleTimeSelect = (time) => {
+  const handleTimeSelect = async (time) => {
 
     setSelectedTime(time)
 
-    setStep(hasProductsStep ? 5 : STEP_CONFIRM)
+    const options = await loadExtraOptions(time)
+
+    setStep(products.length > 0 || options.length > 0 ? 5 : STEP_CONFIRM)
 
   }
 
@@ -344,7 +393,8 @@ function BookingPageContent() {
   const bookingPaymentLabel = authUser?.isSubscriber ? 'Assinatura' : 'Online'
 
   // Estimativa para a tela; o valor cobrado é sempre recalculado no servidor
-  const amountDue = (authUser?.isSubscriber ? 0 : Number(selectedService?.price) || 0) + productsTotal
+  const amountDue =
+    (authUser?.isSubscriber ? 0 : (Number(selectedService?.price) || 0) + extrasTotal) + productsTotal
 
   const handleClientDataSubmit = async (e) => {
     e.preventDefault()
@@ -372,6 +422,7 @@ function BookingPageContent() {
           clientInstagram: clientData.instagram,
           clientWhatsapp: clientData.whatsapp,
           products: cartItems.map((item) => ({ productId: item.id, quantity: item.quantity })),
+          extraServiceIds: selectedExtraIds,
         }),
       })
 
@@ -385,7 +436,11 @@ function BookingPageContent() {
 
       if (!response.ok || !data.success) {
         alert(data.error || 'Não foi possível concluir o agendamento.')
-        if (response.status === 409 && data.productsUnavailable) {
+        if (response.status === 409 && data.extrasUnavailable) {
+          // O tempo livre mudou enquanto o cliente escolhia: recarrega os adicionais
+          const options = await loadExtraOptions(selectedTime)
+          setStep(products.length > 0 || options.length > 0 ? 5 : STEP_CONFIRM)
+        } else if (response.status === 409 && data.productsUnavailable) {
           // Produto desativado enquanto o cliente escolhia: recarrega a lista
           setCart({})
           void loadProducts()
@@ -435,6 +490,12 @@ function BookingPageContent() {
 
     setCart({})
 
+    setExtraOptions([])
+
+    setExtraGapMinutes(0)
+
+    setSelectedExtraIds([])
+
     setConfirmationEmailSent(false)
 
   }
@@ -457,9 +518,9 @@ function BookingPageContent() {
 
       startTime: selectedTime,
 
-      serviceName: selectedService.name,
+      serviceName: allServiceNames || selectedService.name,
 
-      serviceDuration: selectedService.duration || 30,
+      serviceDuration: totalDuration,
 
       barberName: selectedBarber?.name,
 
@@ -801,11 +862,55 @@ function BookingPageContent() {
 
             <div>
 
-              <h2 className="text-white text-2xl font-bold mb-2 text-center">Quer levar algum produto?</h2>
+              <h2 className="text-white text-2xl font-bold mb-2 text-center">Quer adicionar algo?</h2>
 
               <p className="mb-6 text-center text-slate-400">
-                Opcional. O que você escolher entra no mesmo pagamento e fica separado para o dia do seu horário.
+                Opcional. O que você escolher entra no mesmo pagamento.
               </p>
+
+              {extraOptions.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-white">Mais serviços no mesmo horário</h3>
+                  <p className="mb-4 text-sm text-slate-400">
+                    Feitos logo depois de {selectedService?.name}. Há {extraGapMinutes} min livres na agenda
+                    {selectedExtras.length > 0 ? ` (restam ${remainingExtraMinutes} min)` : ''}.
+                  </p>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {extraOptions.map((service) => {
+                      const selected = selectedExtraIds.includes(service.id)
+                      const fits = selected || service.duration <= remainingExtraMinutes
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => toggleExtra(service)}
+                          disabled={!fits}
+                          aria-pressed={selected}
+                          className={`premium-card rounded-2xl p-5 text-left transition ${
+                            selected ? 'border-primary' : fits ? 'hover:border-primary/40' : 'opacity-40'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-lg font-semibold text-amber-500">{service.name}</span>
+                            <span className="shrink-0 font-bold text-green-400">
+                              {authUser?.isSubscriber ? 'Assinatura' : formatBRL(service.price)}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
+                            <span>{service.duration} min</span>
+                            <span className={selected ? 'font-semibold text-primary' : ''}>
+                              {selected ? 'Adicionado' : fits ? 'Adicionar' : 'Não cabe mais'}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {products.length > 0 && <h3 className="mb-4 text-lg font-semibold text-white">Produtos</h3>}
 
               <div className="grid sm:grid-cols-2 gap-4">
 
@@ -851,9 +956,13 @@ function BookingPageContent() {
               </div>
 
               <div className="mx-auto mt-6 max-w-md space-y-3">
-                {cartItems.length > 0 && (
+                {(cartItems.length > 0 || selectedExtras.length > 0) && (
                   <p className="text-center text-sm text-slate-300">
-                    Produtos: <span className="font-semibold text-green-400">{formatBRL(productsTotal)}</span>
+                    Adicionais:{' '}
+                    <span className="font-semibold text-green-400">
+                      {formatBRL((authUser?.isSubscriber ? 0 : extrasTotal) + productsTotal)}
+                    </span>
+                    {selectedExtras.length > 0 ? ` · +${extrasMinutes} min` : ''}
                   </p>
                 )}
                 <button
@@ -861,7 +970,7 @@ function BookingPageContent() {
                   onClick={() => setStep(STEP_CONFIRM)}
                   className="w-full rounded-lg bg-primary px-6 py-3 font-bold text-white transition-colors hover:bg-[#c21111]"
                 >
-                  {cartItems.length > 0 ? 'Continuar' : 'Continuar sem produtos'}
+                  {cartItems.length > 0 || selectedExtras.length > 0 ? 'Continuar' : 'Continuar sem adicionais'}
                 </button>
               </div>
 
@@ -932,7 +1041,7 @@ function BookingPageContent() {
 
               <div className="mb-6 text-center space-y-2">
 
-                <p className="text-slate-400">Serviço: <span className="text-amber-500">{selectedService?.name}</span></p>
+                <p className="text-slate-400">Serviço: <span className="text-amber-500">{allServiceNames}</span></p>
 
                 <p className="text-slate-400">Barbeiro: <span className="text-amber-500">{selectedBarber?.name}</span></p>
 
@@ -1060,6 +1169,12 @@ function BookingPageContent() {
                         <span>{selectedService?.name}</span>
                         <span>{authUser?.isSubscriber ? 'Assinatura' : formatBRL(selectedService?.price)}</span>
                       </li>
+                      {selectedExtras.map((service) => (
+                        <li key={service.id} className="flex justify-between gap-3">
+                          <span>{service.name}</span>
+                          <span>{authUser?.isSubscriber ? 'Assinatura' : formatBRL(service.price)}</span>
+                        </li>
+                      ))}
                       {cartItems.map((item) => (
                         <li key={item.id} className="flex justify-between gap-3">
                           <span>{item.quantity}x {item.name}</span>
@@ -1137,7 +1252,7 @@ function BookingPageContent() {
 
                 <div className="space-y-2 mb-6">
 
-                  <p><strong>Serviço:</strong> {selectedService?.name}</p>
+                  <p><strong>Serviço:</strong> {allServiceNames}</p>
 
                   <p><strong>Barbeiro:</strong> {selectedBarber?.name}</p>
 
@@ -1145,7 +1260,7 @@ function BookingPageContent() {
 
                   <p><strong>Horário:</strong> {selectedTime}</p>
 
-                  <p><strong>Valor:</strong> R$ {selectedService?.price}</p>
+                  <p><strong>Valor:</strong> {formatBRL((Number(selectedService?.price) || 0) + extrasTotal)}</p>
 
                   <p><strong>WhatsApp:</strong> {clientData.whatsapp}</p>
 
@@ -1185,7 +1300,7 @@ function BookingPageContent() {
 
                   <a
 
-                    href={`https://wa.me/55${clientData.whatsapp.replace(/\D/g, '')}?text=Olá! Acabei de realizar um agendamento na Elemento Estúdio e Barbearia para ${selectedService?.name} no dia ${formatDateBR(selectedDate)} às ${selectedTime}.`}
+                    href={`https://wa.me/55${clientData.whatsapp.replace(/\D/g, '')}?text=Olá! Acabei de realizar um agendamento na Elemento Estúdio e Barbearia para ${allServiceNames} no dia ${formatDateBR(selectedDate)} às ${selectedTime}.`}
 
                     target="_blank"
 

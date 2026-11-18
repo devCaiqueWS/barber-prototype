@@ -4,10 +4,17 @@ import { formatDateKey, parseDateOnly } from '@/lib/date'
 import { resolveSiteUrl } from '@/lib/business'
 import { sendAppointmentConfirmationEmail } from '@/lib/appointment-email'
 import { getAuthUser } from '@/lib/client-auth'
-import { hasSlotConflict, paymentHoldDeadline, withSlotLock } from '@/lib/appointment-status'
+import { hasSlotConflict, paymentHoldDeadline, toMinutes, withSlotLock } from '@/lib/appointment-status'
 import { AsaasError, createAppointmentCheckout, isAsaasConfigured } from '@/lib/asaas'
 import { getActiveSubscription } from '@/lib/subscription'
-import { appointmentAmountDue, checkoutItemsFor, parseProductRequest } from '@/lib/appointment-total'
+import { extraServicesGap } from '@/lib/extra-services'
+import {
+  appointmentAmountDue,
+  checkoutItemsFor,
+  parseExtraServiceIds,
+  parseProductRequest,
+  servicesSummary,
+} from '@/lib/appointment-total'
 
 // Normaliza objeto Date para string HH:mm
 const toHHMM = (date: Date) => {
@@ -39,6 +46,7 @@ export async function POST(request: NextRequest) {
       dateTime,
       notes,
       products: requestedProductsRaw,
+      extraServiceIds: extraServiceIdsRaw,
     } = body as {
       clientInstagram?: string
       clientWhatsapp?: string
@@ -49,6 +57,7 @@ export async function POST(request: NextRequest) {
       dateTime?: string
       notes?: string
       products?: unknown
+      extraServiceIds?: unknown
     }
 
     // Identidade sempre vem da conta logada
@@ -142,7 +151,37 @@ export async function POST(request: NextRequest) {
       return { productId: product.id, name: product.name, unitPrice: product.price, quantity: requested.quantity }
     })
 
-    const durationMinutes = service.duration || 30
+    // Serviços adicionais: feitos em sequência no mesmo horário. O navegador manda só
+    // os ids; nome, preço e duração vêm do cadastro, e o tempo total é conferido abaixo.
+    const extraServiceIds = parseExtraServiceIds(extraServiceIdsRaw, serviceId)
+    if (!extraServiceIds) {
+      return NextResponse.json({ error: 'Lista de serviços adicionais inválida.' }, { status: 400 })
+    }
+
+    const extraCatalog = extraServiceIds.length
+      ? await prisma.service.findMany({
+          where: { id: { in: extraServiceIds }, isActive: true },
+          select: { id: true, name: true, price: true, duration: true },
+        })
+      : []
+
+    if (extraCatalog.length !== extraServiceIds.length) {
+      return NextResponse.json(
+        {
+          error: 'Um dos serviços adicionais não está mais disponível. Revise sua escolha e tente de novo.',
+          extrasUnavailable: true,
+        },
+        { status: 409 },
+      )
+    }
+
+    const extraItems = extraServiceIds.map((id) => {
+      const extra = extraCatalog.find((s) => s.id === id)!
+      return { serviceId: extra.id, name: extra.name, price: extra.price, duration: extra.duration || 30 }
+    })
+
+    const durationMinutes =
+      (service.duration || 30) + extraItems.reduce((sum, extra) => sum + extra.duration, 0)
     const startDT = new Date(appointmentDateTime)
     const endDT = new Date(startDT.getTime() + durationMinutes * 60 * 1000)
     const endTime = toHHMM(endDT)
@@ -157,7 +196,12 @@ export async function POST(request: NextRequest) {
 
     if (hasConflict) {
       return NextResponse.json(
-        { error: 'Horário não está mais disponível.' },
+        {
+          error: extraItems.length
+            ? 'Não há mais tempo livre para os serviços adicionais nesse horário. Revise sua escolha.'
+            : 'Horário não está mais disponível.',
+          extrasUnavailable: extraItems.length > 0,
+        },
         { status: 409 },
       )
     }
@@ -192,6 +236,45 @@ export async function POST(request: NextRequest) {
           { status: 409 },
         )
       }
+
+      // Os adicionais não podem avançar sobre um horário bloqueado pelo barbeiro
+      if (extraItems.length > 0) {
+        const startMin = toMinutes(startTime)
+        const endMin = startMin + durationMinutes
+        const invadesBlocked = override.blockedSlots.some((slot) => {
+          const blockedMin = toMinutes(slot.trim())
+          return blockedMin > startMin && blockedMin < endMin
+        })
+        if (invadesBlocked) {
+          return NextResponse.json(
+            {
+              error: 'Não há tempo livre para os serviços adicionais nesse horário. Revise sua escolha.',
+              extrasUnavailable: true,
+            },
+            { status: 409 },
+          )
+        }
+      }
+    }
+
+    // Adicionais só valem se couberem antes do próximo horário ocupado ou do fim do expediente
+    if (extraItems.length > 0) {
+      const gapMinutes = await extraServicesGap({
+        barberId,
+        date: appointmentDateStr,
+        startTime,
+        mainDurationMinutes: service.duration || 30,
+      })
+      const extrasMinutes = extraItems.reduce((sum, extra) => sum + extra.duration, 0)
+      if (extrasMinutes > gapMinutes) {
+        return NextResponse.json(
+          {
+            error: 'Não há mais tempo livre para os serviços adicionais nesse horário. Revise sua escolha.',
+            extrasUnavailable: true,
+          },
+          { status: 409 },
+        )
+      }
     }
 
     // Atualizar o contato da conta se o cliente informou um WhatsApp novo
@@ -207,10 +290,15 @@ export async function POST(request: NextRequest) {
     const subscription = await getActiveSubscription(authUser.id)
     const paymentMethod = subscription
       ? 'assinatura'
-      : service.price > 0 || productItems.length > 0
+      : service.price > 0 || productItems.length > 0 || extraItems.some((extra) => extra.price > 0)
         ? 'online'
         : 'gratuito'
-    const amountDue = appointmentAmountDue({ paymentMethod, service, products: productItems })
+    const amountDue = appointmentAmountDue({
+      paymentMethod,
+      service,
+      extraServices: extraItems,
+      products: productItems,
+    })
     const requiresPayment = amountDue > 0
 
     if (requiresPayment && !isAsaasConfigured()) {
@@ -249,6 +337,7 @@ export async function POST(request: NextRequest) {
           notes: appointmentNotes || undefined,
           source: 'online',
           products: productItems.length ? { create: productItems } : undefined,
+          extraServices: extraItems.length ? { create: extraItems } : undefined,
         },
         include: {
           client: {
@@ -271,6 +360,9 @@ export async function POST(request: NextRequest) {
           },
           products: {
             select: { name: true, unitPrice: true, quantity: true },
+          },
+          extraServices: {
+            select: { name: true, price: true, duration: true },
           },
         },
       })
@@ -318,6 +410,7 @@ export async function POST(request: NextRequest) {
               service: appointment.service,
               barber: appointment.barber,
               products: appointment.products,
+              extraServices: appointment.extraServices,
             },
             message: 'Horário reservado. Conclua o pagamento para confirmar.',
           },
@@ -349,9 +442,9 @@ export async function POST(request: NextRequest) {
         status: appointment.status,
         payOnline: appointment.payOnline,
         paymentMethod: appointment.paymentMethod,
-        serviceName: appointment.service?.name,
-        servicePrice: appointment.service?.price,
-        serviceDuration: appointment.service?.duration,
+        serviceName: servicesSummary(appointment).name,
+        servicePrice: servicesSummary(appointment).price,
+        serviceDuration: servicesSummary(appointment).duration,
         barberName: appointment.barber?.name,
         products: appointment.products,
         siteUrl,
@@ -386,6 +479,7 @@ export async function POST(request: NextRequest) {
           barber: appointment.barber,
           service: appointment.service,
           products: appointment.products,
+          extraServices: appointment.extraServices,
         },
         message: 'Agendamento criado com sucesso!',
       },

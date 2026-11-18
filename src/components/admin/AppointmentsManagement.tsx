@@ -46,6 +46,7 @@ interface Appointment {
     name: string
   }
   products?: Array<{ name: string; unitPrice: number; quantity: number }>
+  extraServices?: Array<{ name: string; price: number; duration: number }>
   paymentMethod: string
   notes?: string
   createdAt: string
@@ -383,7 +384,7 @@ export default function AppointmentsManagement() {
                                 {CALENDAR_STATUS_NOTES[appt.status]}
                               </div>
                             )}
-                            <div className="text-xs text-emerald-100">{appt.service?.name || 'Serviço'}</div>
+                            <div className="text-xs text-emerald-100">{appt.service?.name || 'Serviço'}{(appt.extraServices || []).map((extra) => ` + ${extra.name}`).join('')}</div>
                             {appt.products && appt.products.length > 0 && (
                               <div className="text-xs text-amber-200">+ {(appt.products || []).map((item) => `${item.quantity}x ${item.name}`).join(', ')}</div>
                             )}

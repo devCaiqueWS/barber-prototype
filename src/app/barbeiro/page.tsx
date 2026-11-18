@@ -21,6 +21,7 @@ interface Appointment {
         duration: number
     }
     products?: Array<{ name: string; unitPrice: number; quantity: number }>
+    extraServices?: Array<{ name: string; price: number; duration: number }>
     clientWhatsapp?: string
 }
 
@@ -232,8 +233,8 @@ export default function BarberDashboard() {
 
                                                 <div>
                                                     <p className="text-slate-400">Serviço</p>
-                                                    <p className="font-medium">{appointment.service.name}</p>
-                                                    <p className="text-amber-400">{formatCurrency(appointment.service.price)}</p>
+                                                    <p className="font-medium">{appointment.service.name}{(appointment.extraServices || []).map((extra) => ` + ${extra.name}`).join('')}</p>
+                                                    <p className="text-amber-400">{formatCurrency(appointment.service.price + (appointment.extraServices || []).reduce((sum, extra) => sum + extra.price, 0))}</p>
                                                     {appointment.products && appointment.products.length > 0 && (
                                                         <p className="text-amber-200">Produtos: {appointment.products.map((item) => `${item.quantity}x ${item.name}`).join(', ')}</p>
                                                     )}
@@ -241,7 +242,7 @@ export default function BarberDashboard() {
 
                                                 <div>
                                                     <p className="text-slate-400">Duração</p>
-                                                    <p className="font-medium">{appointment.service.duration} min</p>
+                                                    <p className="font-medium">{appointment.service.duration + (appointment.extraServices || []).reduce((sum, extra) => sum + extra.duration, 0)} min</p>
                                                     {appointment.clientWhatsapp && (
                                                         <p className="text-slate-500 flex items-center mt-1">
                                                             {appointment.clientWhatsapp}

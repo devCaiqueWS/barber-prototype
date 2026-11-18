@@ -185,9 +185,9 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const appointmentsCount = await prisma.appointment.count({
-      where: { serviceId: id },
-    })
+    const appointmentsCount =
+      (await prisma.appointment.count({ where: { serviceId: id } })) +
+      (await prisma.appointmentService.count({ where: { serviceId: id } }))
 
     if (appointmentsCount > 0) {
       const deactivated = await prisma.service.update({
