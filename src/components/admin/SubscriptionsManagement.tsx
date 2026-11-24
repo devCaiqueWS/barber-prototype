@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { formatDateBR } from '@/lib/date'
@@ -34,6 +34,19 @@ type SubscriptionItem = {
   createdAt: string
   barber?: { id: string; name: string } | null
   client?: { id: string; clientCode?: number | null } | null
+}
+
+type InterestItem = {
+  id: string
+  createdAt: string
+  client: {
+    id: string
+    name: string | null
+    email: string
+    whatsapp: string | null
+    phone: string | null
+    clientCode: number
+  }
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -112,6 +125,10 @@ export default function SubscriptionsManagement() {
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [interests, setInterests] = useState<InterestItem[]>([])
+  // Cliente da fila escolhido em "Criar assinatura": selecionado quando a lista de clientes carregar
+  const [pendingClientId, setPendingClientId] = useState('')
+  const formRef = useRef<HTMLDivElement>(null)
 
   const canChooseBarber = role === 'ADMIN'
 
@@ -175,6 +192,61 @@ export default function SubscriptionsManagement() {
       setSubscriptions([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadInterests = async () => {
+    try {
+      const response = await fetch('/api/admin/subscription-interests', { cache: 'no-store' })
+      const data = await response.json()
+      setInterests(data.success ? data.interests || [] : [])
+    } catch (error) {
+      console.error('Erro ao carregar fila de interessados:', error)
+    }
+  }
+
+  useEffect(() => {
+    void loadInterests()
+  }, [])
+
+  // Seleciona no formulário o cliente vindo da fila assim que ele aparecer na lista
+  useEffect(() => {
+    if (!pendingClientId) return
+    const index = clients.findIndex((client) => client.clientId === pendingClientId)
+    if (index >= 0) {
+      setSelectedClientId(`${index}`)
+      setPendingClientId('')
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [clients, pendingClientId])
+
+  const handleStartFromQueue = (interest: InterestItem) => {
+    if (!selectedBarberId) {
+      if (canChooseBarber && barbers.length === 1) {
+        setSelectedBarberId(barbers[0].id)
+      } else {
+        alert('Selecione o barbeiro no formulário antes de criar a assinatura.')
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
+      }
+    }
+    setPendingClientId(interest.client.id)
+  }
+
+  const handleDismissInterest = async (interest: InterestItem) => {
+    if (!confirm(`Tirar ${interest.client.name || 'este cliente'} da fila de interessados?`)) return
+    try {
+      const response = await fetch(`/api/admin/subscription-interests/${interest.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'dismissed' }),
+      })
+      const data = await response.json()
+      if (!response.ok) alert(data?.error || 'Erro ao atualizar a fila')
+      await loadInterests()
+    } catch (error) {
+      console.error('Erro ao atualizar a fila:', error)
+      alert('Erro ao atualizar a fila')
     }
   }
 
@@ -246,6 +318,7 @@ export default function SubscriptionsManagement() {
 
       const subscription: SubscriptionItem = data.subscription
       await loadSubscriptions(selectedBarberId)
+      void loadInterests()
       setCpf('')
 
       // Assinatura manual já nasce ativa: não há proposta de pagamento para enviar
@@ -313,7 +386,67 @@ export default function SubscriptionsManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
+      {interests.length > 0 && (
+        <div className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-amber-500/40">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-white">Fila de interessados ({interests.length})</h2>
+            <p className="text-sm text-slate-400">
+              Clientes que clicaram em &quot;Quero assinar&quot; na Minha Conta, em ordem de chegada.
+            </p>
+          </div>
+          <ol className="space-y-2">
+            {interests.map((interest, index) => {
+              const whatsapp = interest.client.whatsapp || interest.client.phone || ''
+              const whatsappUrl = whatsapp
+                ? toWhatsappUrl(whatsapp, `Olá ${interest.client.name || ''}! Vi que você quer conhecer a assinatura da Elemento.`)
+                : ''
+              return (
+                <li
+                  key={interest.id}
+                  className="flex flex-col gap-3 rounded-md border border-slate-700 bg-slate-900 p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-sm font-bold text-amber-300">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <div className="font-semibold text-white">
+                        {interest.client.name || interest.client.email}{' '}
+                        <span className="text-xs font-normal text-slate-400">{formatClientCode(interest.client.clientCode)}</span>
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {whatsappUrl ? (
+                          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-300 hover:underline">
+                            {whatsapp}
+                          </a>
+                        ) : (
+                          'Sem WhatsApp'
+                        )}
+                        {' · '}desde {formatDateBR(new Date(interest.createdAt))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleStartFromQueue(interest)} className="flex-1 sm:flex-none">
+                      Criar assinatura
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDismissInterest(interest)}
+                      className="flex-1 border-slate-600 text-slate-100 hover:bg-slate-700 sm:flex-none"
+                    >
+                      Descartar
+                    </Button>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        </div>
+      )}
+
+      <div ref={formRef} className="bg-slate-800 rounded-lg p-4 sm:p-6 border border-slate-700">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Assinaturas</h2>

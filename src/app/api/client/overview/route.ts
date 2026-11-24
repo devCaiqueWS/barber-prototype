@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser } from '@/lib/client-auth'
 import { expireStaleHolds, FINISHED_STATUSES } from '@/lib/appointment-status'
-import { getDisplaySubscription } from '@/lib/subscription'
+import { getDisplaySubscription, getWaitingSubscriptionInterest } from '@/lib/subscription'
 import { clientCanCancel, todayKeySaoPaulo } from '@/lib/client-hub'
 import { appointmentAmountDue } from '@/lib/appointment-total'
 
@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
     const past = appointments.filter((a) => !isUpcoming(a))
 
     const subscription = await getDisplaySubscription(authUser.id)
+    const subscriptionInterest = subscription ? null : await getWaitingSubscriptionInterest(authUser.id)
 
     const completedCount = appointments.filter((a) => a.status === 'completed').length
 
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest) {
       },
       stats: { completed: completedCount },
       subscription,
+      subscriptionInterest,
       upcoming: upcoming.map(serialize),
       past: past.slice(0, 20).map(serialize),
     })

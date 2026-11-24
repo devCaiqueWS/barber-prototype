@@ -4,6 +4,7 @@ import { formatDateKey } from '@/lib/date'
 import { asaasRequest, AsaasError, isAsaasConfigured, onlyDigits } from '@/lib/asaas'
 import { requireStaff } from '@/lib/staff-auth'
 import { isValidCpfCnpj } from '@/lib/client-hub'
+import { closeSubscriptionInterest } from '@/lib/subscription'
 
 type SubscriptionBody = {
   barberId?: string
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
         },
         include: subscriptionInclude,
       })
+      if (client) await closeSubscriptionInterest(client.id, staff.id)
       return NextResponse.json({ success: true, subscription })
     }
 
@@ -219,6 +221,7 @@ export async function POST(request: NextRequest) {
       include: subscriptionInclude,
     })
 
+    if (client) await closeSubscriptionInterest(client.id, staff.id)
     return NextResponse.json({ success: true, subscription })
   } catch (error) {
     console.error('Erro ao criar assinatura:', error)

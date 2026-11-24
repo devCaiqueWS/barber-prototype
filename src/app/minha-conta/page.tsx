@@ -45,6 +45,7 @@ interface Overview {
     provider: string
     lastPaymentAt: string | null
   } | null
+  subscriptionInterest: { id: string; status: string; createdAt: string } | null
   upcoming: ClientAppointment[]
   past: ClientAppointment[]
 }
@@ -385,8 +386,23 @@ export default function MinhaContaPage() {
     }
   }
 
+  const handleJoinQueue = async () => {
+    setBusyId('subscription-interest')
+    try {
+      const response = await fetch('/api/client/subscription-interest', { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) alert(data.error || 'Não foi possível registrar seu interesse.')
+      await loadOverview()
+    } catch {
+      alert('Não foi possível registrar seu interesse.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
   const returnMessage = paymentReturn ? PAYMENT_RETURN_MESSAGES[paymentReturn.result] : null
   const subscription = overview?.subscription
+  const subscriptionInterest = overview?.subscriptionInterest
 
   return (
     <div className="premium-shell min-h-screen text-white">
@@ -504,20 +520,42 @@ export default function MinhaContaPage() {
                       </p>
                     )}
                   </div>
+                ) : subscriptionInterest ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">Você está na fila da assinatura</p>
+                      <p className="text-sm text-slate-400">
+                        Pedido feito em{' '}
+                        {new Date(subscriptionInterest.createdAt).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}.
+                        A barbearia vai entrar em contato
+                        para apresentar os planos.
+                      </p>
+                    </div>
+                    <a
+                      href={whatsappLink(`Olá! Entrei na fila da assinatura. Meu código de cliente é ${formatClientCode(overview.user.clientCode)}.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold text-amber-300 hover:underline"
+                    >
+                      Falar no WhatsApp
+                    </a>
+                  </div>
                 ) : (
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold">Seja assinante</p>
-                      <p className="text-sm text-slate-400">Agende sem pagar a cada visita. Fale com a gente para conhecer os planos.</p>
+                      <p className="text-sm text-slate-400">
+                        Agende sem pagar a cada visita. Demonstre interesse e a barbearia entra em contato com você.
+                      </p>
                     </div>
-                    <a
-                      href={whatsappLink(`Olá! Quero saber sobre a assinatura. Meu código de cliente é ${formatClientCode(overview.user.clientCode)}.`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-lg border border-amber-500/60 px-4 py-2 text-sm font-semibold text-amber-300 hover:bg-amber-500/10"
+                    <button
+                      type="button"
+                      onClick={handleJoinQueue}
+                      disabled={busyId === 'subscription-interest'}
+                      className="rounded-lg border border-amber-500/60 px-4 py-2 text-sm font-semibold text-amber-300 hover:bg-amber-500/10 disabled:opacity-60"
                     >
-                      Quero assinar
-                    </a>
+                      {busyId === 'subscription-interest' ? 'Enviando...' : 'Quero assinar'}
+                    </button>
                   </div>
                 )}
               </div>

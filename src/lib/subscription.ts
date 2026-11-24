@@ -42,3 +42,20 @@ export async function getDisplaySubscription(clientId: string) {
     },
   })
 }
+
+// Fila de "Quero assinar": interesse aguardando contato da barbearia.
+export async function getWaitingSubscriptionInterest(clientId: string) {
+  return prisma.subscriptionInterest.findFirst({
+    where: { clientId, status: 'waiting' },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, status: true, createdAt: true },
+  })
+}
+
+// Assinatura criada para o cliente: tira ele da fila de interessados.
+export async function closeSubscriptionInterest(clientId: string, staffId: string | null): Promise<void> {
+  await prisma.subscriptionInterest.updateMany({
+    where: { clientId, status: 'waiting' },
+    data: { status: 'converted', handledAt: new Date(), handledById: staffId },
+  })
+}
