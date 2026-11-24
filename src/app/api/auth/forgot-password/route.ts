@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resolveSiteUrl } from '@/lib/business'
+import { trustedSiteUrl } from '@/lib/business'
 import { sendEmail } from '@/lib/email'
 import {
   buildPasswordResetHtml,
@@ -33,9 +33,14 @@ export async function POST(request: NextRequest) {
     const eligible =
       user && user.isActive && (user.role.toUpperCase() !== 'CLIENT' || user.isRegistered)
 
-    if (eligible && (await countRecentResetRequests(user.id)) < MAX_RESETS_PER_HOUR) {
+    const siteUrl = trustedSiteUrl()
+    if (!siteUrl) {
+      console.error('[forgot-password] Configure NEXT_PUBLIC_SITE_URL: sem ela o link de redefinição não é enviado.')
+    }
+
+    if (siteUrl && eligible && (await countRecentResetRequests(user.id)) < MAX_RESETS_PER_HOUR) {
       const token = await createPasswordResetToken(user.id)
-      const resetUrl = `${resolveSiteUrl(request)}/redefinir-senha?token=${token}`
+      const resetUrl = `${siteUrl}/redefinir-senha?token=${encodeURIComponent(token)}`
       const result = await sendEmail({
         to: email,
         subject: buildPasswordResetSubject(),

@@ -54,6 +54,22 @@ export const resolveSiteUrl = (request?: { headers: Headers }): string => {
   return 'http://localhost:3000'
 }
 
+/**
+ * URL do site só a partir de configuração do servidor, nunca de headers da requisição.
+ * Use para links com segredo (ex.: redefinir senha): um Host forjado não pode
+ * desviar o link. Sem configuração em produção, devolve null.
+ */
+export const trustedSiteUrl = (): string | null => {
+  const fromEnv =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.NETLIFY && process.env.URL) ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+  if (fromEnv) return stripTrailingSlash(fromEnv)
+  return process.env.NODE_ENV === 'production' ? null : 'http://localhost:3000'
+}
+
 export const formatBRL = (value: number | null | undefined): string => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return ''
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
