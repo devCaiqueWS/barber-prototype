@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
+import { createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-aqui'
@@ -9,12 +10,18 @@ export interface AuthTokenPayload {
   userId: string
   email: string
   role: string
+  /** Impressão da senha no login: trocar a senha derruba as sessões abertas */
+  pwv?: string
 }
 
-// Gera o mesmo JWT usado em /api/auth/login
-export function signAuthToken(user: { id: string; email: string; role: string }) {
+// Muda sempre que a senha muda (o hash bcrypt é refeito). Não revela a senha.
+export const passwordVersion = (passwordHash: string): string =>
+  createHash('sha256').update(passwordHash).digest('hex').slice(0, 16)
+
+// JWT do cliente (cookie auth-token), usado no login e no cadastro
+export function signAuthToken(user: { id: string; email: string; role: string; password: string }) {
   return jwt.sign(
-    { userId: user.id, email: user.email, role: user.role },
+    { userId: user.id, email: user.email, role: user.role, pwv: passwordVersion(user.password) },
     JWT_SECRET,
     { expiresIn: '7d' },
   )
@@ -54,11 +61,17 @@ export async function getAuthUser(request: NextRequest) {
         clientCode: true,
         isRegistered: true,
         isActive: true,
+        password: true,
       },
     })
 
     if (!user || !user.isActive) return null
-    return user
+    // Senha trocada depois do login (ex.: "Esqueci a senha"): sessão não vale mais.
+    // Tokens antigos, sem pwv, seguem válidos até expirar (no máximo 7 dias).
+    if (decoded.pwv && decoded.pwv !== passwordVersion(user.password)) return null
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safeUser } = user
+    return safeUser
   } catch {
     return null
   }

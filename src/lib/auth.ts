@@ -2,6 +2,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import NextAuth from 'next-auth/next'
+import { passwordVersion } from '@/lib/client-auth'
 
 
 export const authOptions = {
@@ -41,6 +42,7 @@ export const authOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          pwv: passwordVersion(user.password),
         }
       }
     })
@@ -54,6 +56,19 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.pwv = user.pwv;
+        return token;
+      }
+      // Senha trocada depois do login (ex.: "Esqueci a senha"): a sessão perde
+      // id e role, e o painel volta a pedir login. Sessões antigas sem pwv seguem.
+      if (token?.id && token.pwv) {
+        const current = await prisma.user.findUnique({
+          where: { id: String(token.id) },
+          select: { password: true, isActive: true },
+        });
+        if (!current || !current.isActive || passwordVersion(current.password) !== token.pwv) {
+          return {};
+        }
       }
       return token;
     },

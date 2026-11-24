@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { signAuthToken } from '@/lib/client-auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,15 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar token JWT
-    const token = jwt.sign(
-      { 
-        userId: user.id,
-        email: user.email,
-        role: user.role 
-      },
-      process.env.JWT_SECRET || 'sua-chave-secreta-aqui',
-      { expiresIn: '7d' }
-    )
+    const token = signAuthToken(user)
 
     console.log('Token created for user:', { userId: user.id, role: user.role })
 
