@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { appointmentDisplayName } from "@/lib/dependents";
 import BarbersManagement from "@/components/admin/BarbersManagement";
 import ServicesManagement from "@/components/admin/ServicesManagement";
 import ProductsManagement from "@/components/admin/ProductsManagement";
@@ -172,6 +173,7 @@ export default function AdminPage() {
           id?: string
           client?: { name?: string }
           clientName?: string
+          dependentName?: string | null
           service?: { name?: string }
           barber?: { name?: string } | null
           date?: string
@@ -182,7 +184,7 @@ export default function AdminPage() {
         return {
           id: a.id ?? '',
           client: {
-            name: a.client?.name ?? a.clientName ?? '',
+            name: appointmentDisplayName(a),
           },
           service: {
             name: a.service?.name ?? '',

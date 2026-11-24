@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { requireStaff } from '@/lib/staff-auth'
+import { appointmentDisplayName } from '@/lib/dependents'
 
 type ExportRow = {
   NumeroAtendimento: string
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     const filtered = client
       ? appointments.filter(
           (a) =>
-            (a.clientName || '')
+            appointmentDisplayName(a)
               .toLowerCase()
               .includes(client.toLowerCase()) ||
             (a.client?.email || '')
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
     // 9. Data
     const tableRows = filtered.map((a) => ({
       id: a.id,
-      clientName: a.clientName,
+      clientName: appointmentDisplayName(a),
       date: a.date,
       startTime: a.startTime,
       status: a.status,
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     const exportRows: ExportRow[] = filtered.map((a) => ({
       NumeroAtendimento: a.id,
-      Cliente: a.clientName,
+      Cliente: appointmentDisplayName(a),
       Servico: a.service?.name || '',
       Produtos: '',
       Valores: a.service?.price ?? 0,

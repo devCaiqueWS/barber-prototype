@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { formatDateKey } from '@/lib/date'
+import { appointmentDisplayName } from '@/lib/dependents'
 import { ArrowLeft } from 'lucide-react'
 
 // Reserva aguardando pagamento em âmbar; pago sem horário (precisa de estorno) em vermelho
@@ -20,6 +21,7 @@ const CALENDAR_STATUS_NOTES: Record<string, string> = {
 }
 
 interface Appointment {
+  dependentName?: string | null
   id: string
   date: string
   startTime: string
@@ -171,7 +173,7 @@ export default function AdminAppointments() {
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
       const matchesSearch =
-        appointment.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        appointmentDisplayName(appointment).toLowerCase().includes(searchTerm.toLowerCase()) ||
         appointment.service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (appointment.barber?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter
@@ -374,7 +376,7 @@ export default function AdminAppointments() {
                               onClick={() => openEdit(appt)}
                               className={`mb-2 w-full text-left rounded-lg border p-3 shadow-sm transition ${calendarCardTone(appt.status)}`}
                             >
-                              <div className="text-sm font-semibold">{appt.client.name}</div>
+                              <div className="text-sm font-semibold">{appointmentDisplayName(appt)}</div>
                               {CALENDAR_STATUS_NOTES[appt.status] && (
                                 <div className="text-[11px] font-semibold uppercase tracking-wide">
                                   {CALENDAR_STATUS_NOTES[appt.status]}

@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { formatDateBR, formatDateKey } from '@/lib/date'
+import { appointmentDisplayName } from '@/lib/dependents'
 
 // Reserva aguardando pagamento em âmbar; pago sem horário (precisa de estorno) em vermelho
 const calendarCardTone = (status: string) => {
@@ -19,6 +20,7 @@ const CALENDAR_STATUS_NOTES: Record<string, string> = {
 }
 
 interface Appointment {
+  dependentName?: string | null
   id: string
   date: string
   startTime: string
@@ -199,7 +201,7 @@ export default function AppointmentsManagement() {
   }
 
   const filteredAppointments = appointments.filter((appointment) => {
-    const clientName = appointment.client?.name || ''
+    const clientName = `${appointmentDisplayName(appointment)} ${appointment.client?.name || ''}`
     const serviceName = appointment.service?.name || ''
     const barberName = appointment.barber?.name || ''
 
@@ -378,7 +380,7 @@ export default function AppointmentsManagement() {
                               onClick={() => openEdit(appt)}
                               className={`mb-2 w-full text-left rounded-lg border p-3 shadow-sm transition ${calendarCardTone(appt.status)}`}
                             >
-                            <div className="text-sm font-semibold">{appt.client?.name || 'Cliente'}</div>
+                            <div className="text-sm font-semibold">{appointmentDisplayName(appt) || 'Cliente'}</div>
                             {CALENDAR_STATUS_NOTES[appt.status] && (
                               <div className="text-[11px] font-semibold uppercase tracking-wide">
                                 {CALENDAR_STATUS_NOTES[appt.status]}
@@ -409,7 +411,7 @@ export default function AppointmentsManagement() {
             <div className="mb-4">
               <h2 className="text-xl font-semibold text-white">Editar agendamento</h2>
               <p className="text-sm text-slate-400">
-                {editingAppointment.client?.name || 'Cliente'} - {editingAppointment.service?.name || 'ServiÇõo'}
+                {appointmentDisplayName(editingAppointment) || 'Cliente'} - {editingAppointment.service?.name || 'ServiÇõo'}
               </p>
               {editingAppointment.products && editingAppointment.products.length > 0 && (
                 <p className="mt-1 text-sm text-amber-300">Produtos: {(editingAppointment.products || []).map((item) => `${item.quantity}x ${item.name}`).join(', ')}</p>

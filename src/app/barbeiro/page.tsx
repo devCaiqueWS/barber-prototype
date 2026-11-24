@@ -5,9 +5,11 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { formatDateKey } from '@/lib/date'
+import { appointmentDisplayName } from '@/lib/dependents'
 import { ArrowLeft } from 'lucide-react'
 
 interface Appointment {
+    dependentName?: string | null
     id: string
     date: string
     status: string
@@ -227,7 +229,7 @@ export default function BarberDashboard() {
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                                 <div>
                                                     <p className="text-slate-400">Cliente</p>
-                                                    <p className="font-medium">{appointment.client.name}</p>
+                                                    <p className="font-medium">{appointmentDisplayName(appointment)}</p>
                                                     <p className="text-slate-500">{appointment.client.email}</p>
                                                 </div>
 

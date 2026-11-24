@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { formatDateBR, formatDateKey } from "@/lib/date";
+import { appointmentDisplayName } from "@/lib/dependents";
 
 type AppointmentRow = {
   id: string;
@@ -11,6 +12,7 @@ type AppointmentRow = {
   endTime: string;
   status: string;
   clientName: string;
+  dependentName?: string | null;
   clientEmail: string;
   barber?: { name: string } | null;
   service?: { name: string; price: number; duration: number } | null;
@@ -77,8 +79,8 @@ export default function AppointmentsReportTable() {
     const statusOk = statusFilter === "all" || a.status === statusFilter;
     const clientOk =
       clientFilter.trim().length === 0 ||
-      a.clientName
-        ?.toLowerCase()
+      appointmentDisplayName(a)
+        .toLowerCase()
         .includes(clientFilter.toLowerCase()) ||
       a.clientEmail
         ?.toLowerCase()
@@ -274,7 +276,7 @@ export default function AppointmentsReportTable() {
                     {a.id}
                   </td>
                   <td className="py-2 px-3 border-b border-slate-800">
-                    {a.clientName}
+                    {appointmentDisplayName(a)}
                   </td>
                   <td className="py-2 px-3 border-b border-slate-800">
                     {a.service?.name || "-"}
