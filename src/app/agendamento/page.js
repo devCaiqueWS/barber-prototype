@@ -14,6 +14,8 @@ import { SimpleDatePicker } from '@/components/ui/simple-date-picker'
 import { formatDateBR, formatDateKey } from '@/lib/date'
 import { appointmentIcsFilename, buildAppointmentIcs } from '@/lib/ics'
 import ClientAuthForm from '@/components/client/ClientAuthForm'
+import DependentsManager from '@/components/client/DependentsManager'
+import { RELATIONSHIPS } from '@/lib/dependents'
 import { ONLINE_PAYMENT_REQUIRED } from '@/lib/payment-config'
 
 function BookingPageContent() {
@@ -70,6 +72,28 @@ function BookingPageContent() {
   // Conta do cliente logado (obrigatória para agendar)
   const [authUser, setAuthUser] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
+
+  // Para quem é o corte: '' = o próprio titular, senão o id do dependente
+  const [dependents, setDependents] = useState([])
+  const [selectedDependentId, setSelectedDependentId] = useState('')
+
+  useEffect(() => {
+    setSelectedDependentId('')
+    if (!authUser?.id) {
+      setDependents([])
+      return
+    }
+    let cancelled = false
+    fetch('/api/client/dependents', { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : { dependents: [] }))
+      .then((data) => {
+        if (!cancelled) setDependents(data.dependents || [])
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [authUser?.id])
 
   const todayStr = formatDateKey(new Date())
 
@@ -398,7 +422,11 @@ function BookingPageContent() {
 
 
 
-  const bookingPaymentLabel = authUser?.isSubscriber
+  // A assinatura é do titular e intransferível: corte de dependente é cobrado
+  const selectedDependent = dependents.find((dependent) => dependent.id === selectedDependentId) || null
+  const coveredBySubscription = Boolean(authUser?.isSubscriber) && !selectedDependent
+
+  const bookingPaymentLabel = coveredBySubscription
     ? 'Assinatura'
     : ONLINE_PAYMENT_REQUIRED
       ? 'Online'
@@ -406,7 +434,7 @@ function BookingPageContent() {
 
   // Estimativa para a tela; o valor cobrado é sempre recalculado no servidor
   const amountDue =
-    (authUser?.isSubscriber ? 0 : (Number(selectedService?.price) || 0) + extrasTotal) + productsTotal
+    (coveredBySubscription ? 0 : (Number(selectedService?.price) || 0) + extrasTotal) + productsTotal
 
   const handleClientDataSubmit = async (e) => {
     e.preventDefault()
@@ -435,6 +463,7 @@ function BookingPageContent() {
           clientWhatsapp: clientData.whatsapp,
           products: cartItems.map((item) => ({ productId: item.id, quantity: item.quantity })),
           extraServiceIds: selectedExtraIds,
+          dependentId: selectedDependent ? selectedDependent.id : undefined,
         }),
       })
 
@@ -448,6 +477,13 @@ function BookingPageContent() {
 
       if (!response.ok || !data.success) {
         alert(data.error || 'Não foi possível concluir o agendamento.')
+        if (response.status === 400 && data.error === 'Dependente não encontrado.') {
+          // Dependente removido em outra aba: recarrega a lista e volta para "Eu"
+          setSelectedDependentId('')
+          const refreshed = await fetch('/api/client/dependents', { cache: 'no-store' }).then((r) => r.json()).catch(() => null)
+          setDependents(refreshed?.dependents || [])
+          return
+        }
         if (response.status === 409 && data.extrasUnavailable) {
           // O tempo livre mudou enquanto o cliente escolhia: recarrega os adicionais
           const options = await loadExtraOptions(selectedTime)
@@ -487,6 +523,8 @@ function BookingPageContent() {
   const resetBooking = () => {
 
     setStep(1)
+
+    setSelectedDependentId('')
 
     setSelectedService(null)
 
@@ -906,7 +944,7 @@ function BookingPageContent() {
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-lg font-semibold text-amber-500">{service.name}</span>
                             <span className="shrink-0 font-bold text-green-400">
-                              {authUser?.isSubscriber ? 'Assinatura' : formatBRL(service.price)}
+                              {coveredBySubscription ? 'Assinatura' : formatBRL(service.price)}
                             </span>
                           </div>
                           <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
@@ -972,7 +1010,7 @@ function BookingPageContent() {
                   <p className="text-center text-sm text-slate-300">
                     Adicionais:{' '}
                     <span className="font-semibold text-green-400">
-                      {formatBRL((authUser?.isSubscriber ? 0 : extrasTotal) + productsTotal)}
+                      {formatBRL((coveredBySubscription ? 0 : extrasTotal) + productsTotal)}
                     </span>
                     {selectedExtras.length > 0 ? ` · +${extrasMinutes} min` : ''}
                   </p>
@@ -1102,6 +1140,49 @@ function BookingPageContent() {
 
                 </div>
 
+                <div className="rounded-xl border border-white/10 bg-slate-800/60 p-4">
+                  <p className="mb-3 text-sm font-medium">Para quem é o corte?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[{ id: '', label: `Eu (${(authUser.name || '').split(' ')[0] || 'titular'})` }]
+                      .concat(
+                        dependents.map((dependent) => ({
+                          id: dependent.id,
+                          label: `${dependent.name} · ${RELATIONSHIPS[dependent.relationship] || dependent.relationship}`,
+                        })),
+                      )
+                      .map((option) => (
+                        <button
+                          key={option.id || 'me'}
+                          type="button"
+                          onClick={() => setSelectedDependentId(option.id)}
+                          className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                            selectedDependentId === option.id
+                              ? 'border-amber-500 bg-amber-500 font-semibold text-black'
+                              : 'border-slate-600 text-slate-200 hover:border-amber-500/60'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                  </div>
+                  <div className="mt-3">
+                    <DependentsManager
+                      compact
+                      onAdded={(dependent) => {
+                        setDependents((list) =>
+                          [...list, dependent].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+                        )
+                        setSelectedDependentId(dependent.id)
+                      }}
+                    />
+                  </div>
+                  {selectedDependent && authUser?.isSubscriber && (
+                    <p className="mt-3 text-xs text-amber-300">
+                      A assinatura vale só para você: o corte de {selectedDependent.name} é cobrado normalmente.
+                    </p>
+                  )}
+                </div>
+
 
 
                 <div>
@@ -1181,12 +1262,12 @@ function BookingPageContent() {
                     <ul className="mt-2 space-y-1 text-sm text-slate-300">
                       <li className="flex justify-between gap-3">
                         <span>{selectedService?.name}</span>
-                        <span>{authUser?.isSubscriber ? 'Assinatura' : formatBRL(selectedService?.price)}</span>
+                        <span>{coveredBySubscription ? 'Assinatura' : formatBRL(selectedService?.price)}</span>
                       </li>
                       {selectedExtras.map((service) => (
                         <li key={service.id} className="flex justify-between gap-3">
                           <span>{service.name}</span>
-                          <span>{authUser?.isSubscriber ? 'Assinatura' : formatBRL(service.price)}</span>
+                          <span>{coveredBySubscription ? 'Assinatura' : formatBRL(service.price)}</span>
                         </li>
                       ))}
                       {cartItems.map((item) => (
@@ -1205,7 +1286,7 @@ function BookingPageContent() {
                 ) : (
                   <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-4">
                     <p className="text-sm font-semibold text-green-300">
-                      {authUser?.isSubscriber ? 'Você é assinante' : 'Sem cobrança'}
+                      {coveredBySubscription ? 'Você é assinante' : 'Sem cobrança'}
                     </p>
                     <p className="mt-1 text-sm text-slate-300">Este agendamento é confirmado na hora, sem cobrança.</p>
                   </div>
@@ -1267,6 +1348,8 @@ function BookingPageContent() {
                 <h2 className="text-2xl font-bold mb-4 text-green-400">Agendamento Confirmado!</h2>
 
                 <div className="space-y-2 mb-6">
+
+                  {selectedDependent && <p><strong>Para:</strong> {selectedDependent.name}</p>}
 
                   <p><strong>Serviço:</strong> {allServiceNames}</p>
 

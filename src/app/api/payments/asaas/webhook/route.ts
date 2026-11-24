@@ -292,6 +292,7 @@ async function confirmAppointmentPayment(
       id: updated.id,
       clientName: updated.clientName,
       clientEmail: updated.clientEmail,
+      dependentName: updated.dependentName,
       date: updated.date,
       startTime: updated.startTime,
       endTime: updated.endTime,

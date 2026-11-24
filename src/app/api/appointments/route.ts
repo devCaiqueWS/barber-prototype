@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       notes,
       products: requestedProductsRaw,
       extraServiceIds: extraServiceIdsRaw,
+      dependentId: dependentIdRaw,
     } = body as {
       clientInstagram?: string
       clientWhatsapp?: string
@@ -59,6 +60,22 @@ export async function POST(request: NextRequest) {
       notes?: string
       products?: unknown
       extraServiceIds?: unknown
+      dependentId?: unknown
+    }
+
+    // Corte para um dependente do titular: precisa ser dele e estar ativo
+    let dependent: { id: string; name: string } | null = null
+    if (dependentIdRaw !== undefined && dependentIdRaw !== null && dependentIdRaw !== '') {
+      dependent =
+        typeof dependentIdRaw === 'string'
+          ? await prisma.dependent.findFirst({
+              where: { id: dependentIdRaw, ownerId: authUser.id, isActive: true },
+              select: { id: true, name: true },
+            })
+          : null
+      if (!dependent) {
+        return NextResponse.json({ error: 'Dependente não encontrado.' }, { status: 400 })
+      }
     }
 
     // Identidade sempre vem da conta logada
@@ -289,7 +306,8 @@ export async function POST(request: NextRequest) {
     // Assinante ativo não paga os serviços. Com o pagamento online ligado, o resto
     // (serviços de quem não é assinante e produtos) é pago online antes de confirmar;
     // desligado, o agendamento é confirmado na hora e o cliente paga na barbearia.
-    const subscription = await getActiveSubscription(authUser.id)
+    // A assinatura é do titular e intransferível: corte de dependente é cobrado.
+    const subscription = dependent ? null : await getActiveSubscription(authUser.id)
     const hasCharge =
       service.price > 0 || productItems.length > 0 || extraItems.some((extra) => extra.price > 0)
     const paymentMethod = subscription
@@ -342,6 +360,8 @@ export async function POST(request: NextRequest) {
           paymentExpiresAt: requiresPayment ? paymentHoldDeadline() : null,
           notes: appointmentNotes || undefined,
           source: 'online',
+          dependentId: dependent?.id ?? null,
+          dependentName: dependent?.name ?? null,
           products: productItems.length ? { create: productItems } : undefined,
           extraServices: extraItems.length ? { create: extraItems } : undefined,
         },
@@ -442,6 +462,7 @@ export async function POST(request: NextRequest) {
         id: appointment.id,
         clientName: appointment.clientName,
         clientEmail: appointment.clientEmail,
+        dependentName: appointment.dependentName,
         date: appointment.date,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
@@ -481,6 +502,7 @@ export async function POST(request: NextRequest) {
           status: appointment.status,
           payOnline: appointment.payOnline,
           paymentMethod: appointment.paymentMethod,
+          dependentName: appointment.dependentName,
           client: appointment.client,
           barber: appointment.barber,
           service: appointment.service,

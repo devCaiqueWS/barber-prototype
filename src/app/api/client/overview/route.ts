@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       startTime: a.startTime,
       endTime: a.endTime,
       status: a.status,
+      dependentName: a.dependentName,
       paymentMethod: a.paymentMethod,
       payOnline: a.payOnline,
       paidAt: a.paidAt,

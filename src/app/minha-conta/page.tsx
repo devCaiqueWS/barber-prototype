@@ -15,6 +15,7 @@ interface ClientAppointment {
   startTime: string
   endTime: string
   status: string
+  dependentName?: string | null
   paymentMethod: string
   payOnline: boolean
   paidAt: string | null
@@ -149,6 +150,9 @@ function AppointmentCard({
             {formatDateBR(appointment.date)} às {appointment.startTime}
             {appointment.barber?.name ? ` · ${appointment.barber.name}` : ''}
           </p>
+          {appointment.dependentName && (
+            <p className="text-sm text-amber-300">Para {appointment.dependentName}</p>
+          )}
           {appointment.products && appointment.products.length > 0 && (
             <p className="text-sm text-slate-300">
               Produtos: {appointment.products.map((item) => `${item.quantity}x ${item.name}`).join(', ')}

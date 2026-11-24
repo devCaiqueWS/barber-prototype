@@ -11,6 +11,8 @@ export type AppointmentEmailInput = {
   id: string
   clientName: string
   clientEmail: string
+  /** Corte para um dependente do titular */
+  dependentName?: string | null
   /** YYYY-MM-DD */
   date: string
   /** HH:mm */
@@ -49,6 +51,7 @@ export async function sendAppointmentConfirmationEmail(
     endTime: appointment.endTime,
     status: appointment.status,
     clientName: appointment.clientName,
+    dependentName: appointment.dependentName,
     serviceName: appointment.serviceName,
     servicePrice: appointment.servicePrice,
     serviceDuration: appointment.serviceDuration,

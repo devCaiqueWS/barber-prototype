@@ -11,6 +11,8 @@ export type AppointmentEmailData = {
   endTime?: string | null
   status?: string | null
   clientName: string
+  /** Corte para um dependente do titular */
+  dependentName?: string | null
   serviceName?: string | null
   servicePrice?: number | null
   serviceDuration?: number | null
@@ -80,6 +82,7 @@ const buildRows = (data: AppointmentEmailData): Row[] => {
   const paymentLabel = formatPaymentMethod(data.paymentMethod)
 
   return [
+    ...(data.dependentName ? [{ label: 'Para', value: data.dependentName }] : []),
     { label: 'Serviço', value: data.serviceName || 'Atendimento' },
     { label: 'Profissional', value: data.barberName || 'A definir' },
     { label: 'Data', value: dateLabel },
