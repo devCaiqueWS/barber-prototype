@@ -29,17 +29,61 @@ export const whatsappLink = (message?: string) => {
 
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 
+const isProduction = () => process.env.NODE_ENV === 'production'
+
+// localhost, 127.x, 0.0.0.0, ::1 e domínios .local nunca valem em produção
+const LOCAL_HOSTNAME_RE = /^(localhost|127(\.\d{1,3}){3}|0\.0\.0\.0|\[::1\]|::1)$|\.local$/i
+
+/** URL com https:// (quando falta o esquema) e sem barra final; null se inválida. */
+const normalizeUrl = (value: string): string | null => {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  try {
+    new URL(withScheme)
+    return stripTrailingSlash(withScheme)
+  } catch {
+    return null
+  }
+}
+
+export const isLocalUrl = (value: string): boolean => {
+  try {
+    return LOCAL_HOSTNAME_RE.test(new URL(value).hostname)
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Primeira URL configurada no servidor, em ordem de preferência. Em produção,
+ * URLs locais são ignoradas (ex.: NEXTAUTH_URL=http://localhost copiado do .env).
+ */
+const configuredSiteUrl = (): string | null => {
+  const candidates = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.NETLIFY ? process.env.URL : undefined,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_URL,
+  ]
+  for (const candidate of candidates) {
+    const url = candidate ? normalizeUrl(candidate) : null
+    if (!url) continue
+    if (isProduction() && isLocalUrl(url)) continue
+    return url
+  }
+  return null
+}
+
 /**
  * URL pública do site, usada para montar links absolutos em e-mails.
- * Prioriza a variável de ambiente e cai para os headers da requisição.
+ * Prioriza a configuração do servidor e cai para os headers da requisição.
+ * Em produção nunca devolve localhost: sem URL pública, devolve '' e registra erro.
  */
 export const resolveSiteUrl = (request?: { headers: Headers }): string => {
-  const fromEnv =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-
-  if (fromEnv) return stripTrailingSlash(fromEnv)
+  const configured = configuredSiteUrl()
+  if (configured) return configured
 
   if (request) {
     const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
@@ -47,27 +91,27 @@ export const resolveSiteUrl = (request?: { headers: Headers }): string => {
       const proto =
         request.headers.get('x-forwarded-proto') ||
         (host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https')
-      return stripTrailingSlash(`${proto}://${host}`)
+      const url = normalizeUrl(`${proto}://${host}`)
+      if (url && (!isProduction() || !isLocalUrl(url))) return url
     }
   }
 
+  if (isProduction()) {
+    console.error('[site-url] Sem URL pública: configure NEXT_PUBLIC_SITE_URL com o domínio do site.')
+    return ''
+  }
   return 'http://localhost:3000'
 }
 
 /**
  * URL do site só a partir de configuração do servidor, nunca de headers da requisição.
  * Use para links com segredo (ex.: redefinir senha): um Host forjado não pode
- * desviar o link. Sem configuração em produção, devolve null.
+ * desviar o link. Sem URL pública configurada em produção, devolve null.
  */
 export const trustedSiteUrl = (): string | null => {
-  const fromEnv =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXTAUTH_URL ||
-    (process.env.NETLIFY && process.env.URL) ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-  if (fromEnv) return stripTrailingSlash(fromEnv)
-  return process.env.NODE_ENV === 'production' ? null : 'http://localhost:3000'
+  const configured = configuredSiteUrl()
+  if (configured) return configured
+  return isProduction() ? null : 'http://localhost:3000'
 }
 
 export const formatBRL = (value: number | null | undefined): string => {

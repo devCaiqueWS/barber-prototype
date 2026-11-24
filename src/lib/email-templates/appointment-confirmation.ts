@@ -128,9 +128,9 @@ export const buildAppointmentConfirmationText = (data: AppointmentEmailData): st
     '',
     ...rows.map((row) => `${row.label}: ${row.value}`),
     '',
-    'Salve na agenda do seu celular:',
-    data.icsUrl,
-    '(o arquivo .ics também está anexado a este e-mail)',
+    ...(data.icsUrl
+      ? ['Salve na agenda do seu celular:', data.icsUrl, '(o arquivo .ics também está anexado a este e-mail)']
+      : ['O arquivo .ics para salvar na agenda está anexado a este e-mail.']),
     '',
     `Precisa remarcar ou cancelar? Fale com a gente no WhatsApp ${BUSINESS.phone}.`,
     '',
@@ -199,9 +199,11 @@ export const buildAppointmentConfirmationHtml = (data: AppointmentEmailData): st
           </td>
         </tr>
 
-        <!-- Botão agenda -->
+        <!-- Botão agenda (sem URL pública, só o anexo .ics) -->
         <tr>
-          <td style="padding:28px 32px 0 32px;">
+          <td style="padding:28px 32px 0 32px;">${
+            data.icsUrl
+              ? `
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr>
                 <td align="center" bgcolor="${BRAND_COLORS.red}" style="background-color:${BRAND_COLORS.red};">
@@ -211,7 +213,12 @@ export const buildAppointmentConfirmationHtml = (data: AppointmentEmailData): st
             </table>
             <p style="margin:12px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8a8686;">
               Toque no botão para baixar o arquivo do evento e abri-lo no app de calendário do seu celular. O mesmo arquivo (.ics) está anexado a este e-mail.
-            </p>
+            </p>`
+              : `
+            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8a8686;">
+              O arquivo do evento (.ics) está anexado a este e-mail: abra-o para salvar o horário na agenda do celular.
+            </p>`
+          }
           </td>
         </tr>
 

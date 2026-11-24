@@ -42,7 +42,8 @@ export async function sendAppointmentConfirmationEmail(
     return { sent: false, skipped: 'E-mail do cliente não é entregável' }
   }
 
-  const icsUrl = `${appointment.siteUrl}/api/appointments/${appointment.id}/ics`
+  // Sem URL pública (produção mal configurada) não há link: o .ics segue anexado
+  const icsUrl = appointment.siteUrl ? `${appointment.siteUrl}/api/appointments/${appointment.id}/ics` : ''
 
   const data: AppointmentEmailData = {
     id: appointment.id,
@@ -72,7 +73,7 @@ export async function sendAppointmentConfirmationEmail(
     barberName: appointment.barberName,
     clientName: appointment.clientName,
     status: appointment.status,
-    url: icsUrl,
+    url: icsUrl || undefined,
   })
 
   return sendEmail({
