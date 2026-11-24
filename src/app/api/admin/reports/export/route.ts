@@ -186,7 +186,10 @@ export async function GET(request: NextRequest) {
 }
 
 function sanitizeCsv(value: string) {
-  let v = value.replace(/"/g, '""')
+  // Nomes vêm do cliente: um valor começando com = + - @ viraria fórmula no Excel.
+  // O apóstrofo força texto; números negativos (valores) ficam como estão.
+  const safe = /^[=+\-@\t\r]/.test(value) && !/^-?\d+([.,]\d+)?$/.test(value) ? `'${value}` : value
+  let v = safe.replace(/"/g, '""')
   if (/[;\n\r]/.test(v)) v = `"${v}"`
   return v
 }
