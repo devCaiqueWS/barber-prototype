@@ -166,6 +166,13 @@ export default function ClientAuthForm({ onSuccess, initialMode = 'login' }: Cli
             className="w-full rounded-lg border border-slate-600 bg-slate-800 p-3 text-white"
             placeholder={mode === 'register' ? 'Mínimo de 6 caracteres' : '••••••••'}
           />
+          {mode === 'login' && (
+            <div className="mt-2 text-right">
+              <a href="/esqueci-senha" className="text-sm text-amber-300 hover:underline">
+                Esqueci a senha
+              </a>
+            </div>
+          )}
         </div>
 
         {mode === 'register' && (

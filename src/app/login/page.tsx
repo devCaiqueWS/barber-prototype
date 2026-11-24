@@ -123,6 +123,11 @@ export default function LoginPage() {
                   <span className="text-xs font-semibold">{showPassword ? "Ocultar" : "Mostrar"}</span>
                 </button>
               </div>
+              <div className="mt-2 text-right">
+                <Link href="/esqueci-senha" className="text-sm text-white/58 hover:text-white">
+                  Esqueci a senha
+                </Link>
+              </div>
             </div>
 
             {error && <div className="bg-red-950/40 px-4 py-3 text-sm text-red-100">{error}</div>}
