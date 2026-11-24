@@ -52,6 +52,9 @@ model User {
   availabilities     BarberAvailability[]
   subscriptionsAsBarber Subscription[]    @relation("SubscriptionBarber")
   subscriptionsAsClient Subscription[]    @relation("SubscriptionClient")
+  passwordResetTokens   PasswordResetToken[]
+  subscriptionInterests SubscriptionInterest[]
+  dependents            Dependent[]
 
   @@map("users")
 }
@@ -107,6 +110,12 @@ model Appointment {
 
   // Serviços adicionais feitos no mesmo horário, logo após o serviço principal
   extraServices AppointmentService[]
+
+  // Corte para um dependente do titular (clientId). O nome é copiado no momento
+  // do agendamento para o histórico continuar legível se o dependente for removido.
+  dependent     Dependent? @relation(fields: [dependentId], references: [id], onDelete: SetNull)
+  dependentId   String?
+  dependentName String?
 
   @@index([asaasPaymentLinkId])
   @@index([asaasCheckoutId])
@@ -193,4 +202,48 @@ model BarberAvailability {
 
   @@unique([barberId, date])
   @@map("barber_availability")
+}
+
+// Link de "Esqueci a senha". Só o hash SHA-256 do token fica no banco.
+// A tabela já existia em produção (migration antiga); os tipos casam com ela.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamp(6)
+  usedAt    DateTime? @db.Timestamp(6)
+  createdAt DateTime  @default(now()) @db.Timestamp(6)
+
+  @@index([userId, expiresAt])
+}
+
+// Cliente que clicou "Quero assinar" e aguarda contato da barbearia.
+model SubscriptionInterest {
+  id          String    @id @default(uuid())
+  client      User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId    String
+  status      String    @default("waiting") // waiting, converted, dismissed
+  createdAt   DateTime  @default(now())
+  handledAt   DateTime?
+  handledById String?
+
+  @@index([status, createdAt])
+  @@index([clientId])
+}
+
+// Pessoa da família que o titular pode agendar pela própria conta.
+// A assinatura do titular não cobre dependentes.
+model Dependent {
+  id           String        @id @default(uuid())
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  name         String
+  relationship String // filho, conjuge, irmao, outro
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+
+  @@index([ownerId])
 }
