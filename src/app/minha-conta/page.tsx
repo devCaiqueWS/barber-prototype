@@ -7,6 +7,7 @@ import { formatDateBR, formatDateKey } from '@/lib/date'
 import { whatsappLink } from '@/lib/business'
 import { formatClientCode } from '@/lib/client-hub'
 import ClientAuthForm, { ClientUser } from '@/components/client/ClientAuthForm'
+import DependentsManager from '@/components/client/DependentsManager'
 
 interface ClientAppointment {
   id: string
@@ -558,6 +559,15 @@ export default function MinhaContaPage() {
                     </button>
                   </div>
                 )}
+              </div>
+
+              {/* Dependentes */}
+              <div className="rounded-xl border border-white/10 bg-slate-900/50 p-4">
+                <p className="font-semibold">Dependentes</p>
+                <p className="mb-3 text-sm text-slate-400">
+                  Agende para filhos, cônjuge ou familiares pela sua conta. A assinatura vale só para você.
+                </p>
+                <DependentsManager />
               </div>
 
               {/* Próximos agendamentos */}
