@@ -125,6 +125,13 @@ export default function DependentsManager({ onChange, onAdded, compact = false }
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            // Dentro do formulário de agendamento, Enter enviaria a reserva: salva o dependente
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              if (!saving) void handleSave()
+            }
+          }}
           className={inputClass}
           placeholder="Nome de quem vai cortar"
           maxLength={80}

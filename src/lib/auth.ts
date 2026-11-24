@@ -60,13 +60,19 @@ export const authOptions = {
         return token;
       }
       // Senha trocada depois do login (ex.: "Esqueci a senha"): a sessão perde
-      // id e role, e o painel volta a pedir login. Sessões antigas sem pwv seguem.
-      if (token?.id && token.pwv) {
+      // id e role e o painel nega acesso.
+      if (token?.id) {
         const current = await prisma.user.findUnique({
           where: { id: String(token.id) },
           select: { password: true, isActive: true },
         });
-        if (!current || !current.isActive || passwordVersion(current.password) !== token.pwv) {
+        if (!current || !current.isActive) return {};
+        const version = passwordVersion(current.password);
+        // Sessão de antes desta versão (sem pwv): recebe a impressão da senha atual,
+        // para que uma troca de senha futura também a derrube.
+        if (!token.pwv) {
+          token.pwv = version;
+        } else if (token.pwv !== version) {
           return {};
         }
       }
